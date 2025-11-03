@@ -3,27 +3,322 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Collecte de Données Financières - FMP</title>
-    <link rel="stylesheet" href="styles.css">
+    <title>Analyste Financier | Outil d'Analyse d'Entreprises</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="container">
-        <h1>📊 Collecte de Données Financières</h1>
-        
-        <div class="input-section">
-            <div class="input-group">
-                <input type="text" id="symbolInput" placeholder="Entrez un symbole (ex: AAPL, MSFT, TSLA)" value="AAPL">
-                <button id="collecterDonnees">Collecte de données</button>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-content">
+                <div class="logo">
+                    <i class="fas fa-chart-line"></i>
+                    <h1>Analyste Financier</h1>
+                </div>
+                <p class="tagline">Outil d'analyse fondamentale pour investisseurs avisés</p>
             </div>
-        </div>
+        </header>
 
-        <div class="loading" id="loading">
-            🔄 Collecte des données en cours...
-        </div>
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Input Section -->
+            <section class="input-section card">
+                <div class="section-header">
+                    <h2><i class="fas fa-database"></i> Données de l'Entreprise</h2>
+                    <p>Saisissez les données financières de l'entreprise à analyser</p>
+                </div>
 
-        <div id="resultats">
-            <!-- Toutes les données collectées apparaîtront ici -->
-        </div>
+                <div class="company-basic">
+                    <div class="input-group">
+                        <label for="companySymbol">
+                            <i class="fas fa-tag"></i>
+                            Symbole Boursier
+                        </label>
+                        <input type="text" id="companySymbol" placeholder="Ex: AAPL, MSFT, TSLA" value="AAPL">
+                        <small>Symbole coté en bourse (NYSE, NASDAQ, etc.)</small>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="companyName">
+                            <i class="fas fa-building"></i>
+                            Nom de l'entreprise
+                        </label>
+                        <input type="text" id="companyName" placeholder="Ex: Apple Inc.">
+                    </div>
+
+                    <div class="api-controls">
+                        <button onclick="recupererDonneesFMP()" class="fetch-btn" id="fetchFMPDataBtn" type="button">
+                            <i class="fas fa-cloud-download-alt"></i>
+                            Charger via API FMP
+                        </button>
+                        <div id="fmpStatus" class="fetch-status"></div>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="investingLink">
+                            <i class="fas fa-link"></i>
+                            Lien Investing.com (optionnel)
+                        </label>
+                        <input type="url" id="investingLink" placeholder="https://www.investing.com/equities/apple-computer-inc-financial-summary" />
+                        <small>Collez le lien de la page de l'entreprise sur Investing.com</small>
+                    </div>
+                
+                    <div class="input-group">
+                        <button onclick="recupererDonneesFinancieres()" class="fetch-btn" id="fetchDataBtn" type="button">
+                            <i class="fas fa-download"></i>
+                            Récupérer depuis Investing.com
+                        </button>
+                        <div id="fetchStatus" class="fetch-status"></div>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="periodType">
+                            <i class="fas fa-calendar-alt"></i>
+                            Période de référence
+                        </label>
+                        <select id="periodType" onchange="toggleQuarterField()">
+                            <option value="annual">Annuelle</option>
+                            <option value="quarterly">Trimestrielle</option>
+                        </select>
+                    </div>
+                
+                    <div class="input-group">
+                        <label for="dataYear">
+                            <i class="fas fa-calendar"></i>
+                            Année des données
+                        </label>
+                        <select id="dataYear">
+                            <!-- Les options seront générées par JavaScript -->
+                        </select>
+                    </div>
+                
+                    <div class="input-group" id="quarterField" style="display: none;">
+                        <label for="dataQuarter">
+                            <i class="fas fa-calendar-week"></i>
+                            Trimestre
+                        </label>
+                        <select id="dataQuarter">
+                            <option value="Q1">T1 - Premier trimestre</option>
+                            <option value="Q2">T2 - Deuxième trimestre</option>
+                            <option value="Q3">T3 - Troisième trimestre</option>
+                            <option value="Q4">T4 - Quatrième trimestre</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Categories en onglets -->
+                <div class="categories-tabs">
+                    <div class="tabs-header">
+                        <button class="tab-btn active" data-tab="sante">Santé Financière</button>
+                        <button class="tab-btn" data-tab="rentabilite">Rentabilité</button>
+                        <button class="tab-btn" data-tab="evaluation">Évaluation</button>
+                        <button class="tab-btn" data-tab="croissance">Croissance</button>
+                    </div>
+
+                    <div class="tab-content active" id="sante-tab">
+                        <div class="input-grid">
+                            <div class="input-group">
+                                <label>Actif à Court Terme (€)</label>
+                                <input type="number" id="currentAssets" placeholder="1,000,000">
+                                <small>Liquidités et actifs convertibles en cash sous 1 an</small>
+                            </div>
+                            <div class="input-group">
+                                <label>Passif à Court Terme (€)</label>
+                                <input type="number" id="currentLiabilities" placeholder="500,000">
+                                <small>Dettes à payer dans l'année</small>
+                            </div>
+                            <div class="input-group">
+                                <label>Dette Totale (€)</label>
+                                <input type="number" id="totalDebt" placeholder="2,000,000">
+                                <small>Dette financière à court et long terme</small>
+                            </div>
+                            <div class="input-group">
+                                <label>Capitaux Propres (€)</label>
+                                <input type="number" id="shareholdersEquity" placeholder="5,000,000">
+                                <small>Valeur nette de l'entreprise</small>
+                            </div>
+                            <div class="input-group">
+                                <label>EBIT (€)</label>
+                                <input type="number" id="ebit" placeholder="1,500,000">
+                                <small>Résultat d'exploitation</small>
+                            </div>
+                            <div class="input-group">
+                                <label>Frais Financiers (€)</label>
+                                <input type="number" id="interestExpense" placeholder="100,000">
+                                <small>Intérêts sur la dette</small>
+                            </div>
+                            <div class="input-group">
+                                <label>Cash Flow Opérationnel (€)</label>
+                                <input type="number" id="operatingCashFlow" placeholder="1,800,000">
+                                <small>Cash généré par l'activité</small>
+                            </div>
+                            <div class="input-group">
+                                <label>Dépenses en Capital (€)</label>
+                                <input type="number" id="capitalExpenditures" placeholder="500,000">
+                                <small>Investissements en immobilisations</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tab-content" id="rentabilite-tab">
+                        <div class="input-grid">
+                            <div class="input-group">
+                                <label>Bénéfice Net (€)</label>
+                                <input type="number" id="netIncome" placeholder="1,200,000">
+                                <small>Profit après tous les frais et impôts</small>
+                            </div>
+                            <div class="input-group">
+                                <label>Chiffre d'Affaires (€)</label>
+                                <input type="number" id="revenue" placeholder="10,000,000">
+                                <small>Revenus totaux de l'entreprise</small>
+                            </div>
+                            <div class="input-group">
+                                <label>NOPAT (€)</label>
+                                <input type="number" id="nopat" placeholder="1,300,000">
+                                <small>Résultat opérationnel après impôts</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tab-content" id="evaluation-tab">
+                        <div class="input-grid">
+                            <div class="input-group">
+                                <label>Prix de l'Action (€)</label>
+                                <input type="number" id="sharePrice" placeholder="150">
+                                <small>Cours actuel de l'action</small>
+                            </div>
+                            <div class="input-group">
+                                <label>Nombre d'Actions</label>
+                                <input type="number" id="sharesOutstanding" placeholder="10,000,000">
+                                <small>Actions en circulation</small>
+                            </div>
+                            <div class="input-group">
+                                <label>Valeur Comptable par Action (€)</label>
+                                <input type="number" id="bookValuePerShare" placeholder="50">
+                                <small>Capitaux propres par action</small>
+                            </div>
+                            <div class="input-group">
+                                <label>Dividende par Action (€)</label>
+                                <input type="number" id="dividendPerShare" placeholder="3">
+                                <small>Dividende annuel par action</small>
+                            </div>
+                            <div class="input-group">
+                                <label>Croissance Annuelle du BPA (%)</label>
+                                <input type="number" id="epsGrowth" placeholder="15">
+                                <small>Taux de croissance des bénéfices</small>
+                            </div>
+                            <div class="input-group">
+                                <label>EBITDA (€)</label>
+                                <input type="number" id="ebitda" placeholder="2,000,000">
+                                <small>Excédent brut d'exploitation</small>
+                            </div>
+                            <div class="input-group">
+                                <label>Trésorerie (€)</label>
+                                <input type="number" id="cash" placeholder="1,000,000">
+                                <small>Cash et équivalents de cash</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tab-content" id="croissance-tab">
+                        <div class="input-grid">
+                            <div class="input-group">
+                                <label>Croissance du CA sur 1 an (%)</label>
+                                <input type="number" id="revenueGrowth" placeholder="12">
+                                <small>Évolution du chiffre d'affaires</small>
+                            </div>
+                            <div class="input-group">
+                                <label>BPA de l'année précédente (€)</label>
+                                <input type="number" id="previousEPS" placeholder="4.5">
+                                <small>Bénéfice par action de l'an dernier</small>
+                            </div>
+                            <div class="input-group">
+                                <label>Prix vs MM200j (%)</label>
+                                <input type="number" id="priceVsMA200" placeholder="5">
+                                <small>Écart avec la moyenne mobile 200j</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <button onclick="lancerAnalyse()" class="analyze-btn">
+                    <i class="fas fa-rocket"></i>
+                    Lancer l'Analyse
+                </button>
+            </section>
+
+            <!-- Results Section -->
+            <section id="resultsSection" class="results-section" style="display: none;">
+                <div class="section-header">
+                    <h2><i class="fas fa-chart-bar"></i> Résultats de l'Analyse</h2>
+                    <p>Analyse détaillée de <span id="resultsCompanyName" class="company-name">l'entreprise</span> - Données <span id="resultsPeriod" class="date-info">[période]</span></p>
+                </div>
+
+                <!-- Score Summary -->
+                <div class="score-summary card">
+                    <div class="score-card">
+                        <div class="score-circle">
+                            <span id="globalScore">0%</span>
+                        </div>
+                        <div class="score-info">
+                            <h3>Score Global</h3>
+                            <p>Performance globale de l'entreprise</p>
+                        </div>
+                    </div>
+                    <div class="score-breakdown">
+                        <div class="breakdown-item">
+                            <span class="breakdown-label">Santé</span>
+                            <div class="breakdown-bar">
+                                <div class="breakdown-fill" id="healthScore" style="width: 0%"></div>
+                            </div>
+                            <span class="breakdown-value" id="healthValue">0%</span>
+                        </div>
+                        <div class="breakdown-item">
+                            <span class="breakdown-label">Rentabilité</span>
+                            <div class="breakdown-bar">
+                                <div class="breakdown-fill" id="profitabilityScore" style="width: 0%"></div>
+                            </div>
+                            <span class="breakdown-value" id="profitabilityValue">0%</span>
+                        </div>
+                        <div class="breakdown-item">
+                            <span class="breakdown-label">Évaluation</span>
+                            <div class="breakdown-bar">
+                                <div class="breakdown-fill" id="valuationScore" style="width: 0%"></div>
+                            </div>
+                            <span class="breakdown-value" id="valuationValue">0%</span>
+                        </div>
+                        <div class="breakdown-item">
+                            <span class="breakdown-label">Croissance</span>
+                            <div class="breakdown-bar">
+                                <div class="breakdown-fill" id="growthScore" style="width: 0%"></div>
+                            </div>
+                            <span class="breakdown-value" id="growthValue">0%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Results Table -->
+                <div class="results-table card">
+                    <div class="table-container">
+                        <table id="resultsTable">
+                            <!-- Le tableau sera généré par JavaScript -->
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Conclusion -->
+                <div id="conclusion" class="conclusion-card">
+                    <!-- La conclusion sera générée par JavaScript -->
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="app-footer">
+            <p>© 2024 Analyste Financier - Outil éducatif pour l'analyse fondamentale</p>
+            <p class="disclaimer">Les résultats sont fournis à titre indicatif et ne constituent pas un conseil en investissement.</p>
+        </footer>
     </div>
 
     <script src="script.js"></script>
