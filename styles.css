@@ -1,0 +1,246 @@
+/* ==================== STYLES GÉNÉRAUX ==================== */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    background-color: #f5f5f5;
+}
+
+.container {
+    background-color: white;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+h1 {
+    color: #2c3e50;
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+/* ==================== SECTION CHARGEMENT AUTOMATIQUE ==================== */
+.auto-load-section {
+    background-color: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+}
+
+.auto-load-section h3 {
+    color: #2c3e50;
+    margin-bottom: 15px;
+    text-align: center;
+}
+
+.auto-load-controls {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    justify-content: center;
+}
+
+.auto-load-controls input {
+    flex: 1;
+    max-width: 200px;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 14px;
+}
+
+.auto-load-controls button {
+    padding: 10px 20px;
+    background-color: #3498db;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.3s;
+}
+
+.auto-load-controls button:hover:not(:disabled) {
+    background-color: #2980b9;
+}
+
+.auto-load-controls button:disabled {
+    background-color: #bdc3c7;
+    cursor: not-allowed;
+}
+
+/* ==================== GROUPES DE SAISIE ==================== */
+.input-group {
+    display: flex;
+    margin-bottom: 20px;
+    gap: 10px;
+}
+
+.input-group input {
+    flex: 1;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 16px;
+}
+
+.input-group button {
+    padding: 12px 24px;
+    background-color: #27ae60;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s;
+}
+
+.input-group button:hover:not(:disabled) {
+    background-color: #219a52;
+}
+
+.input-group button:disabled {
+    background-color: #bdc3c7;
+    cursor: not-allowed;
+}
+
+/* ==================== ÉTAT DE CHARGEMENT ==================== */
+.loading {
+    display: none;
+    text-align: center;
+    color: #3498db;
+    padding: 20px;
+    font-size: 16px;
+}
+
+/* ==================== GESTION DES ERREURS ==================== */
+.error {
+    background-color: #ffeaa7;
+    padding: 20px;
+    border-radius: 5px;
+    border: 1px solid #fdcb6e;
+    color: #e74c3c;
+    line-height: 1.5;
+}
+
+/* ==================== ÉTAT DES REVENUS ==================== */
+#resultat {
+    margin-top: 20px;
+    padding: 0;
+}
+
+.income-statement {
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.statement-header {
+    background-color: #34495e;
+    color: white;
+    padding: 20px;
+    text-align: center;
+}
+
+.statement-header h2 {
+    margin: 0 0 10px 0;
+    font-size: 24px;
+}
+
+.statement-header p {
+    margin: 0;
+    opacity: 0.9;
+}
+
+.statement-section {
+    padding: 20px;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.statement-section:last-child {
+    border-bottom: none;
+}
+
+.statement-section-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #3498db;
+}
+
+.statement-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid #f1f1f1;
+}
+
+.statement-row:last-child {
+    border-bottom: none;
+}
+
+.statement-label {
+    font-weight: 500;
+    color: #2c3e50;
+}
+
+.statement-value {
+    font-weight: 600;
+    color: #27ae60;
+}
+
+/* ==================== RESPONSIVE DESIGN ==================== */
+@media (max-width: 768px) {
+    body {
+        padding: 10px;
+    }
+    
+    .container {
+        padding: 20px;
+    }
+    
+    .input-group {
+        flex-direction: column;
+    }
+    
+    .auto-load-controls {
+        flex-direction: column;
+    }
+    
+    .auto-load-controls input {
+        max-width: none;
+    }
+    
+    .statement-row {
+        flex-direction: column;
+        gap: 5px;
+    }
+    
+    .statement-label, .statement-value {
+        text-align: left;
+    }
+}
+
+/* ==================== ANIMATIONS ==================== */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.income-statement {
+    animation: fadeIn 0.5s ease-in-out;
+}
+
+/* ==================== COULEURS SPÉCIFIQUES ==================== */
+.statement-value[style*="color: #e74c3c"] {
+    color: #e74c3c !important;
+    font-size: 18px;
+}
+
+.statement-value[style*="color: #27ae60"] {
+    color: #27ae60 !important;
+}
