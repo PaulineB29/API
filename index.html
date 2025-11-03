@@ -45,8 +45,12 @@
             font-size: 16px;
             transition: background-color 0.3s;
         }
-        button:hover {
+        button:hover:not(:disabled) {
             background-color: #2980b9;
+        }
+        button:disabled {
+            background-color: #bdc3c7;
+            cursor: not-allowed;
         }
         #resultat {
             margin-top: 20px;
@@ -56,11 +60,28 @@
             background-color: #fafafa;
             white-space: pre-wrap;
             min-height: 100px;
+            line-height: 1.5;
         }
         .loading {
             display: none;
             text-align: center;
             color: #3498db;
+            padding: 20px;
+        }
+        .error {
+            background-color: #ffeaa7;
+            border-color: #fdcb6e;
+        }
+        .success {
+            background-color: #d1f7c4;
+            border-color: #a9dfbf;
+        }
+        .api-info {
+            background-color: #e8f4fd;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            font-size: 14px;
         }
     </style>
 </head>
@@ -68,16 +89,21 @@
     <div class="container">
         <h1>📊 Données de l'API Financial Modeling Prep</h1>
         
+        <div class="api-info">
+            <strong>Information API :</strong> Utilisation de votre clé API pour récupérer les données financières.
+            Limite : 250 requêtes/jour avec le plan gratuit.
+        </div>
+
         <div class="input-group">
             <input type="text" id="symbolInput" placeholder="Entrez un symbole boursier (ex: AAPL, MSFT, TSLA)" value="AAPL">
             <button id="chargerDonnees">Récupérer les données</button>
         </div>
 
         <div class="loading" id="loading">
-            Chargement des données en cours...
+            🔄 Chargement des données en cours...
         </div>
 
-        <div id="resultat"></div>
+        <div id="resultat">Les données apparaîtront ici...</div>
     </div>
 
     <script src="script.js"></script>
