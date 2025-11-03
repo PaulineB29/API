@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Connexion à l'API Financial Modeling Prep</title>
+    <title>État des Revenus - API FMP</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -37,7 +37,7 @@
         }
         button {
             padding: 12px 24px;
-            background-color: #3498db;
+            background-color: #27ae60;
             color: white;
             border: none;
             border-radius: 5px;
@@ -46,7 +46,7 @@
             transition: background-color 0.3s;
         }
         button:hover:not(:disabled) {
-            background-color: #2980b9;
+            background-color: #219a52;
         }
         button:disabled {
             background-color: #bdc3c7;
@@ -54,13 +54,7 @@
         }
         #resultat {
             margin-top: 20px;
-            padding: 20px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            background-color: #fafafa;
-            white-space: pre-wrap;
-            min-height: 100px;
-            line-height: 1.5;
+            padding: 0;
         }
         .loading {
             display: none;
@@ -70,40 +64,68 @@
         }
         .error {
             background-color: #ffeaa7;
-            border-color: #fdcb6e;
-        }
-        .success {
-            background-color: #d1f7c4;
-            border-color: #a9dfbf;
-        }
-        .api-info {
-            background-color: #e8f4fd;
-            padding: 15px;
+            padding: 20px;
             border-radius: 5px;
-            margin-bottom: 20px;
-            font-size: 14px;
+            border: 1px solid #fdcb6e;
+        }
+        .income-statement {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .statement-header {
+            background-color: #34495e;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        .statement-section {
+            padding: 20px;
+            border-bottom: 1px solid #e9ecef;
+        }
+        .statement-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #f1f1f1;
+        }
+        .statement-row:last-child {
+            border-bottom: none;
+        }
+        .statement-label {
+            font-weight: 500;
+            color: #2c3e50;
+        }
+        .statement-value {
+            font-weight: 600;
+            color: #27ae60;
+        }
+        .statement-section-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #3498db;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>📊 Données de l'API Financial Modeling Prep</h1>
-        
-        <div class="api-info">
-            <strong>Information API :</strong> Utilisation de votre clé API pour récupérer les données financières.
-            Limite : 250 requêtes/jour avec le plan gratuit.
-        </div>
+        <h1>📊 État des Revenus - API FMP</h1>
 
         <div class="input-group">
-            <input type="text" id="symbolInput" placeholder="Entrez un symbole boursier (ex: AAPL, MSFT, TSLA)" value="AAPL">
-            <button id="chargerDonnees">Récupérer les données</button>
+            <input type="text" id="symbolInput" placeholder="Entrez un symbole (ex: AAPL, MSFT, TSLA)" value="AAPL">
+            <button id="chargerDonnees">Voir l'état des revenus</button>
         </div>
 
         <div class="loading" id="loading">
             🔄 Chargement des données en cours...
         </div>
 
-        <div id="resultat">Les données apparaîtront ici...</div>
+        <div id="resultat">
+            <!-- Les données apparaîtront ici -->
+        </div>
     </div>
 
     <script src="script.js"></script>
