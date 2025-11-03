@@ -3,19 +3,83 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Connexion à l'API FMP</title>
+    <title>Connexion à l'API Financial Modeling Prep</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 40px; }
-        button { padding: 10px 15px; cursor: pointer; }
-        #resultat { margin-top: 20px; padding: 10px; border: 1px solid #ddd; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .input-group {
+            display: flex;
+            margin-bottom: 20px;
+            gap: 10px;
+        }
+        input {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        button {
+            padding: 12px 24px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        #resultat {
+            margin-top: 20px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #fafafa;
+            white-space: pre-wrap;
+            min-height: 100px;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            color: #3498db;
+        }
     </style>
 </head>
 <body>
-    <h1>Données de l'API Financial Modeling Prep</h1>
-    <button id="chargerDonnees">Charger le profil d'Apple</button>
-    <div id="resultat"></div>
+    <div class="container">
+        <h1>📊 Données de l'API Financial Modeling Prep</h1>
+        
+        <div class="input-group">
+            <input type="text" id="symbolInput" placeholder="Entrez un symbole boursier (ex: AAPL, MSFT, TSLA)" value="AAPL">
+            <button id="chargerDonnees">Récupérer les données</button>
+        </div>
 
-    <!-- Intégration du fichier JavaScript -->
+        <div class="loading" id="loading">
+            Chargement des données en cours...
+        </div>
+
+        <div id="resultat"></div>
+    </div>
+
     <script src="script.js"></script>
 </body>
 </html>
