@@ -3,32 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>État des Revenus - API FMP</title>
+    <title>Collecte de Données Financières - FMP</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div class="auto-load-section">
-        <h3>📥 Chargement automatique des données FMP</h3>
-        <div class="auto-load-controls">
-            <input type="text" id="autoSymbol" placeholder="Symbole (ex: AAPL)" value="AAPL">
-            <button id="chargerAutoDonnees">Charger les données</button>
-        </div>
-    </div>
-    
     <div class="container">
-        <h1>📊 État des Revenus - API FMP</h1>
-
-        <div class="input-group">
-            <input type="text" id="symbolInput" placeholder="Entrez un symbole (ex: AAPL, MSFT, TSLA)" value="AAPL">
-            <button id="chargerDonnees">Voir l'état des revenus</button>
+        <h1>📊 Collecte de Données Financières</h1>
+        
+        <div class="input-section">
+            <div class="input-group">
+                <input type="text" id="symbolInput" placeholder="Entrez un symbole (ex: AAPL, MSFT, TSLA)" value="AAPL">
+                <button id="collecterDonnees">Collecte de données</button>
+            </div>
         </div>
 
         <div class="loading" id="loading">
-            🔄 Chargement des données en cours...
+            🔄 Collecte des données en cours...
         </div>
 
-        <div id="resultat">
-            <!-- Les données apparaîtront ici -->
+        <div id="resultats">
+            <!-- Toutes les données collectées apparaîtront ici -->
         </div>
     </div>
 
