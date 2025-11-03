@@ -1,6 +1,6 @@
 document.getElementById('chargerDonnees').addEventListener('click', async function() {
     // 🔑 VOTRE CLÉ API
-    const apiKey = 'S9PuvPa0mLK9FlCMS3cUYQjnbndSJFOY';
+    const API_KEY = 'S9PuvPa0mLK9FlCMS3cUYQjnbndSJFOY';
     const symbole = document.getElementById('symbolInput').value.toUpperCase().trim();
     
     if (!symbole) {
@@ -14,160 +14,169 @@ document.getElementById('chargerDonnees').addEventListener('click', async functi
     
     // Réinitialiser l'affichage
     loadingElement.style.display = 'block';
-    resultatElement.className = '';
-    resultatElement.textContent = '';
+    resultatElement.innerHTML = '';
     bouton.disabled = true;
 
     try {
-        // Essayer différentes URLs d'API
-        const urls = [
-            `https://financialmodelingprep.com/api/v3/profile/${symbole}?apikey=${apiKey}`,
-            `https://fmpcloud.io/api/v3/profile/${symbole}?apikey=${apiKey}`,
-            `https://financialmodelingprep.com/api/v3/quote/${symbole}?apikey=${apiKey}`,
-            `https://financialmodelingprep.com/stable/income-statement?symbol=${symbole}&apikey=${apiKey}`
-        ];
+        // 📍 ENDPOINT SPÉCIFIQUE POUR INCOME STATEMENT
+        const url = `https://financialmodelingprep.com/stable/income-statement?symbol=${symbole}&apikey=${API_KEY}`;
+        console.log('🔄 Requête URL:', url);
 
-        let donnees = null;
-        let derniereErreur = null;
-        let urlUtilisee = '';
-
-        // Essayer chaque URL jusqu'à ce qu'une fonctionne
-        for (const url of urls) {
-            try {
-                console.log('Tentative avec URL:', url);
-                const reponse = await fetch(url);
-                
-                if (reponse.ok) {
-                    const donneesBrutes = await reponse.json();
-                    
-                    // Vérifier si la réponse contient une erreur de l'API
-                    if (donneesBrutes['Error Message']) {
-                        derniereErreur = `Erreur API: ${donneesBrutes['Error Message']}`;
-                        continue;
-                    }
-                    
-                    if (donneesBrutes['Note']) {
-                        derniereErreur = `Note API: ${donneesBrutes['Note']}`;
-                        continue;
-                    }
-
-                    donnees = donneesBrutes;
-                    urlUtilisee = url;
-                    break;
-                    
-                } else {
-                    derniereErreur = `Erreur HTTP ${reponse.status}: ${reponse.statusText}`;
-                    console.error('Erreur avec URL:', url, derniereErreur);
-                    
-                    // Si c'est une erreur 403, essayer l'URL suivante
-                    if (reponse.status === 403) {
-                        continue;
-                    }
-                }
-            } catch (erreur) {
-                derniereErreur = `Erreur réseau: ${erreur.message}`;
-                console.error('Erreur fetch:', erreur);
-            }
-        }
-
-        if (!donnees) {
-            throw new Error(derniereErreur || 'Aucune des URLs API ne fonctionne');
-        }
-
-        // Traitement des données selon le type de réponse
-        let donneesFormatees = '';
+        const reponse = await fetch(url);
         
-        if (urlUtilisee.includes('/profile/')) {
-            // Données de profil
-            if (!donnees || donnees.length === 0) {
-                throw new Error('Aucune donnée de profil trouvée pour ce symbole');
-            }
-            
-            const compagnie = donnees[0];
-            donneesFormatees = `
-🏢 ${compagnie.companyName} (${compagnie.symbol})
-
-📊 Informations générales:
-   • Prix: $${compagnie.price || 'N/A'}
-   • Variation: ${compagnie.changes || 'N/A'} (${compagnie.changesPercentage || 'N/A'})
-   • MCAP: $${compagnie.mktCap ? (compagnie.mktCap / 1000000000).toFixed(2) + ' milliards' : 'N/A'}
-
-📈 Détails:
-   • Secteur: ${compagnie.sector || 'N/A'}
-   • Industrie: ${compagnie.industry || 'N/A'}
-   • Échange: ${compagnie.exchange || 'N/A'}
-   • Site web: ${compagnie.website || 'N/A'}
-
-📍 Description:
-${compagnie.description || 'Non disponible'}
-            `;
-            
-        } else if (urlUtilisee.includes('/quote/')) {
-            // Données de citation
-            if (!donnees || donnees.length === 0) {
-                throw new Error('Aucune donnée de citation trouvée pour ce symbole');
-            }
-            
-            const quote = donnees[0];
-            donneesFormatees = `
-📈 Citation: ${quote.name} (${quote.symbol})
-
-💵 Prix: $${quote.price || 'N/A'}
-📊 Variation: ${quote.change || 'N/A'} (${quote.changesPercentage || 'N/A'})
-📈 Plus haut: $${quote.dayHigh || 'N/A'}
-📉 Plus bas: $${quote.dayLow || 'N/A'}
-            `;
-            
-        } else if (urlUtilisee.includes('/income-statement')) {
-            // États financiers
-            if (!donnees || donnees.length === 0) {
-                throw new Error('Aucun état financier trouvé pour ce symbole');
-            }
-            
-            const dernierEtat = donnees[0];
-            donneesFormatees = `
-📊 État des revenus: ${symbole}
-
-💰 Revenus: $${(dernierEtat.revenue / 1000000).toFixed(2)}M
-💵 Bénéfice brut: $${(dernierEtat.grossProfit / 1000000).toFixed(2)}M
-📈 Bénéfice net: $${(dernierEtat.netIncome / 1000000).toFixed(2)}M
-📅 Date: ${dernierEtat.date || 'N/A'}
-            `;
+        if (!reponse.ok) {
+            throw new Error(`Erreur HTTP ${reponse.status}: ${reponse.statusText}`);
         }
 
-        resultatElement.textContent = donneesFormatees;
-        resultatElement.className = 'success';
+        const donnees = await reponse.json();
+        
+        // Vérifier si on a des données
+        if (!donnees || donnees.length === 0) {
+            throw new Error(`Aucun état des revenus trouvé pour le symbole "${symbole}"`);
+        }
+
+        // Prendre le dernier état des revenus (le plus récent)
+        const incomeStatement = donnees[0];
+        
+        // Afficher les données formatées
+        afficherIncomeStatement(incomeStatement);
         
     } catch (erreur) {
-        console.error('Erreur complète:', erreur);
+        console.error('Erreur:', erreur);
         
         let messageErreur = `❌ Erreur: ${erreur.message}`;
         
-        // Messages d'erreur spécifiques
         if (erreur.message.includes('403')) {
-            messageErreur += '\n\n🔑 Problème avec la clé API:';
-            messageErreur += '\n• Clé invalide ou expirée';
-            messageErreur += '\n• Limite de requêtes dépassée (250/jour)';
-            messageErreur += '\n• Clé non activée';
-            messageErreur += '\n• Vérifiez votre dashboard FMP';
-        } else if (erreur.message.includes('404')) {
-            messageErreur += '\n\n🔍 Symbole non trouvé';
-            messageErreur += '\n• Vérifiez le symbole boursier';
-            messageErreur += '\n• Essayez un symbole différent (AAPL, MSFT, etc.)';
-        } else if (erreur.message.includes('network') || erreur.message.includes('fetch')) {
-            messageErreur += '\n\n🌐 Problème de réseau';
-            messageErreur += '\n• Vérifiez votre connexion internet';
-            messageErreur += '\n• Problème CORS possible';
+            messageErreur = `
+                ❌ Erreur 403 - Accès refusé
+                
+                Problèmes possibles:
+                • Clé API invalide ou expirée
+                • Limite de requêtes dépassée (250/jour)
+                • Clé non activée
+                
+                Vérifiez votre dashboard FMP: https://site.financialmodelingprep.com/dashboard
+            `;
         }
         
-        resultatElement.textContent = messageErreur;
-        resultatElement.className = 'error';
+        resultatElement.innerHTML = `<div class="error">${messageErreur}</div>`;
         
     } finally {
         loadingElement.style.display = 'none';
         bouton.disabled = false;
     }
 });
+
+// Fonction pour formater et afficher l'état des revenus
+function afficherIncomeStatement(data) {
+    const formatMillions = (montant) => {
+        if (!montant) return 'N/A';
+        return `$${(montant / 1000000).toFixed(2)}M`;
+    };
+
+    const formatDollars = (montant) => {
+        if (!montant) return 'N/A';
+        return `$${montant.toLocaleString()}`;
+    };
+
+    const html = `
+        <div class="income-statement">
+            <div class="statement-header">
+                <h2>🏢 ${data.symbol} - État des Revenus</h2>
+                <p>Période: ${data.period} ${data.fiscalYear} (${data.date})</p>
+            </div>
+            
+            <div class="statement-section">
+                <div class="statement-section-title">💰 REVENUS ET BÉNÉFICE BRUT</div>
+                
+                <div class="statement-row">
+                    <span class="statement-label">Revenus totaux:</span>
+                    <span class="statement-value">${formatMillions(data.revenue)}</span>
+                </div>
+                <div class="statement-row">
+                    <span class="statement-label">Coût des revenus:</span>
+                    <span class="statement-value">${formatMillions(data.costOfRevenue)}</span>
+                </div>
+                <div class="statement-row">
+                    <span class="statement-label">Bénéfice brut:</span>
+                    <span class="statement-value" style="color: #27ae60;">${formatMillions(data.grossProfit)}</span>
+                </div>
+            </div>
+            
+            <div class="statement-section">
+                <div class="statement-section-title">📊 DÉPENSES OPÉRATIONNELLES</div>
+                
+                <div class="statement-row">
+                    <span class="statement-label">Recherche & Développement:</span>
+                    <span class="statement-value">${formatMillions(data.researchAndDevelopmentExpenses)}</span>
+                </div>
+                <div class="statement-row">
+                    <span class="statement-label">Frais généraux & admin:</span>
+                    <span class="statement-value">${formatMillions(data.sellingGeneralAndAdministrativeExpenses)}</span>
+                </div>
+                <div class="statement-row">
+                    <span class="statement-label">Dépenses opérationnelles totales:</span>
+                    <span class="statement-value">${formatMillions(data.operatingExpenses)}</span>
+                </div>
+            </div>
+            
+            <div class="statement-section">
+                <div class="statement-section-title">📈 RÉSULTATS OPÉRATIONNELS</div>
+                
+                <div class="statement-row">
+                    <span class="statement-label">Résultat opérationnel (EBIT):</span>
+                    <span class="statement-value" style="color: #27ae60;">${formatMillions(data.operatingIncome)}</span>
+                </div>
+                <div class="statement-row">
+                    <span class="statement-label">EBITDA:</span>
+                    <span class="statement-value">${formatMillions(data.ebitda)}</span>
+                </div>
+            </div>
+            
+            <div class="statement-section">
+                <div class="statement-section-title">💵 RÉSULTAT NET</div>
+                
+                <div class="statement-row">
+                    <span class="statement-label">Résultat avant impôts:</span>
+                    <span class="statement-value">${formatMillions(data.incomeBeforeTax)}</span>
+                </div>
+                <div class="statement-row">
+                    <span class="statement-label">Impôts sur le revenu:</span>
+                    <span class="statement-value">${formatMillions(data.incomeTaxExpense)}</span>
+                </div>
+                <div class="statement-row">
+                    <span class="statement-label">RÉSULTAT NET:</span>
+                    <span class="statement-value" style="color: #e74c3c; font-size: 18px;">${formatMillions(data.netIncome)}</span>
+                </div>
+            </div>
+            
+            <div class="statement-section">
+                <div class="statement-section-title">📊 INDICATEURS PAR ACTION</div>
+                
+                <div class="statement-row">
+                    <span class="statement-label">Bénéfice par action (EPS):</span>
+                    <span class="statement-value">$${data.eps || 'N/A'}</span>
+                </div>
+                <div class="statement-row">
+                    <span class="statement-label">EPS dilué:</span>
+                    <span class="statement-value">$${data.epsDiluted || 'N/A'}</span>
+                </div>
+                <div class="statement-row">
+                    <span class="statement-label">Actions en circulation:</span>
+                    <span class="statement-value">${data.weightedAverageShsOut ? (data.weightedAverageShsOut / 1000000).toFixed(2) + 'M' : 'N/A'}</span>
+                </div>
+            </div>
+            
+            <div class="statement-section" style="background-color: #e8f6f3; text-align: center;">
+                <div style="font-size: 14px; color: #7f8c8d;">
+                    Données mises à jour: ${data.filingDate || data.date} | Devise: ${data.reportedCurrency}
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.getElementById('resultat').innerHTML = html;
+}
 
 // Permettre d'appuyer sur Entrée dans le champ de saisie
 document.getElementById('symbolInput').addEventListener('keypress', function(e) {
@@ -176,6 +185,5 @@ document.getElementById('symbolInput').addEventListener('keypress', function(e) 
     }
 });
 
-// Message d'information au chargement de la page
-console.log('🚀 Application FMP API chargée');
-console.log('📋 Utilisez le bouton pour récupérer les données financières');
+console.log('🚀 Application Income Statement chargée');
+console.log('💡 Entrez un symbole (AAPL, MSFT, etc.) et cliquez sur le bouton');
