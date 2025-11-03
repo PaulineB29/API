@@ -1,291 +1,319 @@
 // VOTRE CLÉ API
 const API_KEY = 'S9PuvPa0mLK9FlCMS3cUYQjnbndSJFOY';
 
-// ==================== FONCTIONS POUR LE CHARGEMENT AUTOMATIQUE ====================
-
-async function peuplerDonneesEntreprise(symbole) {
-    const bouton = document.getElementById('chargerAutoDonnees');
+// Fonction principale pour collecter toutes les données
+async function collecterDonneesEntreprise(symbole) {
+    const bouton = document.getElementById('collecterDonnees');
+    const loadingElement = document.getElementById('loading');
+    const resultatsElement = document.getElementById('resultats');
     const texteOriginal = bouton.textContent;
     
     try {
+        // Préparer l'interface
         bouton.disabled = true;
-        bouton.textContent = 'Chargement...';
+        bouton.textContent = 'Collecte en cours...';
+        loadingElement.style.display = 'block';
+        resultatsElement.innerHTML = '';
         
-        console.log('🔄 Chargement des données pour:', symbole);
+        console.log('🔄 Début de la collecte pour:', symbole);
 
-        // Récupérer les 3 états financiers en parallèle
-        const [incomeData, balanceData, cashflowData, quoteData] = await Promise.all([
+        // Collecter toutes les données en parallèle
+        const [
+            incomeData, 
+            balanceData, 
+            cashflowData, 
+            quoteData, 
+            profileData,
+            metricsData
+        ] = await Promise.all([
             fetch(`https://financialmodelingprep.com/stable/income-statement?symbol=${symbole}&apikey=${API_KEY}`).then(r => r.json()),
             fetch(`https://financialmodelingprep.com/stable/balance-sheet-statement?symbol=${symbole}&apikey=${API_KEY}`).then(r => r.json()),
             fetch(`https://financialmodelingprep.com/stable/cash-flow-statement?symbol=${symbole}&apikey=${API_KEY}`).then(r => r.json()),
-            fetch(`https://financialmodelingprep.com/stable/quote?symbol=${symbole}&apikey=${API_KEY}`).then(r => r.json())
+            fetch(`https://financialmodelingprep.com/stable/quote?symbol=${symbole}&apikey=${API_KEY}`).then(r => r.json()),
+            fetch(`https://financialmodelingprep.com/stable/profile?symbol=${symbole}&apikey=${API_KEY}`).then(r => r.json()),
+            fetch(`https://financialmodelingprep.com/stable/key-metrics?symbol=${symbole}&apikey=${API_KEY}`).then(r => r.json())
         ]);
 
         // Vérifier les données
-        if (!incomeData || incomeData.length === 0) throw new Error('Aucune donnée income statement');
-        if (!balanceData || balanceData.length === 0) throw new Error('Aucune donnée balance sheet');
-        if (!cashflowData || cashflowData.length === 0) throw new Error('Aucune donnée cash flow');
-        if (!quoteData || quoteData.length === 0) throw new Error('Aucune donnée quote');
+        if (!incomeData || incomeData.length === 0) throw new Error('Aucune donnée de revenus trouvée');
+        if (!balanceData || balanceData.length === 0) throw new Error('Aucune donnée de bilan trouvée');
+        if (!cashflowData || cashflowData.length === 0) throw new Error('Aucune donnée de flux de trésorerie trouvée');
+        if (!quoteData || quoteData.length === 0) throw new Error('Aucune donnée de cotation trouvée');
 
         // Prendre les données les plus récentes
         const income = incomeData[0];
         const balance = balanceData[0];
         const cashflow = cashflowData[0];
         const quote = quoteData[0];
+        const profile = profileData[0] || {};
+        const metrics = metricsData[0] || {};
 
-        console.log('📊 Données reçues:', { income, balance, cashflow, quote });
+        console.log('📊 Données collectées avec succès');
 
-        // 🏥 SANTÉ FINANCIÈRE
-        setValueIfExists('currentAssets', balance.totalCurrentAssets);
-        setValueIfExists('currentLiabilities', balance.totalCurrentLiabilities);
-        setValueIfExists('totalDebt', balance.totalDebt);
-        setValueIfExists('shareholdersEquity', balance.totalEquity);
-        setValueIfExists('ebit', income.operatingIncome);
-        setValueIfExists('interestExpense', income.interestExpense);
-        setValueIfExists('operatingCashFlow', cashflow.operatingCashFlow);
-        setValueIfExists('capitalExpenditures', cashflow.capitalExpenditure);
-
-        // 📈 RENTABILITÉ
-        setValueIfExists('netIncome', income.netIncome);
-        setValueIfExists('revenue', income.revenue);
-        // NOPAT = EBIT * (1 - taux d'imposition effectif)
-        const taxRate = income.incomeTaxExpense && income.incomeBeforeTax ? 
-            income.incomeTaxExpense / income.incomeBeforeTax : 0.25;
-        const nopat = income.operatingIncome ? income.operatingIncome * (1 - taxRate) : null;
-        setValueIfExists('nopat', nopat);
-
-        // 💰 ÉVALUATION
-        setValueIfExists('sharePrice', quote.price);
-        setValueIfExists('sharesOutstanding', income.weightedAverageShsOut);
-        // Valeur comptable par action = Capitaux propres / Nombre d'actions
-        const bookValuePerShare = balance.totalEquity && income.weightedAverageShsOut ? 
-            balance.totalEquity / income.weightedAverageShsOut : null;
-        setValueIfExists('bookValuePerShare', bookValuePerShare);
-        setValueIfExists('ebitda', income.ebitda);
-        setValueIfExists('cash', balance.cashAndCashEquivalents);
-
-        console.log('✅ Données chargées avec succès pour', symbole);
-        alert(`✅ Données chargées avec succès pour ${symbole}`);
+        // Afficher toutes les données
+        afficherToutesLesDonnees({
+            symbole,
+            income,
+            balance,
+            cashflow,
+            quote,
+            profile,
+            metrics
+        });
         
     } catch (erreur) {
-        console.error('❌ Erreur lors du chargement:', erreur);
-        alert('❌ Erreur lors du chargement: ' + erreur.message);
+        console.error('❌ Erreur lors de la collecte:', erreur);
+        resultatsElement.innerHTML = `
+            <div class="error">
+                <h3>❌ Erreur de collecte</h3>
+                <p>${erreur.message}</p>
+                ${erreur.message.includes('403') ? `
+                    <p><strong>Problème d'authentification API:</strong></p>
+                    <ul>
+                        <li>Clé API invalide ou expirée</li>
+                        <li>Limite de requêtes dépassée (250/jour)</li>
+                        <li>Vérifiez votre dashboard FMP</li>
+                    </ul>
+                ` : ''}
+            </div>
+        `;
     } finally {
         bouton.disabled = false;
         bouton.textContent = texteOriginal;
+        loadingElement.style.display = 'none';
     }
 }
 
-// Fonction utilitaire pour définir les valeurs
-function setValueIfExists(elementId, value) {
-    if (value && document.getElementById(elementId)) {
-        document.getElementById(elementId).value = value;
+// Fonction pour formater les grands nombres
+function formaterMontant(montant) {
+    if (!montant && montant !== 0) return 'N/A';
+    
+    if (Math.abs(montant) >= 1000000000) {
+        return `$${(montant / 1000000000).toFixed(2)} Md`;
+    } else if (Math.abs(montant) >= 1000000) {
+        return `$${(montant / 1000000).toFixed(2)} M`;
+    } else if (Math.abs(montant) >= 1000) {
+        return `$${(montant / 1000).toFixed(2)} k`;
+    } else {
+        return `$${montant.toFixed(2)}`;
     }
 }
 
-// ==================== FONCTIONS POUR L'ÉTAT DES REVENUS ====================
+// Fonction pour formater les pourcentages
+function formaterPourcentage(valeur) {
+    if (!valeur && valeur !== 0) return 'N/A';
+    return `${valeur.toFixed(2)}%`;
+}
 
-function afficherIncomeStatement(data) {
-    const formatMillions = (montant) => {
-        if (!montant) return 'N/A';
-        return `$${(montant / 1000000).toFixed(2)}M`;
-    };
-
+// Fonction pour afficher toutes les données collectées
+function afficherToutesLesDonnees(donnees) {
+    const { symbole, income, balance, cashflow, quote, profile, metrics } = donnees;
+    
     const html = `
-        <div class="income-statement">
-            <div class="statement-header">
-                <h2>🏢 ${data.symbol} - État des Revenus</h2>
-                <p>Période: ${data.period} ${data.fiscalYear} (${data.date})</p>
+        <!-- EN-TÊTE AVEC INFOS GÉNÉRALES -->
+        <div class="data-section">
+            <div class="section-header" onclick="toggleSection('general')">
+                <h2>🏢 ${profile.companyName || symbole} - Informations Générales</h2>
+                <span>📈</span>
             </div>
-            
-            <div class="statement-section">
-                <div class="statement-section-title">💰 REVENUS ET BÉNÉFICE BRUT</div>
-                
-                <div class="statement-row">
-                    <span class="statement-label">Revenus totaux:</span>
-                    <span class="statement-value">${formatMillions(data.revenue)}</span>
-                </div>
-                <div class="statement-row">
-                    <span class="statement-label">Coût des revenus:</span>
-                    <span class="statement-value">${formatMillions(data.costOfRevenue)}</span>
-                </div>
-                <div class="statement-row">
-                    <span class="statement-label">Bénéfice brut:</span>
-                    <span class="statement-value" style="color: #27ae60;">${formatMillions(data.grossProfit)}</span>
-                </div>
-            </div>
-            
-            <div class="statement-section">
-                <div class="statement-section-title">📊 DÉPENSES OPÉRATIONNELLES</div>
-                
-                <div class="statement-row">
-                    <span class="statement-label">Recherche & Développement:</span>
-                    <span class="statement-value">${formatMillions(data.researchAndDevelopmentExpenses)}</span>
-                </div>
-                <div class="statement-row">
-                    <span class="statement-label">Frais généraux & admin:</span>
-                    <span class="statement-value">${formatMillions(data.sellingGeneralAndAdministrativeExpenses)}</span>
-                </div>
-                <div class="statement-row">
-                    <span class="statement-label">Dépenses opérationnelles totales:</span>
-                    <span class="statement-value">${formatMillions(data.operatingExpenses)}</span>
+            <div class="section-content" id="general">
+                <div class="metrics-grid">
+                    <div class="metric-card valuation">
+                        <h4>Prix Actuel</h4>
+                        <p class="metric-value">$${quote.price || 'N/A'}</p>
+                        <p class="metric-description">Variation: ${quote.change || 'N/A'} (${quote.changesPercentage || 'N/A'})</p>
+                    </div>
+                    <div class="metric-card valuation">
+                        <h4>Capitalisation Boursière</h4>
+                        <p class="metric-value">${formaterMontant(quote.marketCap)}</p>
+                        <p class="metric-description">Volume: ${quote.volume ? (quote.volume / 1000000).toFixed(2) + 'M' : 'N/A'}</p>
+                    </div>
+                    <div class="metric-card financial">
+                        <h4>Secteur & Industrie</h4>
+                        <p class="metric-value">${profile.sector || 'N/A'}</p>
+                        <p class="metric-description">${profile.industry || 'N/A'}</p>
+                    </div>
+                    <div class="metric-card financial">
+                        <h4>Pays & Bourse</h4>
+                        <p class="metric-value">${profile.country || 'N/A'}</p>
+                        <p class="metric-description">${profile.exchange || 'N/A'}</p>
+                    </div>
                 </div>
             </div>
-            
-            <div class="statement-section">
-                <div class="statement-section-title">📈 RÉSULTATS OPÉRATIONNELS</div>
-                
-                <div class="statement-row">
-                    <span class="statement-label">Résultat opérationnel (EBIT):</span>
-                    <span class="statement-value" style="color: #27ae60;">${formatMillions(data.operatingIncome)}</span>
-                </div>
-                <div class="statement-row">
-                    <span class="statement-label">EBITDA:</span>
-                    <span class="statement-value">${formatMillions(data.ebitda)}</span>
-                </div>
+        </div>
+
+        <!-- ÉTAT DES REVENUS -->
+        <div class="data-section">
+            <div class="section-header" onclick="toggleSection('income')">
+                <h2>💰 État des Revenus - ${income.period} ${income.fiscalYear}</h2>
+                <span>📊</span>
             </div>
-            
-            <div class="statement-section">
-                <div class="statement-section-title">💵 RÉSULTAT NET</div>
-                
-                <div class="statement-row">
-                    <span class="statement-label">Résultat avant impôts:</span>
-                    <span class="statement-value">${formatMillions(data.incomeBeforeTax)}</span>
-                </div>
-                <div class="statement-row">
-                    <span class="statement-label">Impôts sur le revenu:</span>
-                    <span class="statement-value">${formatMillions(data.incomeTaxExpense)}</span>
-                </div>
-                <div class="statement-row">
-                    <span class="statement-label">RÉSULTAT NET:</span>
-                    <span class="statement-value" style="color: #e74c3c; font-size: 18px;">${formatMillions(data.netIncome)}</span>
-                </div>
+            <div class="section-content" id="income">
+                <table class="data-table">
+                    <tr>
+                        <th>Poste</th>
+                        <th>Valeur</th>
+                    </tr>
+                    <tr>
+                        <td>Revenus totaux</td>
+                        <td class="data-value">${formaterMontant(income.revenue)}</td>
+                    </tr>
+                    <tr>
+                        <td>Coût des revenus</td>
+                        <td class="data-value">${formaterMontant(income.costOfRevenue)}</td>
+                    </tr>
+                    <tr>
+                        <td>Bénéfice brut</td>
+                        <td class="data-value">${formaterMontant(income.grossProfit)}</td>
+                    </tr>
+                    <tr>
+                        <td>Dépenses opérationnelles</td>
+                        <td class="data-value">${formaterMontant(income.operatingExpenses)}</td>
+                    </tr>
+                    <tr>
+                        <td>Résultat opérationnel (EBIT)</td>
+                        <td class="data-value">${formaterMontant(income.operatingIncome)}</td>
+                    </tr>
+                    <tr>
+                        <td>Résultat net</td>
+                        <td class="data-value">${formaterMontant(income.netIncome)}</td>
+                    </tr>
+                    <tr>
+                        <td>Bénéfice par action (EPS)</td>
+                        <td class="data-value">$${income.eps || 'N/A'}</td>
+                    </tr>
+                </table>
             </div>
-            
-            <div class="statement-section">
-                <div class="statement-section-title">📊 INDICATEURS PAR ACTION</div>
-                
-                <div class="statement-row">
-                    <span class="statement-label">Bénéfice par action (EPS):</span>
-                    <span class="statement-value">$${data.eps || 'N/A'}</span>
-                </div>
-                <div class="statement-row">
-                    <span class="statement-label">EPS dilué:</span>
-                    <span class="statement-value">$${data.epsDiluted || 'N/A'}</span>
-                </div>
-                <div class="statement-row">
-                    <span class="statement-label">Actions en circulation:</span>
-                    <span class="statement-value">${data.weightedAverageShsOut ? (data.weightedAverageShsOut / 1000000).toFixed(2) + 'M' : 'N/A'}</span>
-                </div>
+        </div>
+
+        <!-- BILAN -->
+        <div class="data-section">
+            <div class="section-header" onclick="toggleSection('balance')">
+                <h2>🏦 Bilan - ${balance.date || 'Dernière période'}</h2>
+                <span>📋</span>
             </div>
-            
-            <div class="statement-section" style="background-color: #e8f6f3; text-align: center;">
-                <div style="font-size: 14px; color: #7f8c8d;">
-                    Données mises à jour: ${data.filingDate || data.date} | Devise: ${data.reportedCurrency}
+            <div class="section-content" id="balance">
+                <table class="data-table">
+                    <tr>
+                        <th>Poste</th>
+                        <th>Valeur</th>
+                    </tr>
+                    <tr>
+                        <td>Trésorerie et équivalents</td>
+                        <td class="data-value">${formaterMontant(balance.cashAndCashEquivalents)}</td>
+                    </tr>
+                    <tr>
+                        <td>Actifs totaux</td>
+                        <td class="data-value">${formaterMontant(balance.totalAssets)}</td>
+                    </tr>
+                    <tr>
+                        <td>Dette totale</td>
+                        <td class="data-value">${formaterMontant(balance.totalDebt)}</td>
+                    </tr>
+                    <tr>
+                        <td>Passifs totaux</td>
+                        <td class="data-value">${formaterMontant(balance.totalLiabilities)}</td>
+                    </tr>
+                    <tr>
+                        <td>Capitaux propres</td>
+                        <td class="data-value">${formaterMontant(balance.totalEquity)}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <!-- FLUX DE TRÉSORERIE -->
+        <div class="data-section">
+            <div class="section-header" onclick="toggleSection('cashflow')">
+                <h2>💸 Flux de Trésorerie</h2>
+                <span>🔄</span>
+            </div>
+            <div class="section-content" id="cashflow">
+                <table class="data-table">
+                    <tr>
+                        <th>Type de flux</th>
+                        <th>Valeur</th>
+                    </tr>
+                    <tr>
+                        <td>Flux opérationnel</td>
+                        <td class="data-value">${formaterMontant(cashflow.operatingCashFlow)}</td>
+                    </tr>
+                    <tr>
+                        <td>Flux d'investissement</td>
+                        <td class="data-value">${formaterMontant(cashflow.investingCashFlow)}</td>
+                    </tr>
+                    <tr>
+                        <td>Flux de financement</td>
+                        <td class="data-value">${formaterMontant(cashflow.financingCashFlow)}</td>
+                    </tr>
+                    <tr>
+                        <td>Dépenses en capital</td>
+                        <td class="data-value">${formaterMontant(cashflow.capitalExpenditure)}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <!-- MÉTRIQUES CLÉS -->
+        <div class="data-section">
+            <div class="section-header" onclick="toggleSection('ratios')">
+                <h2>📈 Ratios et Métriques Clés</h2>
+                <span>🎯</span>
+            </div>
+            <div class="section-content" id="ratios">
+                <div class="metrics-grid">
+                    <div class="metric-card financial">
+                        <h4>ROE (Return on Equity)</h4>
+                        <p class="metric-value">${formaterPourcentage(metrics.roe)}</p>
+                        <p class="metric-description">Rentabilité des capitaux propres</p>
+                    </div>
+                    <div class="metric-card financial">
+                        <h4>ROA (Return on Assets)</h4>
+                        <p class="metric-value">${formaterPourcentage(metrics.returnOnAssets)}</p>
+                        <p class="metric-description">Rentabilité des actifs</p>
+                    </div>
+                    <div class="metric-card valuation">
+                        <h4>P/E Ratio</h4>
+                        <p class="metric-value">${metrics.peRatio || 'N/A'}</p>
+                        <p class="metric-description">Ratio Prix/Bénéfice</p>
+                    </div>
+                    <div class="metric-card valuation">
+                        <h4>P/B Ratio</h4>
+                        <p class="metric-value">${metrics.pbRatio || 'N/A'}</p>
+                        <p class="metric-description">Ratio Prix/Valeur comptable</p>
+                    </div>
                 </div>
             </div>
         </div>
     `;
     
-    document.getElementById('resultat').innerHTML = html;
+    document.getElementById('resultats').innerHTML = html;
 }
 
-// ==================== GESTIONNAIRES D'ÉVÉNEMENTS ====================
+// Fonction pour ouvrir/fermer les sections
+function toggleSection(sectionId) {
+    const section = document.getElementById(sectionId);
+    section.classList.toggle('expanded');
+}
 
-// Pour le chargement automatique des données
-document.getElementById('chargerAutoDonnees').addEventListener('click', function() {
-    const symbole = document.getElementById('autoSymbol').value.trim().toUpperCase();
+// Gestionnaire d'événements pour le bouton de collecte
+document.getElementById('collecterDonnees').addEventListener('click', function() {
+    const symbole = document.getElementById('symbolInput').value.trim().toUpperCase();
     if (symbole) {
-        peuplerDonneesEntreprise(symbole);
+        collecterDonneesEntreprise(symbole);
     } else {
-        alert('Veuillez entrer un symbole');
-    }
-});
-
-// Pour l'état des revenus (votre fonction originale)
-document.getElementById('chargerDonnees').addEventListener('click', async function() {
-    const API_KEY = 'S9PuvPa0mLK9FlCMS3cUYQjnbndSJFOY';
-    const symbole = document.getElementById('symbolInput').value.toUpperCase().trim();
-    
-    if (!symbole) {
         alert('Veuillez entrer un symbole boursier');
-        return;
-    }
-
-    const loadingElement = document.getElementById('loading');
-    const resultatElement = document.getElementById('resultat');
-    const bouton = document.getElementById('chargerDonnees');
-    
-    // Réinitialiser l'affichage
-    loadingElement.style.display = 'block';
-    resultatElement.innerHTML = '';
-    bouton.disabled = true;
-
-    try {
-        // 📍 ENDPOINT SPÉCIFIQUE POUR INCOME STATEMENT
-        const url = `https://financialmodelingprep.com/stable/income-statement?symbol=${symbole}&apikey=${API_KEY}`;
-        console.log('🔄 Requête URL:', url);
-
-        const reponse = await fetch(url);
-        
-        if (!reponse.ok) {
-            throw new Error(`Erreur HTTP ${reponse.status}: ${reponse.statusText}`);
-        }
-
-        const donnees = await reponse.json();
-        
-        // Vérifier si on a des données
-        if (!donnees || donnees.length === 0) {
-            throw new Error(`Aucun état des revenus trouvé pour le symbole "${symbole}"`);
-        }
-
-        // Prendre le dernier état des revenus (le plus récent)
-        const incomeStatement = donnees[0];
-        
-        // Afficher les données formatées
-        afficherIncomeStatement(incomeStatement);
-        
-    } catch (erreur) {
-        console.error('Erreur:', erreur);
-        
-        let messageErreur = `❌ Erreur: ${erreur.message}`;
-        
-        if (erreur.message.includes('403')) {
-            messageErreur = `
-                ❌ Erreur 403 - Accès refusé
-                
-                Problèmes possibles:
-                • Clé API invalide ou expirée
-                • Limite de requêtes dépassée (250/jour)
-                • Clé non activée
-                
-                Vérifiez votre dashboard FMP: https://site.financialmodelingprep.com/dashboard
-            `;
-        }
-        
-        resultatElement.innerHTML = `<div class="error">${messageErreur}</div>`;
-        
-    } finally {
-        loadingElement.style.display = 'none';
-        bouton.disabled = false;
     }
 });
 
-// ==================== ÉVÉNEMENTS AU CHARGEMENT DE LA PAGE ====================
+// Permettre d'appuyer sur Entrée
+document.getElementById('symbolInput').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        document.getElementById('collecterDonnees').click();
+    }
+});
 
+// Ouvrir la première section par défaut
 document.addEventListener('DOMContentLoaded', function() {
-    // Permettre Entrée dans les champs symbole
-    document.getElementById('autoSymbol').addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            document.getElementById('chargerAutoDonnees').click();
-        }
-    });
-
-    document.getElementById('symbolInput').addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            document.getElementById('chargerDonnees').click();
-        }
-    });
-
-    console.log('🚀 Application FMP chargée - Prête à utiliser !');
+    console.log('🚀 Application de collecte de données financières chargée');
 });
