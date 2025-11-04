@@ -192,6 +192,7 @@ document.getElementById('cashFlowData').innerHTML = `
         <span class="data-value">$${formatNumber(Math.abs(cashFlow.capitalExpenditure))}</span>
     </div>
 `;
+    displayHistoricalData();
 }
 
 //FONCTION pour les données historiques
@@ -204,6 +205,46 @@ async function fetchHistoricalData(symbol) {
         return null;
     }
 }
+
+// FONCTION pour afficher l'historique des revenus
+function displayHistoricalData() {
+    const { historicalData } = currentData;
+    
+    if (!historicalData || historicalData.length === 0) {
+        document.getElementById('historicalData').innerHTML = '<p>Aucune donnée historique disponible</p>';
+        return;
+    }
+    
+    let html = '';
+    
+    // Trier par année (du plus récent au plus ancien)
+    historicalData.sort((a, b) => new Date(b.date) - new Date(a.date));
+    
+    historicalData.forEach((yearData, index) => {
+        const year = new Date(yearData.date).getFullYear();
+        const revenue = formatNumber(yearData.revenue);
+        const growth = index < historicalData.length - 1 ? 
+            ` (${calculateGrowth(historicalData[index + 1].revenue, yearData.revenue)}%)` : '';
+        
+        html += `
+            <div class="data-item">
+                <span class="data-label">${year}:</span>
+                <span class="data-value">$${revenue}${growth}</span>
+            </div>
+        `;
+    });
+    
+    document.getElementById('historicalData').innerHTML = html;
+}
+
+// Fonction utilitaire pour calculer la croissance
+function calculateGrowth(previousRevenue, currentRevenue) {
+    if (!previousRevenue || previousRevenue === 0) return 'N/A';
+    const growth = ((currentRevenue - previousRevenue) / previousRevenue) * 100;
+    return growth.toFixed(1);
+}
+
+    
 function performAnalysis() {
     const { profile } = currentData;
     document.getElementById('companyName').textContent = profile.companyName;
