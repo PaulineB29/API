@@ -338,7 +338,8 @@ document.getElementById('cashFlowData').innerHTML = `
 //FONCTION pour les données historiques
 async function fetchHistoricalData(symbol) {
     try {
-        const historicalData = await fetchAPI(`/income-statement/${symbol}?period=annual&limit=10`);
+        // Utilisez le même endpoint que pour les données annuelles
+        const historicalData = await fetchAPI(`/income-statement?symbol=${symbol}`);
         return historicalData;
     } catch (error) {
         console.error('Erreur historique:', error);
@@ -350,26 +351,40 @@ async function fetchHistoricalData(symbol) {
 function displayHistoricalData() {
     const { historicalData } = currentData;
     
-    if (!historicalData || historicalData.length === 0) {
-        document.getElementById('historicalData').innerHTML = '<p>Aucune donnée historique disponible</p>';
+    // Vérification plus robuste
+    if (!historicalData || !Array.isArray(historicalData) || historicalData.length === 0) {
+        document.getElementById('historicalData').innerHTML = '<p style="color: #7f8c8d;">Aucune donnée historique disponible</p>';
         return;
     }
     
     let html = '';
     
     // Trier par année (du plus récent au plus ancien)
-    historicalData.sort((a, b) => new Date(b.date) - new Date(a.date));
+    const sortedData = [...historicalData].sort((a, b) => new Date(b.date) - new Date(a.date));
     
-    historicalData.forEach((yearData, index) => {
+    // Prendre les 10 dernières années maximum
+    const recentData = sortedData.slice(0, 10);
+    
+    recentData.forEach((yearData, index) => {
         const year = new Date(yearData.date).getFullYear();
         const revenue = formatNumber(yearData.revenue);
-        const growth = index < historicalData.length - 1 ? 
-            ` (${calculateGrowth(historicalData[index + 1].revenue, yearData.revenue)}%)` : '';
+        
+        // Calcul de la croissance seulement si on a l'année précédente
+        let growthHtml = '';
+        if (index < recentData.length - 1) {
+            const previousRevenue = recentData[index + 1].revenue;
+            if (previousRevenue && previousRevenue > 0) {
+                const growth = ((yearData.revenue - previousRevenue) / previousRevenue) * 100;
+                const growthColor = growth >= 0 ? '#27ae60' : '#e74c3c';
+                const growthSymbol = growth >= 0 ? '↗' : '↘';
+                growthHtml = ` <span style="color: ${growthColor}; font-size: 0.9em;">${growthSymbol} ${growth.toFixed(1)}%</span>`;
+            }
+        }
         
         html += `
             <div class="data-item">
                 <span class="data-label">${year}:</span>
-                <span class="data-value">$${revenue}${growth}</span>
+                <span class="data-value">$${revenue}${growthHtml}</span>
             </div>
         `;
     });
