@@ -164,14 +164,14 @@ async function fetchCompanyData() {
     try {
         console.log(`Récupération des données pour ${symbol}...`);
         
-        // Récupérer toutes les données en parallèle avec vos endpoints exacts
-        const [profile, quote, cashFlow, incomeStatement, balanceSheet] = await Promise.all([
+        // Récupérer toutes les données en parallèle
+        const [profile, quote, cashFlow, incomeStatement, balanceSheet, historicalData] = await Promise.all([
             fetchAPI(`/profile?symbol=${symbol}`),
             fetchAPI(`/quote?symbol=${symbol}`),
             fetchAPI(`/cash-flow-statement?symbol=${symbol}`),
             fetchAPI(`/income-statement?symbol=${symbol}`),
             fetchAPI(`/balance-sheet-statement?symbol=${symbol}`),
-            fetchHistoricalData(symbol)
+            fetchHistoricalData(symbol) // ✅ Maintenant historicalData est défini
         ]);
 
         // Vérifier si les données sont valides
@@ -185,7 +185,7 @@ async function fetchCompanyData() {
             cashFlow: cashFlow[0],
             incomeStatement: incomeStatement[0],
             balanceSheet: balanceSheet[0],
-            historicalData: historicalData
+            historicalData: historicalData // ✅ Maintenant correct
         };
 
         console.log('Données récupérées avec succès:', currentData);
@@ -483,10 +483,11 @@ function displaySafetyAnalysis(metrics) {
         ${createMetricCard('Current Ratio', metrics.currentRatio.toFixed(2), metrics.currentRatio, 2.0, 1.5, 1.0, false, 'currentRatio')}
         ${createMetricCard('Couverture Intérêts', metrics.interestCoverage > 1000 ? '∞' : metrics.interestCoverage.toFixed(1) + 'x', 
                           metrics.interestCoverage, 10, 5, 3, false, 'interestCoverage')}
-        ${createMetricCard('Free Cash Flow', `$${formatNumber(metrics.freeCashFlow)}`, 1, 0, 0, 0, false, 'freeCashFlow')}
+        ${createMetricCard('Free Cash Flow', `$${formatNumber(metrics.freeCashFlow)}`, metrics.freeCashFlow > 0 ? 1 : 0, 1, 0, -1, false, 'freeCashFlow')}
     `;
     document.getElementById('safetyAnalysis').innerHTML = html;
 }
+
 function displayValuationAnalysis(metrics) {
     const html = `
         ${createMetricCard('P/E Ratio', metrics.peRatio.toFixed(1), metrics.peRatio, 10, 15, 25, true, 'peRatio')}
@@ -673,5 +674,68 @@ function showAnalysisSection() {
     analysisSection.scrollIntoView({ behavior: 'smooth' });
 }
 
+function calculateScores(metrics) {
+    const scores = { excellent: 0, good: 0, medium: 0, bad: 0 };
+    
+    // Profitabilité
+    scores[getRating(metrics.roe, 20, 15, 10)]++;
+    scores[getRating(metrics.netMargin, 20, 15, 10)]++;
+    scores[getRating(metrics.grossMargin, 50, 40, 30)]++;
+    scores[getRating(metrics.sgaMargin, 10, 20, 30, true)]++;
+    scores[getRating(metrics.roic, 15, 10, 8)]++;
+    
+    // Sécurité
+    scores[getRating(metrics.debtToEquity, 0.3, 0.5, 1.0, true)]++;
+    scores[getRating(metrics.currentRatio, 2.0, 1.5, 1.0)]++;
+    scores[getRating(metrics.interestCoverage, 10, 5, 3)]++;
+    
+    // Valuation
+    scores[getRating(metrics.peRatio, 10, 15, 25, true)]++;
+    scores[getRating(metrics.earningsYield, 10, 6, 4)]++;
+    scores[getRating(metrics.priceToFCF, 10, 15, 20, true)]++;
+    scores[getRating(metrics.priceToMM200, 5, 0, -5)]++;
+    scores[getRating(metrics.dividendYield, 4, 2, 1)]++;
+    scores[getRating(metrics.pbRatio, 1.5, 3, 5, true)]++;
+    scores[getRating(metrics.pegRatio, 0.8, 1.0, 1.2, true)]++;
+    scores[getRating(metrics.evToEbitda, 8, 12, 15, true)]++;
+    
+    return scores;
+}
+
+function getKeyPoints(metrics) {
+    const points = [];
+    
+    if (metrics.roe > 20) points.push('point-positive ROE exceptionnel (> 20%)');
+    else if (metrics.roe < 10) points.push('point-negative ROE faible (< 10%)');
+    
+    if (metrics.netMargin > 20) points.push('point-positive Forte marge nette (> 20%)');
+    else if (metrics.netMargin < 10) points.push('point-negative Marge nette faible (< 10%)');
+    
+    if (metrics.grossMargin > 50) points.push('point-positive Forte marge brute (> 50%)');
+    
+    if (metrics.debtToEquity > 1.0) points.push('point-negative Dette élevée (D/E > 1.0)');
+    else if (metrics.debtToEquity < 0.3) points.push('point-positive Faible endettement (D/E < 0.3)');
+    
+    if (metrics.currentRatio < 1.0) points.push('point-negative Problème de liquidité (Current Ratio < 1.0)');
+    else if (metrics.currentRatio > 2.0) points.push('point-positive Excellente liquidité (Current Ratio > 2.0)');
+    
+    if (metrics.peRatio < 15) points.push('point-positive Valorisation attractive (P/E < 15)');
+    else if (metrics.peRatio > 25) points.push('point-warning Valorisation élevée (P/E > 25)');
+    
+    if (metrics.earningsYield > 6.5) points.push('point-positive Rendement des bénéfices attractif (> 6.5%)');
+    
+    if (metrics.dividendYield > 3) points.push('point-positive Dividende attractif (> 3%)');
+    
+    if (metrics.roic > 15) points.push('point-positive ROIC excellent (> 15%)');
+    
+    return points.map(point => `<div class="point ${point.split(' ')[0]}">${point.substring(12)}</div>`).join('');
+}
+
+// Fonction pour calculer la croissance 
+function calculateGrowth(previousRevenue, currentRevenue) {
+    if (!previousRevenue || previousRevenue === 0) return 'N/A';
+    const growth = ((currentRevenue - previousRevenue) / previousRevenue) * 100;
+    return growth.toFixed(1);
+}
 // Initialisation
 console.log('Dashboard Buffett initialisé');
