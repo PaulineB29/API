@@ -258,3 +258,84 @@ h1 {
 .metric-card.balance { border-left-color: #3498db; }
 .metric-card.cashflow { border-left-color: #9b59b6; }
 .metric-card.valuation { border-left-color: #f39c12; }
+
+/* Styles pour les tooltips */
+.metric-header {
+    position: relative;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.help-icon {
+    color: #3498db;
+    cursor: help;
+    margin-left: 8px;
+    font-size: 0.9em;
+    font-weight: bold;
+    width: 16px;
+    height: 16px;
+    border: 1px solid #3498db;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+}
+
+.tooltip {
+    visibility: hidden;
+    width: 300px;
+    background-color: #2c3e50;
+    color: white;
+    text-align: left;
+    border-radius: 8px;
+    padding: 15px;
+    position: absolute;
+    z-index: 1000;
+    bottom: 125%;
+    left: 50%;
+    transform: translateX(-50%);
+    opacity: 0;
+    transition: opacity 0.3s;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    font-size: 0.9em;
+}
+
+.tooltip::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: #2c3e50 transparent transparent transparent;
+}
+
+.help-icon:hover .tooltip {
+    visibility: visible;
+    opacity: 1;
+}
+
+.tooltip h4 {
+    margin: 0 0 8px 0;
+    color: #3498db;
+    font-size: 1.1em;
+}
+
+.tooltip-section {
+    margin-bottom: 8px;
+}
+
+.tooltip-label {
+    font-weight: bold;
+    color: #ecf0f1;
+    font-size: 0.9em;
+}
+
+.tooltip-value {
+    color: #bdc3c7;
+    font-size: 0.85em;
+}
