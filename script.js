@@ -792,7 +792,6 @@ function getThresholdsText(excellent, good, medium, reverse) {
         return `Excellent > ${excellent} | Bon ${excellent}-${good} | Moyen ${good}-${medium} | Faible < ${medium}`;
     }
 }
-}
 
 function getRating(actual, excellent, good, medium, reverse = false) {
     if (reverse) {
