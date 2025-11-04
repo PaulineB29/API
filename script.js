@@ -1,6 +1,6 @@
 // Configuration
 const API_KEY = 'S9PuvPa0mLK9FlCMS3cUYQjnbndSJFOY'; 
-const BASE_URL = 'https://financialmodelingprep.com/api/v3';
+const BASE_URL = 'https://financialmodelingprep.com/api/stable';
 
 // Éléments DOM
 const symbolInput = document.getElementById('symbolInput');
