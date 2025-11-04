@@ -38,7 +38,8 @@ async function fetchCompanyData() {
             fetchAPI(`/quote?symbol=${symbol}`),
             fetchAPI(`/cash-flow-statement?symbol=${symbol}`),
             fetchAPI(`/income-statement?symbol=${symbol}`),
-            fetchAPI(`/balance-sheet-statement?symbol=${symbol}`)
+            fetchAPI(`/balance-sheet-statement?symbol=${symbol}`),
+            fetchHistoricalData(symbol)
         ]);
 
         // Vérifier si les données sont valides
@@ -51,7 +52,8 @@ async function fetchCompanyData() {
             quote: quote[0],
             cashFlow: cashFlow[0],
             incomeStatement: incomeStatement[0],
-            balanceSheet: balanceSheet[0]
+            balanceSheet: balanceSheet[0],
+            historicalData: historicalData
         };
 
         console.log('Données récupérées avec succès:', currentData);
@@ -100,24 +102,32 @@ function displayBasicData() {
     const { profile, quote, balanceSheet, incomeStatement, cashFlow } = currentData;
     
     // Données de base
-    document.getElementById('basicData').innerHTML = `
-        <div class="data-item">
-            <span class="data-label">Entreprise:</span>
-            <span class="data-value">${profile.companyName}</span>
-        </div>
-        <div class="data-item">
-            <span class="data-label">Prix:</span>
-            <span class="data-value">$${quote.price?.toFixed(2) || 'N/A'}</span>
-        </div>
-        <div class="data-item">
-            <span class="data-label">Market Cap:</span>
-            <span class="data-value">$${formatNumber(quote.marketCap)}</span>
-        </div>
-        <div class="data-item">
-            <span class="data-label">Secteur:</span>
-            <span class="data-value">${profile.sector}</span>
-        </div>
-    `;
+document.getElementById('basicData').innerHTML = `
+    <div class="data-item">
+        <span class="data-label">Entreprise:</span>
+        <span class="data-value">${profile.companyName}</span>
+    </div>
+    <div class="data-item">
+        <span class="data-label">Prix Actuel:</span>
+        <span class="data-value">$${quote.price?.toFixed(2) || 'N/A'}</span>
+    </div>
+    <div class="data-item">
+        <span class="data-label">Moyenne Mobile 200j:</span>
+        <span class="data-value">$${quote.priceAvg200?.toFixed(2) || 'N/A'}</span>
+    </div>
+    <div class="data-item">
+        <span class="data-label">Dividende par Action:</span>
+        <span class="data-value">$${profile.lastDividend?.toFixed(2) || 'N/A'}</span>
+    </div>
+    <div class="data-item">
+        <span class="data-label">Market Cap:</span>
+        <span class="data-value">$${formatNumber(quote.marketCap)}</span>
+    </div>
+    <div class="data-item">
+        <span class="data-label">Secteur:</span>
+        <span class="data-value">${profile.sector}</span>
+    </div>
+`;
 
     // Balance Sheet
     document.getElementById('balanceSheetData').innerHTML = `
@@ -139,43 +149,61 @@ function displayBasicData() {
         </div>
     `;
 
-    // Income Statement
-    document.getElementById('incomeStatementData').innerHTML = `
-        <div class="data-item">
-            <span class="data-label">Revenus:</span>
-            <span class="data-value">$${formatNumber(incomeStatement.revenue)}</span>
-        </div>
-        <div class="data-item">
-            <span class="data-label">EBIT:</span>
-            <span class="data-value">$${formatNumber(incomeStatement.operatingIncome)}</span>
-        </div>
-        <div class="data-item">
-            <span class="data-label">Bénéfice Net:</span>
-            <span class="data-value">$${formatNumber(incomeStatement.netIncome)}</span>
-        </div>
-        <div class="data-item">
-            <span class="data-label">BPA (EPS):</span>
-            <span class="data-value">$${incomeStatement.eps?.toFixed(2) || 'N/A'}</span>
-        </div>
-    `;
+    // Income Statement 
+document.getElementById('incomeStatementData').innerHTML = `
+    <div class="data-item">
+        <span class="data-label">Revenus:</span>
+        <span class="data-value">$${formatNumber(incomeStatement.revenue)}</span>
+    </div>
+    <div class="data-item">
+        <span class="data-label">EBIT:</span>
+        <span class="data-value">$${formatNumber(incomeStatement.operatingIncome)}</span>
+    </div>
+    <div class="data-item">
+        <span class="data-label">Bénéfice Net:</span>
+        <span class="data-value">$${formatNumber(incomeStatement.netIncome)}</span>
+    </div>
+    <div class="data-item">
+        <span class="data-label">BPA (EPS):</span>
+        <span class="data-value">$${incomeStatement.eps?.toFixed(2) || 'N/A'}</span>
+    </div>
+    <div class="data-item">
+        <span class="data-label">Frais Financiers:</span>
+        <span class="data-value">$${formatNumber(Math.abs(incomeStatement.interestExpense))}</span>
+    </div>
+    <div class="data-item">
+        <span class="data-label">EBITDA:</span>
+        <span class="data-value">$${formatNumber(incomeStatement.ebitda)}</span>
+    </div>
+`;
 
-    // Cash Flow
-    document.getElementById('cashFlowData').innerHTML = `
-        <div class="data-item">
-            <span class="data-label">Cash Flow Opérationnel:</span>
-            <span class="data-value">$${formatNumber(cashFlow.operatingCashFlow)}</span>
-        </div>
-        <div class="data-item">
-            <span class="data-label">Free Cash Flow:</span>
-            <span class="data-value">$${formatNumber(cashFlow.freeCashFlow)}</span>
-        </div>
-        <div class="data-item">
-            <span class="data-label">CapEx:</span>
-            <span class="data-value">$${formatNumber(Math.abs(cashFlow.capitalExpenditure))}</span>
-        </div>
-    `;
+    // Cash Flow 
+document.getElementById('cashFlowData').innerHTML = `
+    <div class="data-item">
+        <span class="data-label">Cash Flow Opérationnel:</span>
+        <span class="data-value">$${formatNumber(cashFlow.operatingCashFlow)}</span>
+    </div>
+    <div class="data-item">
+        <span class="data-label">Free Cash Flow:</span>
+        <span class="data-value">$${formatNumber(cashFlow.freeCashFlow)}</span>
+    </div>
+    <div class="data-item">
+        <span class="data-label">Dépenses en Capital (CapEx):</span>
+        <span class="data-value">$${formatNumber(Math.abs(cashFlow.capitalExpenditure))}</span>
+    </div>
+`;
 }
 
+//FONCTION pour les données historiques
+async function fetchHistoricalData(symbol) {
+    try {
+        const historicalData = await fetchAPI(`/income-statement/${symbol}?period=annual&limit=10`);
+        return historicalData;
+    } catch (error) {
+        console.error('Erreur historique:', error);
+        return null;
+    }
+}
 function performAnalysis() {
     const { profile } = currentData;
     document.getElementById('companyName').textContent = profile.companyName;
