@@ -465,7 +465,6 @@ function calculateMetrics() {
         roic, freeCashFlow, evToEbitda
     };
 }
-
 function displayProfitabilityAnalysis(metrics) {
     const html = `
         ${createMetricCard('ROE', `${metrics.roe.toFixed(1)}%`, metrics.roe, 20, 15, 10, false, 'roe')}
