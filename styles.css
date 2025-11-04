@@ -371,3 +371,63 @@ button:hover {
         font-size: 0.8em;
     }
 }
+/* Améliorations pour l'analyse */
+.metric-score {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.score-bar {
+    flex-grow: 1;
+    height: 6px;
+    background: #ecf0f1;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.score-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.5s ease;
+}
+
+.score-excellent { background: #27ae60; }
+.score-good { background: #3498db; }
+.score-medium { background: #f39c12; }
+.score-bad { background: #e74c3c; }
+
+/* Amélioration des tooltips */
+.tooltip {
+    width: 350px;
+    z-index: 10000;
+}
+
+/* Indicateurs de performance */
+.performance-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.9em;
+    padding: 2px 8px;
+    border-radius: 12px;
+    margin-left: 8px;
+}
+
+.indicator-positive { background: #d4edda; color: #155724; }
+.indicator-negative { background: #f8d7da; color: #721c24; }
+.indicator-warning { background: #fff3cd; color: #856404; }
+
+/* Groupement par catégorie de performance */
+.metrics-group {
+    margin-bottom: 20px;
+}
+
+.group-title {
+    font-size: 1.1em;
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 10px;
+    padding-bottom: 5px;
+    border-bottom: 2px solid #3498db;
+}
