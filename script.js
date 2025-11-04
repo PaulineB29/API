@@ -129,25 +129,33 @@ document.getElementById('basicData').innerHTML = `
     </div>
 `;
 
-    // Balance Sheet
-    document.getElementById('balanceSheetData').innerHTML = `
-        <div class="data-item">
-            <span class="data-label">Actifs Courants:</span>
-            <span class="data-value">$${formatNumber(balanceSheet.totalCurrentAssets)}</span>
-        </div>
-        <div class="data-item">
-            <span class="data-label">Passifs Courants:</span>
-            <span class="data-value">$${formatNumber(balanceSheet.totalCurrentLiabilities)}</span>
-        </div>
-        <div class="data-item">
-            <span class="data-label">Dette Totale:</span>
-            <span class="data-value">$${formatNumber(balanceSheet.totalDebt)}</span>
-        </div>
-        <div class="data-item">
-            <span class="data-label">Capitaux Propres:</span>
-            <span class="data-value">$${formatNumber(balanceSheet.totalStockholdersEquity)}</span>
-        </div>
-    `;
+   // Balance Sheet - SECTION MODIFIÉE
+document.getElementById('balanceSheetData').innerHTML = `
+    <div class="data-item">
+        <span class="data-label">Trésorerie:</span>
+        <span class="data-value">$${formatNumber(balanceSheet.cashAndCashEquivalents)}</span>
+    </div>
+    <div class="data-item">
+        <span class="data-label">Actifs Courants:</span>
+        <span class="data-value">$${formatNumber(balanceSheet.totalCurrentAssets)}</span>
+    </div>
+    <div class="data-item">
+        <span class="data-label">Passifs Courants:</span>
+        <span class="data-value">$${formatNumber(balanceSheet.totalCurrentLiabilities)}</span>
+    </div>
+    <div class="data-item">
+        <span class="data-label">Dette Totale:</span>
+        <span class="data-value">$${formatNumber(balanceSheet.totalDebt)}</span>
+    </div>
+    <div class="data-item">
+        <span class="data-label">Capitaux Propres:</span>
+        <span class="data-value">$${formatNumber(balanceSheet.totalStockholdersEquity)}</span>
+    </div>
+    <div class="data-item">
+        <span class="data-label">Net Cash:</span>
+        <span class="data-value">$${formatNumber(balanceSheet.cashAndCashEquivalents - balanceSheet.totalDebt)}</span>
+    </div>
+`;
 
     // Income Statement 
 document.getElementById('incomeStatementData').innerHTML = `
