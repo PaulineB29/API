@@ -1,6 +1,6 @@
-// Configuration
-const API_KEY = 'S9PuvPa0mLK9FlCMS3cUYQjnbndSJFOY'; 
-const BASE_URL = 'https://financialmodelingprep.com/api/stable';
+// Configuration - Version corrigée pour vos endpoints
+const API_KEY = 'S9PuvPa0mLK9FlCMS3cUYQjnbndSJFOY';
+const BASE_URL = 'https://financialmodelingprep.com/stable';
 
 // Éléments DOM
 const symbolInput = document.getElementById('symbolInput');
@@ -30,39 +30,70 @@ async function fetchCompanyData() {
     hideError();
     
     try {
-        // Récupérer toutes les données en parallèle
-        const [profile, quote, balanceSheet, incomeStatement, cashFlow] = await Promise.all([
-            fetchAPI(`/profile/${symbol}`),
-            fetchAPI(`/quote/${symbol}`),
-            fetchAPI(`/balance-sheet-statement/${symbol}?period=annual&limit=1`),
-            fetchAPI(`/income-statement/${symbol}?period=annual&limit=1`),
-            fetchAPI(`/cash-flow-statement/${symbol}?period=annual&limit=1`)
+        console.log(`Récupération des données pour ${symbol}...`);
+        
+        // Récupérer toutes les données en parallèle avec vos endpoints exacts
+        const [profile, quote, cashFlow, incomeStatement, balanceSheet] = await Promise.all([
+            fetchAPI(`/profile?symbol=${symbol}`),
+            fetchAPI(`/quote?symbol=${symbol}`),
+            fetchAPI(`/cash-flow-statement?symbol=${symbol}`),
+            fetchAPI(`/income-statement?symbol=${symbol}`),
+            fetchAPI(`/balance-sheet-statement?symbol=${symbol}`)
         ]);
+
+        // Vérifier si les données sont valides
+        if (!profile || profile.length === 0) {
+            throw new Error('Symbole non trouvé ou données indisponibles');
+        }
 
         currentData = {
             profile: profile[0],
             quote: quote[0],
-            balanceSheet: balanceSheet[0],
+            cashFlow: cashFlow[0],
             incomeStatement: incomeStatement[0],
-            cashFlow: cashFlow[0]
+            balanceSheet: balanceSheet[0]
         };
 
+        console.log('Données récupérées avec succès:', currentData);
         displayBasicData();
         showDataSection();
         
     } catch (error) {
-        showError('Erreur lors de la récupération des données: ' + error.message);
+        console.error('Erreur détaillée:', error);
+        showError(`Erreur: ${error.message}. Vérifiez le symbole et votre connexion.`);
     } finally {
         hideLoading();
     }
 }
 
 async function fetchAPI(endpoint) {
-    const response = await fetch(`${BASE_URL}${endpoint}?apikey=${API_KEY}`);
+    console.log(`Appel API: ${endpoint}`);
+    
+    const url = `${BASE_URL}${endpoint}&apikey=${API_KEY}`;
+    console.log('URL complète:', url);
+    
+    const response = await fetch(url);
+    
     if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
+        if (response.status === 401) {
+            throw new Error('Clé API invalide ou non autorisée');
+        } else if (response.status === 403) {
+            throw new Error('Accès refusé. Vérifiez votre abonnement API.');
+        } else if (response.status === 404) {
+            throw new Error('Données non trouvées pour ce symbole.');
+        } else {
+            throw new Error(`Erreur API: ${response.status} ${response.statusText}`);
+        }
     }
-    return response.json();
+    
+    const data = await response.json();
+    
+    // Vérifier si c'est un tableau et s'il contient des données
+    if (Array.isArray(data) && data.length === 0) {
+        throw new Error('Aucune donnée disponible pour ce symbole');
+    }
+    
+    return data;
 }
 
 function displayBasicData() {
@@ -76,7 +107,7 @@ function displayBasicData() {
         </div>
         <div class="data-item">
             <span class="data-label">Prix:</span>
-            <span class="data-value">$${quote.price.toFixed(2)}</span>
+            <span class="data-value">$${quote.price?.toFixed(2) || 'N/A'}</span>
         </div>
         <div class="data-item">
             <span class="data-label">Market Cap:</span>
@@ -124,7 +155,7 @@ function displayBasicData() {
         </div>
         <div class="data-item">
             <span class="data-label">BPA (EPS):</span>
-            <span class="data-value">$${incomeStatement.eps.toFixed(2)}</span>
+            <span class="data-value">$${incomeStatement.eps?.toFixed(2) || 'N/A'}</span>
         </div>
     `;
 
@@ -146,19 +177,14 @@ function displayBasicData() {
 }
 
 function performAnalysis() {
-    const { profile, quote, balanceSheet, incomeStatement, cashFlow } = currentData;
-    
+    const { profile } = currentData;
     document.getElementById('companyName').textContent = profile.companyName;
     
-    // Calcul des métriques
     const metrics = calculateMetrics();
-    
-    // Affichage des analyses
     displayProfitabilityAnalysis(metrics);
     displaySafetyAnalysis(metrics);
     displayValuationAnalysis(metrics);
     displaySummaryAnalysis(metrics);
-    
     showAnalysisSection();
 }
 
@@ -318,7 +344,7 @@ function createMetricCard(name, value, actual, excellent, good, medium, reverse 
             </div>
             <div class="metric-rating ${ratingClass}">${getRatingText(rating)}</div>
             <div class="metric-details">
-                Seuils: Excellent < ${excellent} | Bon ${excellent}-${good} | Moyen ${good}-${medium} | Faible > ${medium}
+                Seuils: Excellent ${reverse ? '<' : '>'} ${excellent} | Bon ${excellent}-${good} | Moyen ${good}-${medium} | Faible ${reverse ? '>' : '<'} ${medium}
             </div>
         </div>
     `;
@@ -349,6 +375,7 @@ function getRatingText(rating) {
 }
 
 function formatNumber(num) {
+    if (!num) return 'N/A';
     if (num >= 1e9) {
         return (num / 1e9).toFixed(2) + 'B';
     } else if (num >= 1e6) {
@@ -386,7 +413,4 @@ function showAnalysisSection() {
 }
 
 // Initialisation
-document.addEventListener('DOMContentLoaded', function() {
-    // Option: Charger AAPL par défaut
-    // fetchCompanyData();
-});
+console.log('Dashboard Buffett initialisé');
