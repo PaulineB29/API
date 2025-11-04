@@ -507,44 +507,183 @@ function displaySummaryAnalysis(metrics) {
     const maxScore = (scores.excellent + scores.good + scores.medium + scores.bad) * 3;
     const percentage = (totalScore / maxScore) * 100;
     
-    let rating, ratingClass, recommendation;
+    // Analyse détaillée par catégorie
+    const categoryAnalysis = analyzeByCategory(metrics, scores);
     
-    if (percentage >= 80) {
+    let rating, ratingClass, recommendation, details;
+    
+    if (percentage >= 75) {
         rating = 'EXCELLENT';
         ratingClass = 'summary-excellent';
-        recommendation = '✅ Forte recommandation selon les critères Buffett';
+        recommendation = '✅ FORTE RECOMMANDATION - Correspond bien aux critères Buffett';
+        details = 'Entreprise de haute qualité avec valorisation attractive';
     } else if (percentage >= 60) {
         rating = 'BON';
         ratingClass = 'summary-good';
-        recommendation = '👍 Bonne opportunité, à surveiller';
-    } else if (percentage >= 40) {
+        recommendation = '👍 BONNE OPPORTUNITÉ - À surveiller de près';
+        details = 'Solide fondamentaux mais valorisation à surveiller';
+    } else if (percentage >= 45) {
         rating = 'MOYEN';
         ratingClass = 'summary-medium';
-        recommendation = '⚠️ Opportunité moyenne, nécessite plus d\'analyse';
-    } else {
+        recommendation = '⚠️ OPPORTUNITÉ MOYENNE - Nécessite une analyse plus poussée';
+        details = 'Points forts et faibles équilibrés, décision contextuelle';
+    } else if (percentage >= 30) {
         rating = 'FAIBLE';
         ratingClass = 'summary-bad';
-        recommendation = '❌ Ne correspond pas aux critères Buffett';
+        recommendation = '📉 OPPORTUNITÉ FAIBLE - Plusieurs points de vigilance';
+        details = 'Problèmes significatifs sur la valorisation ou la structure financière';
+    } else {
+        rating = 'TRÈS FAIBLE';
+        ratingClass = 'summary-bad';
+        recommendation = '❌ DÉCONSEILLÉ - Ne correspond pas aux critères Buffett';
+        details = 'Multiples problèmes structurels et de valorisation';
     }
     
     const html = `
         <div class="summary-box">
-            <h3>Score Global: ${percentage.toFixed(0)}%</h3>
-            <div class="summary-rating ${ratingClass}">${rating}</div>
+            <div class="score-header">
+                <h3>Score Global: ${percentage.toFixed(0)}%</h3>
+                <div class="performance-breakdown">
+                    <div class="performance-item">
+                        <span class="performance-label">Profitabilité:</span>
+                        <span class="performance-value ${categoryAnalysis.profitability.rating}">${categoryAnalysis.profitability.score}%</span>
+                    </div>
+                    <div class="performance-item">
+                        <span class="performance-label">Sécurité:</span>
+                        <span class="performance-value ${categoryAnalysis.safety.rating}">${categoryAnalysis.safety.score}%</span>
+                    </div>
+                    <div class="performance-item">
+                        <span class="performance-label">Valorisation:</span>
+                        <span class="performance-value ${categoryAnalysis.valuation.rating}">${categoryAnalysis.valuation.score}%</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="summary-rating ${ratingClass}">
+                ${rating}
+                <div class="rating-details">${details}</div>
+            </div>
+            
             <p><strong>Recommandation:</strong> ${recommendation}</p>
             
+            <div class="analysis-details">
+                <div class="analysis-section">
+                    <h4>📈 Points Forts</h4>
+                    <div class="strengths-list">
+                        ${categoryAnalysis.profitability.strengths.map(strength => 
+                            `<div class="analysis-point positive">${strength}</div>`
+                        ).join('')}
+                    </div>
+                </div>
+                
+                <div class="analysis-section">
+                    <h4>⚠️ Points de Vigilance</h4>
+                    <div class="concerns-list">
+                        ${categoryAnalysis.valuation.concerns.map(concern => 
+                            `<div class="analysis-point warning">${concern}</div>`
+                        ).join('')}
+                        ${categoryAnalysis.safety.concerns.map(concern => 
+                            `<div class="analysis-point warning">${concern}</div>`
+                        ).join('')}
+                    </div>
+                </div>
+            </div>
+            
             <div class="summary-points">
-                <h4>Points Clés:</h4>
+                <h4>🎯 Analyse Détailée</h4>
                 ${getKeyPoints(metrics)}
             </div>
             
-            <div class="scores">
-                <p>📊 Excellent: ${scores.excellent} | Bon: ${scores.good} | Moyen: ${scores.medium} | Faible: ${scores.bad}</p>
+            <div class="scores-breakdown">
+                <h4>📊 Répartition des Scores</h4>
+                <div class="scores-grid">
+                    <div class="score-category">
+                        <span class="score-label">Excellent:</span>
+                        <div class="score-bar">
+                            <div class="score-fill score-excellent" style="width: ${(scores.excellent/16)*100}%"></div>
+                        </div>
+                        <span class="score-count">${scores.excellent}/16</span>
+                    </div>
+                    <div class="score-category">
+                        <span class="score-label">Bon:</span>
+                        <div class="score-bar">
+                            <div class="score-fill score-good" style="width: ${(scores.good/16)*100}%"></div>
+                        </div>
+                        <span class="score-count">${scores.good}/16</span>
+                    </div>
+                    <div class="score-category">
+                        <span class="score-label">Moyen:</span>
+                        <div class="score-bar">
+                            <div class="score-fill score-medium" style="width: ${(scores.medium/16)*100}%"></div>
+                        </div>
+                        <span class="score-count">${scores.medium}/16</span>
+                    </div>
+                    <div class="score-category">
+                        <span class="score-label">Faible:</span>
+                        <div class="score-bar">
+                            <div class="score-fill score-bad" style="width: ${(scores.bad/16)*100}%"></div>
+                        </div>
+                        <span class="score-count">${scores.bad}/16</span>
+                    </div>
+                </div>
             </div>
         </div>
     `;
     
     document.getElementById('summaryAnalysis').innerHTML = html;
+}
+
+// Nouvelle fonction pour l'analyse par catégorie
+function analyzeByCategory(metrics, scores) {
+    return {
+        profitability: {
+            score: Math.round(((metrics.roe > 20 ? 1 : 0) + (metrics.netMargin > 20 ? 1 : 0) + 
+                             (metrics.grossMargin > 40 ? 1 : 0) + (metrics.sgaMargin < 20 ? 1 : 0) + 
+                             (metrics.roic > 10 ? 1 : 0)) / 5 * 100),
+            rating: getCategoryRating(metrics.roe > 20 && metrics.netMargin > 20 && metrics.roic > 15),
+            strengths: [
+                metrics.roe > 20 ? "ROE exceptionnel" : "",
+                metrics.netMargin > 20 ? "Forte marge nette" : "",
+                metrics.roic > 15 ? "ROIC excellent" : "",
+                metrics.grossMargin > 40 ? "Bonne marge brute" : ""
+            ].filter(Boolean),
+            concerns: []
+        },
+        safety: {
+            score: Math.round(((metrics.debtToEquity < 0.5 ? 1 : 0) + (metrics.currentRatio > 1.5 ? 1 : 0) + 
+                             (metrics.interestCoverage > 5 ? 1 : 0) + (metrics.freeCashFlow > 0 ? 1 : 0)) / 4 * 100),
+            rating: getCategoryRating(metrics.debtToEquity < 0.5 && metrics.currentRatio > 1.5),
+            strengths: [
+                metrics.interestCoverage > 10 ? "Excellente couverture des intérêts" : "",
+                metrics.freeCashFlow > 0 ? "Génération de cash flow saine" : ""
+            ].filter(Boolean),
+            concerns: [
+                metrics.debtToEquity > 1.0 ? "Dette élevée" : "",
+                metrics.currentRatio < 1.0 ? "Problème de liquidité" : ""
+            ].filter(Boolean)
+        },
+        valuation: {
+            score: Math.round(((metrics.peRatio < 20 ? 1 : 0) + (metrics.earningsYield > 5 ? 1 : 0) + 
+                             (metrics.priceToFCF < 20 ? 1 : 0) + (metrics.pbRatio < 3 ? 1 : 0) + 
+                             (metrics.pegRatio < 1.5 ? 1 : 0) + (metrics.evToEbitda < 15 ? 1 : 0)) / 6 * 100),
+            rating: getCategoryRating(metrics.peRatio < 15 && metrics.pegRatio < 1),
+            strengths: [
+                metrics.priceToMM200 > 5 ? "Tendance haussière vs MM200" : "",
+                metrics.dividendYield > 2 ? "Dividende attractif" : ""
+            ].filter(Boolean),
+            concerns: [
+                metrics.peRatio > 25 ? "Valorisation élevée (P/E)" : "",
+                metrics.earningsYield < 4 ? "Rendement des bénéfices faible" : "",
+                metrics.priceToFCF > 20 ? "Cash flow cher" : "",
+                metrics.pbRatio > 3 ? "Prime importante vs actifs" : "",
+                metrics.evToEbitda > 12 ? "Valorisation d'entreprise élevée" : ""
+            ].filter(Boolean)
+        }
+    };
+}
+
+function getCategoryRating(isExcellent) {
+    return isExcellent ? 'excellent' : 'good';
 }
 
 function calculateScores(metrics) {
@@ -594,21 +733,65 @@ function createMetricCard(name, value, actual, excellent, good, medium, reverse 
     const rating = getRating(actual, excellent, good, medium, reverse);
     const ratingClass = `rating-${rating}`;
     
-    // Ajouter l'icône d'aide si un ratioKey est fourni
+    // Ajouter un indicateur de performance
+    const performanceIndicator = getPerformanceIndicator(actual, excellent, good, medium, reverse);
+    
     const helpIcon = ratioKey ? createHelpIcon(ratioKey) : '';
     
     return `
         <div class="metric">
             <div class="metric-header">
                 <span class="metric-name">${name}${helpIcon}</span>
-                <span class="metric-value">${value}</span>
+                <div class="metric-score">
+                    <span class="metric-value">${value}</span>
+                    ${performanceIndicator}
+                </div>
             </div>
             <div class="metric-rating ${ratingClass}">${getRatingText(rating)}</div>
+            <div class="score-bar">
+                <div class="score-fill ${ratingClass}" style="width: ${calculateScoreWidth(actual, excellent, good, medium, reverse)}%"></div>
+            </div>
             <div class="metric-details">
-                Seuils: Excellent ${reverse ? '<' : '>'} ${excellent} | Bon ${excellent}-${good} | Moyen ${good}-${medium} | Faible ${reverse ? '>' : '<'} ${medium}
+                Seuils: ${getThresholdsText(excellent, good, medium, reverse)}
             </div>
         </div>
     `;
+}
+
+// Fonctions utilitaires pour les améliorations
+function getPerformanceIndicator(actual, excellent, good, medium, reverse) {
+    if (reverse ? actual <= excellent : actual >= excellent) {
+        return '<span class="performance-indicator indicator-positive">✓ Excellent</span>';
+    } else if (reverse ? actual <= good : actual >= good) {
+        return '<span class="performance-indicator indicator-positive">✓ Bon</span>';
+    } else if (reverse ? actual <= medium : actual >= medium) {
+        return '<span class="performance-indicator indicator-warning">⚠ Moyen</span>';
+    } else {
+        return '<span class="performance-indicator indicator-negative">✗ Faible</span>';
+    }
+}
+
+function calculateScoreWidth(actual, excellent, good, medium, reverse) {
+    if (reverse) {
+        if (actual <= excellent) return 100;
+        if (actual <= good) return 75;
+        if (actual <= medium) return 50;
+        return 25;
+    } else {
+        if (actual >= excellent) return 100;
+        if (actual >= good) return 75;
+        if (actual >= medium) return 50;
+        return 25;
+    }
+}
+
+function getThresholdsText(excellent, good, medium, reverse) {
+    if (reverse) {
+        return `Excellent < ${excellent} | Bon ${excellent}-${good} | Moyen ${good}-${medium} | Faible > ${medium}`;
+    } else {
+        return `Excellent > ${excellent} | Bon ${excellent}-${good} | Moyen ${good}-${medium} | Faible < ${medium}`;
+    }
+}
 }
 
 function getRating(actual, excellent, good, medium, reverse = false) {
