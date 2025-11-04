@@ -14,6 +14,138 @@ const errorDiv = document.getElementById('error');
 // Données stockées
 let currentData = {};
 
+// Dictionnaire des définitions des ratios
+const ratioDefinitions = {
+    roe: {
+        name: "ROE (Return on Equity)",
+        definition: "Rentabilité des capitaux propres - montre combien l'entreprise gagne avec l'argent des actionnaires",
+        calculation: "Bénéfice Net / Capitaux Propres × 100",
+        significance: "> 20% = Excellent, > 15% = Bon, < 10% = Faible"
+    },
+    netMargin: {
+        name: "Marge Nette", 
+        definition: "Pourcentage du bénéfice dans le chiffre d'affaires",
+        calculation: "Bénéfice Net / Chiffre d'Affaires × 100",
+        significance: "> 20% = Excellent, > 15% = Bon, < 10% = Faible"
+    },
+    grossMargin: {
+        name: "Marge Brute",
+        definition: "Profitabilité après coût des marchandises vendues",
+        calculation: "(Chiffre d'Affaires - Coût des Ventes) / Chiffre d'Affaires × 100",
+        significance: "> 50% = Excellent, > 40% = Bon, < 30% = Faible"
+    },
+    sgaMargin: {
+        name: "Marge SG&A",
+        definition: "Part du chiffre d'affaires consacrée aux frais généraux et administratifs",
+        calculation: "Frais Généraux / Chiffre d'Affaires × 100",
+        significance: "< 10% = Excellent, < 20% = Bon, > 30% = Faible"
+    },
+    debtToEquity: {
+        name: "Dette/Equity",
+        definition: "Niveau d'endettement par rapport aux capitaux propres",
+        calculation: "Dette Totale / Capitaux Propres",
+        significance: "< 0.3 = Excellent, < 0.5 = Bon, > 1.0 = Faible"
+    },
+    currentRatio: {
+        name: "Current Ratio",
+        definition: "Capacité à payer les dettes à court terme",
+        calculation: "Actifs Courants / Passifs Courants", 
+        significance: "> 2.0 = Excellent, > 1.5 = Bon, < 1.0 = Faible"
+    },
+    interestCoverage: {
+        name: "Couverture d'Intérêts",
+        definition: "Capacité à payer les frais financiers avec le résultat opérationnel",
+        calculation: "EBIT / Frais Financiers",
+        significance: "> 10x = Excellent, > 5x = Bon, < 3x = Faible"
+    },
+    peRatio: {
+        name: "P/E Ratio",
+        definition: "Nombre d'années de bénéfices pour payer le prix de l'action",
+        calculation: "Prix de l'Action / BPA (EPS)",
+        significance: "< 10 = Excellent, < 15 = Bon, > 25 = Faible"
+    },
+    earningsYield: {
+        name: "Earnings Yield", 
+        definition: "Rendement des bénéfices pour l'actionnaire",
+        calculation: "BPA / Prix de l'Action × 100",
+        significance: "> 10% = Excellent, > 6% = Bon, < 4% = Faible"
+    },
+    priceToFCF: {
+        name: "Prix/Free Cash Flow",
+        definition: "Valorisation par rapport au cash flow libre généré",
+        calculation: "Prix de l'Action / Free Cash Flow par Action",
+        significance: "< 10 = Excellent, < 15 = Bon, > 20 = Faible"
+    },
+    priceToMM200: {
+        name: "Prix vs MM200",
+        definition: "Position du prix actuel par rapport à la moyenne mobile sur 200 jours",
+        calculation: "(Prix Actuel - MM200) / MM200 × 100",
+        significance: "> +5% = Hausier, ±5% = Neutre, < -5% = Baissier"
+    },
+    dividendYield: {
+        name: "Rendement Dividende",
+        definition: "Revenu annuel du dividende en pourcentage du prix de l'action",
+        calculation: "Dividende par Action / Prix de l'Action × 100",
+        significance: "> 4% = Élevé, 2-4% = Moyen, < 2% = Faible"
+    },
+    pbRatio: {
+        name: "P/B Ratio",
+        definition: "Valorisation par rapport à la valeur comptable",
+        calculation: "Prix de l'Action / Valeur Comptable par Action",
+        significance: "< 1.5 = Bon, 1.5-3 = Moyen, > 3 = Élevé"
+    },
+    pegRatio: {
+        name: "PEG Ratio",
+        definition: "P/E ratio ajusté pour le taux de croissance des bénéfices",
+        calculation: "P/E Ratio / Taux de Croissance des Bénéfices",
+        significance: "< 1 = Sous-évalué, ≈1 = Juste valeur, > 1 = Surévalué"
+    },
+    roic: {
+        name: "ROIC",
+        definition: "Rentabilité du capital investi total",
+        calculation: "NOPAT / Capital Investi × 100",
+        significance: "> 15% = Excellent, > 10% = Bon, < 8% = Faible"
+    },
+    freeCashFlow: {
+        name: "Free Cash Flow",
+        definition: "Cash disponible après les investissements nécessaires",
+        calculation: "Cash Flow Opérationnel - Dépenses en Capital",
+        significance: "> 0 = Sain, croissance constante = Très bon"
+    },
+    evToEbitda: {
+        name: "EV/EBITDA",
+        definition: "Valorisation d'entreprise complète (dette incluse) par rapport à l'EBITDA",
+        calculation: "Enterprise Value / EBITDA",
+        significance: "< 8 = Bon, 8-12 = Moyen, > 12 = Élevé"
+    }
+};
+
+// Fonction pour créer l'icône d'aide
+function createHelpIcon(ratioKey) {
+    const definition = ratioDefinitions[ratioKey];
+    return `
+        <span class="help-icon" title="${definition.name}">
+            ?
+            <div class="tooltip">
+                <h4>${definition.name}</h4>
+                <div class="tooltip-section">
+                    <div class="tooltip-label">Définition:</div>
+                    <div class="tooltip-value">${definition.definition}</div>
+                </div>
+                <div class="tooltip-section">
+                    <div class="tooltip-label">Calcul:</div>
+                    <div class="tooltip-value">${definition.calculation}</div>
+                </div>
+                <div class="tooltip-section">
+                    <div class="tooltip-label">Signification:</div>
+                    <div class="tooltip-value">${definition.significance}</div>
+                </div>
+            </div>
+        </span>
+    `;
+}
+
+
 // Événements
 fetchDataBtn.addEventListener('click', fetchCompanyData);
 analyzeBtn.addEventListener('click', performAnalysis);
@@ -284,38 +416,72 @@ function calculateMetrics() {
     const earningsYield = (incomeStatement.epsDiluted / quote.price) * 100;
     const priceToFCF = quote.marketCap / cashFlow.freeCashFlow;
     
+    // Prix vs MM200
+    const priceToMM200 = ((quote.price - quote.priceAvg200) / quote.priceAvg200) * 100;
+    
+    // Rendement Dividende
+    const dividendYield = (profile.lastDividend / quote.price) * 100;
+    
+    // P/B Ratio
+    const pbRatio = quote.price / (balanceSheet.totalStockholdersEquity / incomeStatement.weightedAverageShsOut);
+    
+    // PEG Ratio (estimation avec croissance historique)
+    const pegRatio = peRatio / 15; // À remplacer par la croissance réelle
+    
+    // ROIC
+    const taxRate = incomeStatement.incomeTaxExpense / incomeStatement.incomeBeforeTax;
+    const nopat = incomeStatement.operatingIncome * (1 - taxRate);
+    const investedCapital = balanceSheet.totalDebt + balanceSheet.totalStockholdersEquity;
+    const roic = (nopat / investedCapital) * 100;
+    
+    // Free Cash Flow (déjà dans cashFlow.freeCashFlow)
+    const freeCashFlow = cashFlow.freeCashFlow;
+    
+    // EV/EBITDA
+    const enterpriseValue = quote.marketCap + balanceSheet.totalDebt - balanceSheet.cashAndCashEquivalents;
+    const evToEbitda = enterpriseValue / incomeStatement.ebitda;
+    
     return {
+        // Métriques existantes
         roe, netMargin, grossMargin, sgaMargin,
         debtToEquity, currentRatio, interestCoverage,
-        peRatio, earningsYield, priceToFCF
+        peRatio, earningsYield, priceToFCF,
+        priceToMM200, dividendYield, pbRatio, pegRatio,
+        roic, freeCashFlow, evToEbitda
     };
 }
 
 function displayProfitabilityAnalysis(metrics) {
     const html = `
-        ${createMetricCard('ROE', `${metrics.roe.toFixed(1)}%`, metrics.roe, 20, 15, 10)}
-        ${createMetricCard('Marge Nette', `${metrics.netMargin.toFixed(1)}%`, metrics.netMargin, 20, 15, 10)}
-        ${createMetricCard('Marge Brute', `${metrics.grossMargin.toFixed(1)}%`, metrics.grossMargin, 50, 40, 30)}
-        ${createMetricCard('Marge SG&A', `${metrics.sgaMargin.toFixed(1)}%`, metrics.sgaMargin, 10, 20, 30, true)}
+        ${createMetricCard('ROE', `${metrics.roe.toFixed(1)}%`, metrics.roe, 20, 15, 10, false, 'roe')}
+        ${createMetricCard('Marge Nette', `${metrics.netMargin.toFixed(1)}%`, metrics.netMargin, 20, 15, 10, false, 'netMargin')}
+        ${createMetricCard('Marge Brute', `${metrics.grossMargin.toFixed(1)}%`, metrics.grossMargin, 50, 40, 30, false, 'grossMargin')}
+        ${createMetricCard('Marge SG&A', `${metrics.sgaMargin.toFixed(1)}%`, metrics.sgaMargin, 10, 20, 30, true, 'sgaMargin')}
+        ${createMetricCard('ROIC', `${metrics.roic.toFixed(1)}%`, metrics.roic, 15, 10, 8, false, 'roic')}
     `;
     document.getElementById('profitabilityAnalysis').innerHTML = html;
 }
 
 function displaySafetyAnalysis(metrics) {
     const html = `
-        ${createMetricCard('Dette/Equity', metrics.debtToEquity.toFixed(2), metrics.debtToEquity, 0.3, 0.5, 1.0, true)}
-        ${createMetricCard('Current Ratio', metrics.currentRatio.toFixed(2), metrics.currentRatio, 2.0, 1.5, 1.0)}
+        ${createMetricCard('Dette/Equity', metrics.debtToEquity.toFixed(2), metrics.debtToEquity, 0.3, 0.5, 1.0, true, 'debtToEquity')}
+        ${createMetricCard('Current Ratio', metrics.currentRatio.toFixed(2), metrics.currentRatio, 2.0, 1.5, 1.0, false, 'currentRatio')}
         ${createMetricCard('Couverture Intérêts', metrics.interestCoverage > 1000 ? '∞' : metrics.interestCoverage.toFixed(1) + 'x', 
-                          metrics.interestCoverage, 10, 5, 3)}
+                          metrics.interestCoverage, 10, 5, 3, false, 'interestCoverage')}
+        ${createMetricCard('Free Cash Flow', `$${formatNumber(metrics.freeCashFlow)}`, 1, 0, 0, 0, false, 'freeCashFlow')}
     `;
     document.getElementById('safetyAnalysis').innerHTML = html;
 }
-
 function displayValuationAnalysis(metrics) {
     const html = `
-        ${createMetricCard('P/E Ratio', metrics.peRatio.toFixed(1), metrics.peRatio, 10, 15, 25, true)}
-        ${createMetricCard('Earnings Yield', `${metrics.earningsYield.toFixed(1)}%`, metrics.earningsYield, 10, 6, 4)}
-        ${createMetricCard('Price/FCF', metrics.priceToFCF.toFixed(1), metrics.priceToFCF, 10, 15, 20, true)}
+        ${createMetricCard('P/E Ratio', metrics.peRatio.toFixed(1), metrics.peRatio, 10, 15, 25, true, 'peRatio')}
+        ${createMetricCard('Earnings Yield', `${metrics.earningsYield.toFixed(1)}%`, metrics.earningsYield, 10, 6, 4, false, 'earningsYield')}
+        ${createMetricCard('Price/FCF', metrics.priceToFCF.toFixed(1), metrics.priceToFCF, 10, 15, 20, true, 'priceToFCF')}
+        ${createMetricCard('Prix vs MM200', `${metrics.priceToMM200.toFixed(1)}%`, metrics.priceToMM200, 5, 0, -5, false, 'priceToMM200')}
+        ${createMetricCard('Rendement Dividende', `${metrics.dividendYield.toFixed(2)}%`, metrics.dividendYield, 4, 2, 1, false, 'dividendYield')}
+        ${createMetricCard('P/B Ratio', metrics.pbRatio.toFixed(2), metrics.pbRatio, 1.5, 3, 5, true, 'pbRatio')}
+        ${createMetricCard('PEG Ratio', metrics.pegRatio.toFixed(2), metrics.pegRatio, 0.8, 1.0, 1.2, true, 'pegRatio')}
+        ${createMetricCard('EV/EBITDA', metrics.evToEbitda.toFixed(1), metrics.evToEbitda, 8, 12, 15, true, 'evToEbitda')}
     `;
     document.getElementById('valuationAnalysis').innerHTML = html;
 }
@@ -409,14 +575,17 @@ function getKeyPoints(metrics) {
     return points.map(point => `<div class="point ${point.split(' ')[0]}">${point.substring(12)}</div>`).join('');
 }
 
-function createMetricCard(name, value, actual, excellent, good, medium, reverse = false) {
+function createMetricCard(name, value, actual, excellent, good, medium, reverse = false, ratioKey = null) {
     const rating = getRating(actual, excellent, good, medium, reverse);
     const ratingClass = `rating-${rating}`;
+    
+    // Ajouter l'icône d'aide si un ratioKey est fourni
+    const helpIcon = ratioKey ? createHelpIcon(ratioKey) : '';
     
     return `
         <div class="metric">
             <div class="metric-header">
-                <span class="metric-name">${name}</span>
+                <span class="metric-name">${name}${helpIcon}</span>
                 <span class="metric-value">${value}</span>
             </div>
             <div class="metric-rating ${ratingClass}">${getRatingText(rating)}</div>
