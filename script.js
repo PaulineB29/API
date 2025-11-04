@@ -1,5 +1,5 @@
 // Configuration
-const API_KEY = 'demo'; // Remplacez par votre clé API
+const API_KEY = 'S9PuvPa0mLK9FlCMS3cUYQjnbndSJFOY'; 
 const BASE_URL = 'https://financialmodelingprep.com/api/v3';
 
 // Éléments DOM
