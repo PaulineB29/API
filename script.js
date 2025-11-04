@@ -413,7 +413,7 @@ function performAnalysis() {
 }
 
 function calculateMetrics() {
-    const { quote, balanceSheet, incomeStatement, cashFlow } = currentData;
+    const { profile, quote, balanceSheet, incomeStatement, cashFlow } = currentData;
     
     // Profitabilité
     const roe = (incomeStatement.netIncome / balanceSheet.totalStockholdersEquity) * 100;
