@@ -1,1 +1,99 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analyse d'Actions - Méthode Buffett</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📈 Analyse d'Actions - Méthode Buffett</h1>
+            <p>Analysez les actions selon la méthodologie de Warren Buffett</p>
+        </header>
 
+        <div class="search-section">
+            <div class="input-group">
+                <input type="text" id="symbolInput" placeholder="Ex: AAPL, MSFT, GOOGL..." value="AAPL">
+                <button id="fetchDataBtn">Récupérer les Données</button>
+            </div>
+        </div>
+
+        <div id="dataSection" class="hidden">
+            <div class="data-grid">
+                <!-- Données de Base -->
+                <div class="data-card">
+                    <h3>📊 Données de Base</h3>
+                    <div id="basicData"></div>
+                </div>
+                
+                <!-- Balance Sheet -->
+                <div class="data-card">
+                    <h3>💰 Bilan</h3>
+                    <div id="balanceSheetData"></div>
+                </div>
+                
+                <!-- Income Statement -->
+                <div class="data-card">
+                    <h3>📈 Compte de Résultat</h3>
+                    <div id="incomeStatementData"></div>
+                </div>
+                
+                <!-- Cash Flow -->
+                <div class="data-card">
+                    <h3>💸 Cash Flow</h3>
+                    <div id="cashFlowData"></div>
+                </div>
+                
+                <!-- ✅ HISTORIQUE DES REVENUS - PLACÉ AU BON ENDROIT -->
+                <div class="data-card">
+                    <h3>📊 Historique des Revenus (10 ans)</h3>
+                    <div id="historicalData"></div>
+                </div>
+            </div>
+
+            <button id="analyzeBtn" class="analyze-btn">Lancer l'Analyse</button>
+        </div>
+
+        <div id="analysisSection" class="hidden">
+            <h2>🎯 Analyse Buffett - <span id="companyName"></span></h2>
+            
+            <div class="analysis-grid">
+                <!-- Profitabilité -->
+                <div class="analysis-category">
+                    <h3>💰 Profitabilité & Qualité</h3>
+                    <div id="profitabilityAnalysis"></div>
+                </div>
+                
+                <!-- Sécurité -->
+                <div class="analysis-category">
+                    <h3>🛡️ Leverage & Sécurité</h3>
+                    <div id="safetyAnalysis"></div>
+                </div>
+                
+                <!-- Valuation -->
+                <div class="analysis-category">
+                    <h3>📊 Valuation</h3>
+                    <div id="valuationAnalysis"></div>
+                </div>
+                
+                <!-- Synthèse -->
+                <div class="analysis-category full-width">
+                    <h3>📋 Synthèse & Recommandation</h3>
+                    <div id="summaryAnalysis"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="loading" class="hidden">
+            <div class="spinner"></div>
+            <p>Chargement des données...</p>
+        </div>
+
+        <div id="error" class="error hidden"></div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
