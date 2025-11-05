@@ -1,4 +1,4 @@
-// backend/server.js - AVEC CORS CORRIGÉ
+// backend/server.js - SOLUTION CORS TEMPORAIRE
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
@@ -10,23 +10,24 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-// ✅ CONFIGURATION CORS CORRECTE
-const corsOptions = {
-  origin: [
-    'https://paulineb29.github.io',  // Votre frontend GitHub Pages
-    'http://localhost:3000',          // Développement local
-    'http://127.0.0.1:3000'          // Développement local alternatif
-  ],
-  credentials: true,
-  optionsSuccessStatus: 200
-};
-
-// Middleware
-app.use(cors());
+// ✅ SOLUTION CORS SIMPLIFIÉE QUI FONCTIONNE
+app.use(cors());  // ← JUSTE CELA, SANS OPTIONS COMPLEXES
 app.use(express.json());
 
+// Middleware CORS manuel en backup
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  next();
+});
+
 // Routes
-app.use('/api/analyses', analysesRoutes);  
+app.use('/api/analyses', analysesRoutes);
 
 // Route de santé
 app.get('/api/health', async (req, res) => {
@@ -35,7 +36,8 @@ app.get('/api/health', async (req, res) => {
     status: 'OK',
     database: dbStatus ? 'Connected' : 'Disconnected',
     timestamp: new Date().toISOString(),
-    port: PORT
+    port: PORT,
+    cors: 'Enabled for all origins'
   });
 });
 
@@ -45,11 +47,7 @@ app.get('/', (req, res) => {
     message: '🚀 API Buffett Analyzer - ONLINE',
     version: '1.0.0',
     status: 'Operational',
-    endpoints: {
-      health: '/api/health',
-      analyses: '/api/analyses',
-      'analyses-by-symbol': '/api/analyses/:symbol'
-    }
+    cors: 'Enabled for all origins'
   });
 });
 
@@ -57,5 +55,5 @@ app.get('/', (req, res) => {
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🎯 Serveur démarré sur le port ${PORT}`);
   console.log(`🔗 Health: http://0.0.0.0:${PORT}/api/health`);
-  console.log(`📊 Analyses: http://0.0.0.0:${PORT}/api/analyses`);
+  console.log(`🌐 CORS: Autorisé pour toutes les origines`);
 });
