@@ -230,6 +230,59 @@ async function fetchAPI(endpoint) {
     return data;
 }
 
+// NOUVELLE FONCTION pour sauvegarder dans VOTRE base de données
+async function sauvegarderAnalyse(metrics, recommendation) {
+  const analyseData = {
+    symbole: currentData.profile.symbol,
+    date_analyse: new Date().toISOString().split('T')[0],
+    periode: 'FY',
+    ...metrics,
+    recommandation: recommendation,
+    points_forts: getStrengths(metrics),
+    points_faibles: getWeaknesses(metrics)
+  };
+  
+  try {
+    // ✅ ICI vous utilisez votre backend Render
+    const response = await fetch(https://api-u54u.onrender.com/api/analyses', {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(analyseData)
+    });
+    
+    const result = await response.json();
+    
+    if (result.success) {
+      console.log('✅ Analyse sauvegardée en base de données. ID:', result.id);
+    } else {
+      console.error('❌ Erreur sauvegarde:', result.message);
+    }
+  } catch (error) {
+    console.error('❌ Erreur réseau:', error);
+  }
+}
+
+// Fonctions utilitaires (à ajouter)
+function getStrengths(metrics) {
+  const strengths = [];
+  if (metrics.roe > 20) strengths.push('ROE exceptionnel');
+  if (metrics.netMargin > 20) strengths.push('Forte marge nette');
+  if (metrics.roic > 15) strengths.push('ROIC excellent');
+  if (metrics.interestCoverage > 10) strengths.push('Bonne couverture intérêts');
+  return strengths;
+}
+
+function getWeaknesses(metrics) {
+  const weaknesses = [];
+  if (metrics.debtToEquity > 1.0) weaknesses.push('Dette élevée');
+  if (metrics.currentRatio < 1.0) weaknesses.push('Problème liquidité');
+  if (metrics.peRatio > 25) weaknesses.push('Valorisation élevée');
+  if (metrics.dividendYield < 2) weaknesses.push('Dividende faible');
+  return weaknesses;
+}
+
 function displayBasicData() {
     const { profile, quote, balanceSheet, incomeStatement, cashFlow } = currentData;
     
@@ -408,8 +461,30 @@ function performAnalysis() {
     displayProfitabilityAnalysis(metrics);
     displaySafetyAnalysis(metrics);
     displayValuationAnalysis(metrics);
-    displaySummaryAnalysis(metrics);
+    
+    // ✅ CALCULER LA VRAIE RECOMMANDATION
+    const scores = calculateScores(metrics);
+    const totalScore = scores.excellent * 3 + scores.good * 2 + scores.medium;
+    const maxScore = (scores.excellent + scores.good + scores.medium + scores.bad) * 3;
+    const percentage = (totalScore / maxScore) * 100;
+    
+    let recommendation;
+    if (percentage >= 75) {
+        recommendation = 'EXCELLENT';
+    } else if (percentage >= 60) {
+        recommendation = 'BON';
+    } else if (percentage >= 45) {
+        recommendation = 'MOYEN';
+    } else {
+        recommendation = 'FAIBLE';
+    }
+    
+    // Afficher l'analyse avec la vraie recommandation
+    displaySummaryAnalysis(metrics, recommendation);
     showAnalysisSection();
+    
+    // ✅ SAUVEGARDER avec la VRAIE recommandation
+    sauvegarderAnalyse(metrics, recommendation);
 }
 
 function calculateMetrics() {
@@ -694,6 +769,7 @@ function calculateScores(metrics) {
     scores[getRating(metrics.netMargin, 20, 15, 10)]++;
     scores[getRating(metrics.grossMargin, 50, 40, 30)]++;
     scores[getRating(metrics.sgaMargin, 10, 20, 30, true)]++;
+    scores[getRating(metrics.roic, 15, 10, 8)]++;
     
     // Sécurité
     scores[getRating(metrics.debtToEquity, 0.3, 0.5, 1.0, true)]++;
@@ -704,8 +780,27 @@ function calculateScores(metrics) {
     scores[getRating(metrics.peRatio, 10, 15, 25, true)]++;
     scores[getRating(metrics.earningsYield, 10, 6, 4)]++;
     scores[getRating(metrics.priceToFCF, 10, 15, 20, true)]++;
+    scores[getRating(metrics.priceToMM200, 5, 0, -5)]++;
+    scores[getRating(metrics.dividendYield, 4, 2, 1)]++;
+    scores[getRating(metrics.pbRatio, 1.5, 3, 5, true)]++;
+    scores[getRating(metrics.pegRatio, 0.8, 1.0, 1.2, true)]++;
+    scores[getRating(metrics.evToEbitda, 8, 12, 15, true)]++;
     
     return scores;
+}
+
+function getRating(actual, excellent, good, medium, reverse = false) {
+    if (reverse) {
+        if (actual <= excellent) return 'excellent';
+        if (actual <= good) return 'good';
+        if (actual <= medium) return 'medium';
+        return 'bad';
+    } else {
+        if (actual >= excellent) return 'excellent';
+        if (actual >= good) return 'good';
+        if (actual >= medium) return 'medium';
+        return 'bad';
+    }
 }
 
 function getKeyPoints(metrics) {
