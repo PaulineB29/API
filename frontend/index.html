@@ -3,40 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Analyse d'Actions - Méthode Buffett</title>
+    <title>Stock Analysis - Buffett Method</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>📈 Analyse d'Actions - Méthode Buffett</h1>
-            <p>Analysez les actions selon la méthodologie de Warren Buffett</p>
+            <h1>📈 Stock Analysis - Buffett Method</h1>
+            <p>Analyze stocks using Warren Buffett's methodology</p>
         </header>
 
         <div class="search-section">
             <div class="input-group">
                 <input type="text" id="symbolInput" placeholder="Ex: AAPL, MSFT, GOOGL..." value="AAPL">
-                <button id="fetchDataBtn">Récupérer les Données</button>
+                <button id="fetchDataBtn">Get Data</button>
             </div>
         </div>
 
         <div id="dataSection" class="hidden">
             <div class="data-grid">
-                <!-- Données de Base -->
+                <!-- Basic Data -->
                 <div class="data-card">
-                    <h3>📊 Données de Base</h3>
+                    <h3>📊 Basic Data</h3>
                     <div id="basicData"></div>
                 </div>
                 
                 <!-- Balance Sheet -->
                 <div class="data-card">
-                    <h3>💰 Bilan</h3>
+                    <h3>💰 Balance Sheet</h3>
                     <div id="balanceSheetData"></div>
                 </div>
                 
                 <!-- Income Statement -->
                 <div class="data-card">
-                    <h3>📈 Compte de Résultat</h3>
+                    <h3>📈 Income Statement</h3>
                     <div id="incomeStatementData"></div>
                 </div>
                 
@@ -46,29 +46,29 @@
                     <div id="cashFlowData"></div>
                 </div>
                 
-                <!-- ✅ HISTORIQUE DES REVENUS - PLACÉ AU BON ENDROIT -->
+                <!-- Revenue History -->
                 <div class="data-card">
-                    <h3>📊 Historique des Revenus (10 ans)</h3>
+                    <h3>📊 Revenue History (10 years)</h3>
                     <div id="historicalData"></div>
                 </div>
             </div>
 
-            <button id="analyzeBtn" class="analyze-btn">Lancer l'Analyse</button>
+            <button id="analyzeBtn" class="analyze-btn">Run Buffett Analysis</button>
         </div>
 
         <div id="analysisSection" class="hidden">
-            <h2>🎯 Analyse Buffett - <span id="companyName"></span></h2>
+            <h2>🎯 Buffett Analysis - <span id="companyName"></span></h2>
             
             <div class="analysis-grid">
-                <!-- Profitabilité -->
+                <!-- Profitability -->
                 <div class="analysis-category">
-                    <h3>💰 Profitabilité & Qualité</h3>
+                    <h3>💰 Profitability & Quality</h3>
                     <div id="profitabilityAnalysis"></div>
                 </div>
                 
-                <!-- Sécurité -->
+                <!-- Safety -->
                 <div class="analysis-category">
-                    <h3>🛡️ Leverage & Sécurité</h3>
+                    <h3>🛡️ Leverage & Safety</h3>
                     <div id="safetyAnalysis"></div>
                 </div>
                 
@@ -78,9 +78,9 @@
                     <div id="valuationAnalysis"></div>
                 </div>
                 
-                <!-- Synthèse -->
+                <!-- Summary -->
                 <div class="analysis-category full-width">
-                    <h3>📋 Synthèse & Recommandation</h3>
+                    <h3>📋 Summary & Recommendation</h3>
                     <div id="summaryAnalysis"></div>
                 </div>
             </div>
@@ -88,7 +88,7 @@
 
         <div id="loading" class="hidden">
             <div class="spinner"></div>
-            <p>Chargement des données...</p>
+            <p>Loading data...</p>
         </div>
 
         <div id="error" class="error hidden"></div>
