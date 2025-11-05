@@ -232,55 +232,78 @@ async function fetchAPI(endpoint) {
 
 // NOUVELLE FONCTION pour sauvegarder dans VOTRE base de données
 async function sauvegarderAnalyse(metrics, recommendation) {
-  const analyseData = {
-    symbole: currentData.profile.symbol,
-    date_analyse: new Date().toISOString().split('T')[0],
-    periode: 'FY',
-    ...metrics,
-    recommandation: recommendation,
-    points_forts: getStrengths(metrics),
-    points_faibles: getWeaknesses(metrics)
-  };
-  
-  try {
-    // ✅ ICI vous utilisez votre backend Render
-    const response = await fetch(https://api-u54u.onrender.com/api/analyses', {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(analyseData)
-    });
+    console.log('📤 Préparation de la sauvegarde...', metrics, recommendation);
     
-    const result = await response.json();
+    const analyseData = {
+        symbole: currentData.profile.symbol,
+        date_analyse: new Date().toISOString().split('T')[0],
+        periode: 'FY',
+        ...metrics,
+        recommandation: recommendation,
+        points_forts: getStrengths(metrics),
+        points_faibles: getWeaknesses(metrics),
+        // Ajoutez les données de base
+        prix_actuel: currentData.quote.price,
+        mm_200: currentData.quote.priceAvg200,
+        dividende_action: currentData.profile.lastDividend,
+        market_cap: currentData.quote.marketCap,
+        tresorerie: currentData.balanceSheet.cashAndCashEquivalents,
+        actifs_courants: currentData.balanceSheet.totalCurrentAssets,
+        passifs_courants: currentData.balanceSheet.totalCurrentLiabilities,
+        dette_totale: currentData.balanceSheet.totalDebt,
+        capitaux_propres: currentData.balanceSheet.totalStockholdersEquity,
+        net_cash: currentData.balanceSheet.cashAndCashEquivalents - currentData.balanceSheet.totalDebt,
+        revenus: currentData.incomeStatement.revenue,
+        ebit: currentData.incomeStatement.operatingIncome,
+        benefice_net: currentData.incomeStatement.netIncome,
+        bpa: currentData.incomeStatement.eps,
+        frais_financiers: Math.abs(currentData.incomeStatement.interestExpense || 0),
+        ebitda: currentData.incomeStatement.ebitda,
+        cash_flow_operationnel: currentData.cashFlow.operatingCashFlow,
+        free_cash_flow: currentData.cashFlow.freeCashFlow
+    };
     
-    if (result.success) {
-      console.log('✅ Analyse sauvegardée en base de données. ID:', result.id);
-    } else {
-      console.error('❌ Erreur sauvegarde:', result.message);
+    console.log('📦 Données à sauvegarder:', analyseData);
+    
+    try {
+        const response = await fetch('https://api-u54u.onrender.com/api/analyses', {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(analyseData)
+        });
+        
+        const result = await response.json();
+        console.log('📨 Réponse du serveur:', result);
+        
+        if (result.success) {
+            console.log('✅ Analyse sauvegardée en base de données. ID:', result.id);
+        } else {
+            console.error('❌ Erreur sauvegarde:', result.message);
+        }
+    } catch (error) {
+        console.error('❌ Erreur réseau:', error);
     }
-  } catch (error) {
-    console.error('❌ Erreur réseau:', error);
-  }
 }
 
-// Fonctions utilitaires (à ajouter)
+// Fonctions utilitaires
 function getStrengths(metrics) {
-  const strengths = [];
-  if (metrics.roe > 20) strengths.push('ROE exceptionnel');
-  if (metrics.netMargin > 20) strengths.push('Forte marge nette');
-  if (metrics.roic > 15) strengths.push('ROIC excellent');
-  if (metrics.interestCoverage > 10) strengths.push('Bonne couverture intérêts');
-  return strengths;
+    const strengths = [];
+    if (metrics.roe > 20) strengths.push('ROE exceptionnel');
+    if (metrics.netMargin > 20) strengths.push('Forte marge nette');
+    if (metrics.roic > 15) strengths.push('ROIC excellent');
+    if (metrics.interestCoverage > 10) strengths.push('Bonne couverture intérêts');
+    return strengths;
 }
 
 function getWeaknesses(metrics) {
-  const weaknesses = [];
-  if (metrics.debtToEquity > 1.0) weaknesses.push('Dette élevée');
-  if (metrics.currentRatio < 1.0) weaknesses.push('Problème liquidité');
-  if (metrics.peRatio > 25) weaknesses.push('Valorisation élevée');
-  if (metrics.dividendYield < 2) weaknesses.push('Dividende faible');
-  return weaknesses;
+    const weaknesses = [];
+    if (metrics.debtToEquity > 1.0) weaknesses.push('Dette élevée');
+    if (metrics.currentRatio < 1.0) weaknesses.push('Problème liquidité');
+    if (metrics.peRatio > 25) weaknesses.push('Valorisation élevée');
+    if (metrics.dividendYield < 2) weaknesses.push('Dividende faible');
+    return weaknesses;
 }
 
 function displayBasicData() {
