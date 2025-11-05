@@ -52,17 +52,15 @@ router.post('/', async (req, res) => {
       entrepriseId = entrepriseResult.rows[0].id;
     }
 
-    // 2. Sauvegarder l'analyse
+// 2. Sauvegarder l'analyse
 const analyseResult = await query(
     `INSERT INTO analyses_buffett (
         entreprise_id, date_analyse, periode, 
-        // Métriques existantes
         roe, marge_nette, marge_brute, marge_sga, roic,
         dette_equity, current_ratio, couverture_interets,
         pe_ratio, earnings_yield, price_fcf, prix_vs_mm200, 
         rendement_dividende, pb_ratio, ev_ebitda,
         score_global, recommandation, points_forts, points_faibles,
-        // NOUVELLES COLONNES
         prix_actuel, mm_200, dividende_action, market_cap,
         tresorerie, actifs_courants, passifs_courants, 
         dette_totale, capitaux_propres, net_cash,
@@ -74,13 +72,11 @@ const analyseResult = await query(
     RETURNING id`,
     [
         entrepriseId, date_analyse, periode,
-        // Métriques existantes
         roe, marge_nette, marge_brute, marge_sga, roic,
         dette_equity, current_ratio, couverture_interets,
         pe_ratio, earnings_yield, price_fcf, prix_vs_mm200,
         rendement_dividende, pb_ratio, ev_ebitda,
         score_global, recommandation, points_forts, points_faibles,
-        // Nouvelles colonnes
         prix_actuel, mm_200, dividende_action, market_cap,
         tresorerie, actifs_courants, passifs_courants,
         dette_totale, capitaux_propres, net_cash,
