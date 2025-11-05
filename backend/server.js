@@ -1,21 +1,32 @@
-// backend/server.js - VERSION FINALE
+// backend/server.js - AVEC CORS CORRIGÉ
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { testConnection } from './database.js';
-import analysesRoutes from './routes/analyses.js';  // ✅ IMPORT AJOUTÉ
+import analysesRoutes from './routes/analyses.js';
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 10000;
 
+// ✅ CONFIGURATION CORS CORRECTE
+const corsOptions = {
+  origin: [
+    'https://paulineb29.github.io',  // Votre frontend GitHub Pages
+    'http://localhost:3000',          // Développement local
+    'http://127.0.0.1:3000'          // Développement local alternatif
+  ],
+  credentials: true,
+  optionsSuccessStatus: 200
+};
+
 // Middleware
 app.use(cors());
 app.use(express.json());
 
 // Routes
-app.use('/api/analyses', analysesRoutes);  // ✅ ROUTES AJOUTÉES
+app.use('/api/analyses', analysesRoutes);  
 
 // Route de santé
 app.get('/api/health', async (req, res) => {
