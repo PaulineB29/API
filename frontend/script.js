@@ -484,6 +484,7 @@ function performAnalysis() {
     showAnalysisSection();
     
     // ✅ SAUVEGARDER avec la VRAIE recommandation
+    console.log('💾 Tentative de sauvegarde...');
     sauvegarderAnalyse(metrics, recommendation);
 }
 
