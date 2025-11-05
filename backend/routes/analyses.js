@@ -7,7 +7,8 @@ const router = express.Router();
 // Sauvegarder une analyse Buffett
 router.post('/', async (req, res) => {
   try {
-    console.log('🔍 DONNÉES REÇUES DU FRONTEND:', req.body);
+    console.log('🚨 REQUÊTE REÇUE - Début sauvegarde réelle');
+    console.log('📦 Données reçues:', Object.keys(req.body));
     
     const {
       symbol,
@@ -58,7 +59,10 @@ router.post('/', async (req, res) => {
       freeCashFlow
     } = req.body;
 
+    console.log('🔍 Données extraites:', { symbol, roe, netMargin, recommandation });
+
     // 1. Trouver ou créer l'entreprise
+    console.log('🏢 Recherche entreprise:', symbol);
     let entrepriseResult = await query(
       'SELECT id FROM entreprises WHERE symbole = $1',
       [symbol]
@@ -67,17 +71,21 @@ router.post('/', async (req, res) => {
     let entrepriseId;
     if (entrepriseResult.rows.length === 0) {
       // Créer l'entreprise si elle n'existe pas
+      console.log('➕ Création nouvelle entreprise...');
       const entreprise = await query(
         `INSERT INTO entreprises (symbole, nom, secteur, industrie) 
          VALUES ($1, $2, $3, $4) RETURNING id`,
         [symbol, symbol, 'Unknown', 'Unknown']
       );
       entrepriseId = entreprise.rows[0].id;
+      console.log('✅ Nouvelle entreprise ID:', entrepriseId);
     } else {
       entrepriseId = entrepriseResult.rows[0].id;
+      console.log('✅ Entreprise existante ID:', entrepriseId);
     }
 
-    // 2. Sauvegarder l'analyse avec les noms anglais
+    // 2. SAUVEGARDE RÉELLE
+    console.log('💾 Insertion analyse dans la base...');
     const analyseResult = await query(
       `INSERT INTO analyses_buffett (
         entreprise_id, date_analyse, periode, 
@@ -115,12 +123,13 @@ router.post('/', async (req, res) => {
       ]
     );
 
-    console.log('✅ Analyse sauvegardée avec ID:', analyseResult.rows[0].id);
+    const newId = analyseResult.rows[0].id;
+    console.log('🎉 SAUVEGARDE RÉUSSIE - ID:', newId, 'Symbol:', symbol);
 
     res.status(201).json({
       success: true,
       message: 'Analyse sauvegardée avec succès',
-      id: analyseResult.rows[0].id
+      id: newId
     });
 
   } catch (error) {
@@ -133,52 +142,6 @@ router.post('/', async (req, res) => {
   }
 });
 
-router.post('/', async (req, res) => {
-  console.log('=== 🚨 REQUÊTE REÇUE DANS /api/analyses ===');
-  console.log('Headers:', req.headers);
-  console.log('Body:', req.body);
-  
-  try {
-    const { symbol, date_analyse, periode, roe, netMargin, recommandation } = req.body;
-    
-    console.log('📦 Données extraites:', { symbol, date_analyse, roe, netMargin, recommandation });
-    
-    // 1. Entreprise
-    console.log('🔍 Recherche entreprise:', symbol);
-    let entrepriseResult = await query('SELECT id FROM entreprises WHERE symbole = $1', [symbol]);
-    console.log('🏢 Résultat entreprise:', entrepriseResult.rows);
-    
-    let entrepriseId;
-    if (entrepriseResult.rows.length === 0) {
-      console.log('➕ Création nouvelle entreprise...');
-      const newEnt = await query(
-        'INSERT INTO entreprises (symbole, nom, secteur, industrie) VALUES ($1, $2, $3, $4) RETURNING id',
-        [symbol, symbol, 'Unknown', 'Unknown']
-      );
-      entrepriseId = newEnt.rows[0].id;
-      console.log('✅ Nouvelle entreprise ID:', entrepriseId);
-    } else {
-      entrepriseId = entrepriseResult.rows[0].id;
-      console.log('✅ Entreprise existante ID:', entrepriseId);
-    }
-    
-    // 2. INSERT simple pour tester
-    console.log('💾 Insertion analyse...');
-    const result = await query(
-      `INSERT INTO analyses_buffett (entreprise_id, date_analyse, periode, roe, net_margin, recommandation) 
-       VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
-      [entrepriseId, date_analyse, periode, roe, netMargin, recommandation]
-    );
-    
-    console.log('🎉 INSERT réussi, ID:', result.rows[0].id);
-    
-    res.json({ success: true, id: result.rows[0].id, message: 'Données sauvegardées' });
-    
-  } catch (error) {
-    console.error('❌ ERREUR BACKEND:', error);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
 
 // Récupérer l'historique des analyses d'une entreprise
 router.get('/:symbol', async (req, res) => {
