@@ -1,4 +1,4 @@
-// backend/routes/analyses.js
+// backend/routes/analyses.js - VERSION ANGLAISE
 import express from 'express';
 import { query } from '../database.js';
 
@@ -7,36 +7,61 @@ const router = express.Router();
 // Sauvegarder une analyse Buffett
 router.post('/', async (req, res) => {
   try {
+    console.log('🔍 DONNÉES REÇUES DU FRONTEND:', req.body);
+    
     const {
-      symbole,
+      symbol,
       date_analyse,
       periode,
+      // Profitability metrics
       roe,
-      marge_nette,
-      marge_brute,
-      marge_sga,
+      netMargin,
+      grossMargin,
+      sgaMargin,
       roic,
-      dette_equity,
-      current_ratio,
-      couverture_interets,
-      pe_ratio,
-      earnings_yield,
-      price_fcf,
-      prix_vs_mm200,
-      rendement_dividende,
-      pb_ratio,
-      peg_ratio,
-      ev_ebitda,
+      // Safety metrics
+      debtToEquity,
+      currentRatio,
+      interestCoverage,
+      // Valuation metrics
+      peRatio,
+      earningsYield,
+      priceToFCF,
+      priceToMM200,
+      dividendYield,
+      pbRatio,
+      pegRatio,
+      evToEbitda,
+      // Analysis results
       score_global,
       recommandation,
       points_forts,
-      points_faibles
+      points_faibles,
+      // Additional data
+      currentPrice,
+      movingAverage200,
+      dividendPerShare,
+      marketCap,
+      cashEquivalents,
+      currentAssets,
+      currentLiabilities,
+      totalDebt,
+      shareholdersEquity,
+      netCash,
+      revenue,
+      ebit,
+      netIncome,
+      eps,
+      interestExpense,
+      ebitda,
+      operatingCashFlow,
+      freeCashFlow
     } = req.body;
 
     // 1. Trouver ou créer l'entreprise
     let entrepriseResult = await query(
       'SELECT id FROM entreprises WHERE symbole = $1',
-      [symbole]
+      [symbol]
     );
 
     let entrepriseId;
@@ -45,45 +70,52 @@ router.post('/', async (req, res) => {
       const entreprise = await query(
         `INSERT INTO entreprises (symbole, nom, secteur, industrie) 
          VALUES ($1, $2, $3, $4) RETURNING id`,
-        [symbole, symbole, 'Unknown', 'Unknown']
+        [symbol, symbol, 'Unknown', 'Unknown']
       );
       entrepriseId = entreprise.rows[0].id;
     } else {
       entrepriseId = entrepriseResult.rows[0].id;
     }
 
-// 2. Sauvegarder l'analyse
-const analyseResult = await query(
-    `INSERT INTO analyses_buffett (
+    // 2. Sauvegarder l'analyse avec les noms anglais
+    const analyseResult = await query(
+      `INSERT INTO analyses_buffett (
         entreprise_id, date_analyse, periode, 
-        roe, marge_nette, marge_brute, marge_sga, roic,
-        dette_equity, current_ratio, couverture_interets,
-        pe_ratio, earnings_yield, price_fcf, prix_vs_mm200, 
-        rendement_dividende, pb_ratio, ev_ebitda,
+        roe, net_margin, gross_margin, sga_margin, roic,
+        debt_to_equity, current_ratio, interest_coverage,
+        pe_ratio, earnings_yield, price_to_fcf, price_vs_200ma, 
+        dividend_yield, pb_ratio, peg_ratio, ev_ebitda,
         score_global, recommandation, points_forts, points_faibles,
-        prix_actuel, mm_200, dividende_action, market_cap,
-        tresorerie, actifs_courants, passifs_courants, 
-        dette_totale, capitaux_propres, net_cash,
-        revenus, ebit, benefice_net, bpa, frais_financiers,
-        ebitda, cash_flow_operationnel, free_cash_flow
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, 
-              $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26,
-              $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39) 
-    RETURNING id`,
-    [
+        current_price, moving_average_200, dividend_per_share, market_cap,
+        cash_equivalents, current_assets, current_liabilities, 
+        total_debt, shareholders_equity, net_cash,
+        revenue, ebit, net_income, eps, interest_expense,
+        ebitda, operating_cash_flow, free_cash_flow
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, 
+                $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26,
+                $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40) 
+      RETURNING id`,
+      [
         entrepriseId, date_analyse, periode,
-        roe, marge_nette, marge_brute, marge_sga, roic,
-        dette_equity, current_ratio, couverture_interets,
-        pe_ratio, earnings_yield, price_fcf, prix_vs_mm200,
-        rendement_dividende, pb_ratio, ev_ebitda,
+        // Profitability
+        roe, netMargin, grossMargin, sgaMargin, roic,
+        // Safety  
+        debtToEquity, currentRatio, interestCoverage,
+        // Valuation
+        peRatio, earningsYield, priceToFCF, priceToMM200,
+        dividendYield, pbRatio, pegRatio, evToEbitda,
+        // Analysis
         score_global, recommandation, points_forts, points_faibles,
-        prix_actuel, mm_200, dividende_action, market_cap,
-        tresorerie, actifs_courants, passifs_courants,
-        dette_totale, capitaux_propres, net_cash,
-        revenus, ebit, benefice_net, bpa, frais_financiers,
-        ebitda, cash_flow_operationnel, free_cash_flow
-    ]
-);
+        // Additional data
+        currentPrice, movingAverage200, dividendPerShare, marketCap,
+        cashEquivalents, currentAssets, currentLiabilities,
+        totalDebt, shareholdersEquity, netCash,
+        revenue, ebit, netIncome, eps, interestExpense,
+        ebitda, operatingCashFlow, freeCashFlow
+      ]
+    );
+
+    console.log('✅ Analyse sauvegardée avec ID:', analyseResult.rows[0].id);
 
     res.status(201).json({
       success: true,
@@ -92,7 +124,7 @@ const analyseResult = await query(
     });
 
   } catch (error) {
-    console.error('Erreur sauvegarde analyse:', error);
+    console.error('❌ Erreur sauvegarde analyse:', error);
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la sauvegarde',
@@ -102,17 +134,18 @@ const analyseResult = await query(
 });
 
 // Récupérer l'historique des analyses d'une entreprise
-router.get('/:symbole', async (req, res) => {
+router.get('/:symbol', async (req, res) => {
   try {
-    const { symbole } = req.params;
+    const { symbol } = req.params;
 
     const result = await query(
       `SELECT 
         ab.date_analyse,
         ab.roe,
-        ab.marge_nette,
-        ab.dette_equity,
-        ab.pe_ratio,
+        ab.net_margin as "netMargin",
+        ab.gross_margin as "grossMargin", 
+        ab.debt_to_equity as "debtToEquity",
+        ab.pe_ratio as "peRatio",
         ab.score_global,
         ab.recommandation,
         ab.points_forts,
@@ -122,7 +155,7 @@ router.get('/:symbole', async (req, res) => {
        WHERE e.symbole = $1
        ORDER BY ab.date_analyse DESC
        LIMIT 50`,
-      [symbole]
+      [symbol]
     );
 
     res.json({
@@ -145,13 +178,15 @@ router.get('/', async (req, res) => {
   try {
     const result = await query(
       `SELECT 
-        e.symbole,
-        e.nom,
-        ab.date_analyse,
-        ab.score_global,
-        ab.recommandation,
+        e.symbole as symbol,
+        e.nom as name,
+        ab.date_analyse as analysis_date,
+        ab.score_global as global_score,
+        ab.recommandation as recommendation,
         ab.roe,
-        ab.pe_ratio
+        ab.pe_ratio as "peRatio",
+        ab.net_margin as "netMargin",
+        ab.debt_to_equity as "debtToEquity"
        FROM analyses_buffett ab
        JOIN entreprises e ON ab.entreprise_id = e.id
        ORDER BY ab.date_analyse DESC
