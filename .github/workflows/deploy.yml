@@ -1,0 +1,30 @@
+name: Deploy Buffett Analyzer Backend
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout du code
+      uses: actions/checkout@v4
+
+    - name: Configurer Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+
+    - name: Installer les dépendances du backend
+      run: |
+        cd backend
+        npm install
+
+    - name: Démarrer le serveur backend
+      run: |
+        cd backend
+        npm start &
+      env:
+        DATABASE_URL: ${{ secrets.DATABASE_URL }}
