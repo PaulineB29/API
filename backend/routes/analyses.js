@@ -89,16 +89,16 @@ router.post('/', async (req, res) => {
     const analyseResult = await query(
       `INSERT INTO analyses_buffett (
         entreprise_id, date_analyse, periode, 
-        roe, net_margin, gross_margin, sga_margin, roic,
-        debt_to_equity, current_ratio, interest_coverage,
-        pe_ratio, earnings_yield, price_to_fcf, price_vs_200ma, 
-        dividend_yield, pb_ratio, peg_ratio, ev_ebitda,
+        roe, netMargin, grossMargin, sgaMargin, roic,
+        debtToEquity, currentRatio, interestCoverage,
+        peRatio, earningsYield, priceToFcf, priceToMM200, 
+        dividendYield, pbRatio, pegRatio, evToEbitda,
         score_global, recommandation, points_forts, points_faibles,
         current_price, moving_average_200, dividend_per_share, market_cap,
         cash_equivalents, current_assets, current_liabilities, 
         total_debt, shareholders_equity, net_cash,
         revenue, ebit, net_income, eps, interest_expense,
-        ebitda, operating_cash_flow, free_cash_flow
+        ebitda, operating_cash_flow, freeCashFlow
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, 
                 $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26,
                 $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40) 
