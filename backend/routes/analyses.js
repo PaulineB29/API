@@ -91,17 +91,12 @@ router.post('/', async (req, res) => {
         entreprise_id, date_analyse, periode, 
         roe, netMargin, grossMargin, sgaMargin, roic,
         debtToEquity, currentRatio, interestCoverage,
-        peRatio, earningsYield, priceToFcf, priceToMM200, 
+        peRatio, earningsYield, priceToFCF, priceToMM200, 
         dividendYield, pbRatio, pegRatio, evToEbitda,
         score_global, recommandation, points_forts, points_faibles,
-        current_price, moving_average_200, dividend_per_share, market_cap,
-        cash_equivalents, current_assets, current_liabilities, 
-        total_debt, shareholders_equity, net_cash,
-        revenue, ebit, net_income, eps, interest_expense,
-        ebitda, operating_cash_flow, freeCashFlow
+        freeCashFlow
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, 
-                $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26,
-                $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40) 
+                $15, $16, $17, $18, $19, $20, $21, $22, $23, $24) 
       RETURNING id`,
       [
         entrepriseId, date_analyse, periode,
@@ -113,13 +108,7 @@ router.post('/', async (req, res) => {
         peRatio, earningsYield, priceToFCF, priceToMM200,
         dividendYield, pbRatio, pegRatio, evToEbitda,
         // Analysis
-        score_global, recommandation, points_forts, points_faibles,
-        // Additional data
-        currentPrice, movingAverage200, dividendPerShare, marketCap,
-        cashEquivalents, currentAssets, currentLiabilities,
-        totalDebt, shareholdersEquity, netCash,
-        revenue, ebit, netIncome, eps, interestExpense,
-        ebitda, operatingCashFlow, freeCashFlow
+        score_global, recommandation, points_forts, points_faibles
       ]
     );
 
@@ -178,9 +167,15 @@ router.post('/donnees-financieres', async (req, res) => {
     // 2. Sauvegarder dans donnees_financieres
     const result = await query(
       `INSERT INTO donnees_financieres (
-        entreprise_id, date_import, profile_data, quote_data, 
-        cash_flow_data, income_statement_data, balance_sheet_data
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
+        entreprise_id, date_import,
+        current_price, moving_average_200, dividend_per_share, market_cap,
+        cash_equivalents, current_assets, current_liabilities, 
+        total_debt, shareholders_equity, net_cash,
+        revenue, ebit, net_income, eps, interest_expense,
+        ebitda, operating_cash_flow, free_cash_flow
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, 
+                $15, $16, $17, $18, $19, $20) 
+      RETURNING id`,
       [
         entrepriseId,
         date_import || new Date().toISOString().split('T')[0],
