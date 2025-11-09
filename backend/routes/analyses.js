@@ -131,10 +131,9 @@ router.post('/', async (req, res) => {
   }
 });
 
-// AJOUTEZ CETTE ROUTE DANS backend/routes/analyses.js
 router.post('/donnees-financieres', async (req, res) => {
   try {
-    console.log('💾 Sauvegarde données financières brutes');
+    console.log('💾 REQUÊTE DONNÉES FINANCIÈRES REÇUE');
     
     const {
       symbol,
@@ -181,21 +180,22 @@ router.post('/donnees-financieres', async (req, res) => {
       console.log('✅ Entreprise existante:', symbol);
     }
 
-    // 2. Sauvegarder dans donnees_financieres
+    // 2. SAUVEGARDE CORRIGÉE - AJOUT DE LA COLONNE "date"
     const result = await query(
       `INSERT INTO donnees_financieres (
-        entreprise_id, date_import,
+        entreprise_id, date, date_import,  -- ⚠️ AJOUT DE "date"
         current_price, moving_average_200, dividend_per_share, market_cap,
         cash_equivalents, current_assets, current_liabilities, 
         total_debt, shareholders_equity, net_cash,
         revenue, ebit, net_income, eps, interest_expense,
         ebitda, operating_cash_flow, free_cash_flow
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, 
-                $15, $16, $17, $18, $19, $20) 
+                $15, $16, $17, $18, $19, $20, $21, $22) 
       RETURNING id`,
       [
         entrepriseId,
-        date_import || new Date().toISOString().split('T')[0],
+        date_import || new Date().toISOString().split('T')[0], // ⚠️ COLONNE "date"
+        date_import || new Date().toISOString().split('T')[0], // ⚠️ COLONNE "date_import"
         // Price data
         currentPrice, movingAverage200, dividendPerShare, marketCap,
         // Balance sheet
@@ -207,7 +207,7 @@ router.post('/donnees-financieres', async (req, res) => {
       ]
     );
 
-    console.log('✅ Données financières sauvegardées ID:', result.rows[0].id);
+    console.log('✅ DONNÉES FINANCIÈRES SAUVEGARDÉES - ID:', result.rows[0].id);
 
     res.status(201).json({
       success: true,
@@ -216,7 +216,7 @@ router.post('/donnees-financieres', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Erreur sauvegarde données financières:', error);
+    console.error('❌ ERREUR SAUVEGARDE DONNÉES FINANCIÈRES:', error);
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la sauvegarde des données financières',
