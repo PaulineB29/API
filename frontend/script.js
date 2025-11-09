@@ -293,18 +293,33 @@ async function sauvegarderAnalyse(metrics, recommendation) {
     }
 }
 
-// NOUVELLE FONCTION : Sauvegarder les données financières brutes
 async function sauvegarderDonneesFinancieres() {
     console.log('💾 Sauvegarde des données financières brutes...');
     
     const donneesFinancieres = {
         symbol: currentData.profile.symbol,
         date_import: new Date().toISOString().split('T')[0],
-        profile_data: currentData.profile,
-        quote_data: currentData.quote,
-        cash_flow_data: currentData.cashFlow,
-        income_statement_data: currentData.incomeStatement,
-        balance_sheet_data: currentData.balanceSheet
+        // Price data
+        currentPrice: currentData.quote.price,
+        movingAverage200: currentData.quote.priceAvg200,
+        dividendPerShare: currentData.profile.lastDividend,
+        marketCap: currentData.quote.marketCap,
+        // Balance sheet
+        cashEquivalents: currentData.balanceSheet.cashAndCashEquivalents,
+        currentAssets: currentData.balanceSheet.totalCurrentAssets,
+        currentLiabilities: currentData.balanceSheet.totalCurrentLiabilities,
+        totalDebt: currentData.balanceSheet.totalDebt,
+        shareholdersEquity: currentData.balanceSheet.totalStockholdersEquity,
+        netCash: currentData.balanceSheet.cashAndCashEquivalents - currentData.balanceSheet.totalDebt,
+        // Income statement
+        revenue: currentData.incomeStatement.revenue,
+        ebit: currentData.incomeStatement.operatingIncome,
+        netIncome: currentData.incomeStatement.netIncome,
+        eps: currentData.incomeStatement.eps,
+        interestExpense: Math.abs(currentData.incomeStatement.interestExpense || 0),
+        ebitda: currentData.incomeStatement.ebitda,
+        operatingCashFlow: currentData.cashFlow.operatingCashFlow,
+        freeCashFlow: currentData.cashFlow.freeCashFlow
     };
     
     try {
@@ -315,6 +330,11 @@ async function sauvegarderDonneesFinancieres() {
             },
             body: JSON.stringify(donneesFinancieres)
         });
+        
+        // ⚠️ AJOUTEZ LA VÉRIFICATION DU STATUT
+        if (!response.ok) {
+            throw new Error(`Erreur HTTP: ${response.status}`);
+        }
         
         const result = await response.json();
         console.log('📨 Réponse sauvegarde données financières:', result);
