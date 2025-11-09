@@ -192,6 +192,12 @@ async function fetchCompanyData() {
         displayBasicData();
         showDataSection();
         
+        // ✅ SAUVEGARDE AUTOMATIQUE DES DONNÉES FINANCIÈRES
+        await sauvegarderDonneesFinancieres();
+        
+        displayBasicData();
+        showDataSection();
+        
     } catch (error) {
         console.error('Erreur détaillée:', error);
         showError(`Erreur: ${error.message}. Vérifiez le symbole et votre connexion.`);
@@ -284,6 +290,40 @@ async function sauvegarderAnalyse(metrics, recommendation) {
         }
     } catch (error) {
         console.error('❌ Erreur réseau:', error);
+    }
+}
+
+// NOUVELLE FONCTION : Sauvegarder les données financières brutes
+async function sauvegarderDonneesFinancieres() {
+    console.log('💾 Sauvegarde des données financières brutes...');
+    
+    const donneesFinancieres = {
+        symbol: currentData.profile.symbol,
+        date_import: new Date().toISOString().split('T')[0],
+        profile_data: currentData.profile,
+        quote_data: currentData.quote,
+        cash_flow_data: currentData.cashFlow,
+        income_statement_data: currentData.incomeStatement,
+        balance_sheet_data: currentData.balanceSheet
+    };
+    
+    try {
+        const response = await fetch('https://api-u54u.onrender.com/api/analyses/donnees-financieres', {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(donneesFinancieres)
+        });
+        
+        const result = await response.json();
+        console.log('📨 Réponse sauvegarde données financières:', result);
+        
+        if (result.success) {
+            console.log('✅ Données financières sauvegardées. ID:', result.id);
+        }
+    } catch (error) {
+        console.error('❌ Erreur sauvegarde données financières:', error);
     }
 }
 
