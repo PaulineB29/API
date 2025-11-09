@@ -1,4 +1,4 @@
-// backend/routes/analyses.js - VERSION ANGLAISE
+ // backend/routes/analyses.js - VERSION ANGLAISE
 import express from 'express';
 import { query } from '../database.js';
 
@@ -131,7 +131,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-// Sauvegarder les données financières brutes
+// AJOUTEZ CETTE ROUTE DANS backend/routes/analyses.js
 router.post('/donnees-financieres', async (req, res) => {
   try {
     console.log('💾 Sauvegarde données financières brutes');
@@ -139,12 +139,27 @@ router.post('/donnees-financieres', async (req, res) => {
     const {
       symbol,
       date_import,
-      profile_data,
-      quote_data, 
-      cash_flow_data,
-      income_statement_data,
-      balance_sheet_data
+      currentPrice,
+      movingAverage200,
+      dividendPerShare,
+      marketCap,
+      cashEquivalents,
+      currentAssets,
+      currentLiabilities,
+      totalDebt,
+      shareholdersEquity,
+      netCash,
+      revenue,
+      ebit,
+      netIncome,
+      eps,
+      interestExpense,
+      ebitda,
+      operatingCashFlow,
+      freeCashFlow
     } = req.body;
+
+    console.log('📊 Données financières reçues pour:', symbol);
 
     // 1. Trouver ou créer l'entreprise
     let entrepriseResult = await query(
@@ -160,8 +175,10 @@ router.post('/donnees-financieres', async (req, res) => {
         [symbol, symbol, 'Unknown', 'Unknown']
       );
       entrepriseId = entreprise.rows[0].id;
+      console.log('✅ Nouvelle entreprise créée:', symbol);
     } else {
       entrepriseId = entrepriseResult.rows[0].id;
+      console.log('✅ Entreprise existante:', symbol);
     }
 
     // 2. Sauvegarder dans donnees_financieres
@@ -179,11 +196,14 @@ router.post('/donnees-financieres', async (req, res) => {
       [
         entrepriseId,
         date_import || new Date().toISOString().split('T')[0],
-        JSON.stringify(profile_data),
-        JSON.stringify(quote_data),
-        JSON.stringify(cash_flow_data),
-        JSON.stringify(income_statement_data),
-        JSON.stringify(balance_sheet_data)
+        // Price data
+        currentPrice, movingAverage200, dividendPerShare, marketCap,
+        // Balance sheet
+        cashEquivalents, currentAssets, currentLiabilities,
+        totalDebt, shareholdersEquity, netCash,
+        // Income statement
+        revenue, ebit, netIncome, eps, interestExpense,
+        ebitda, operatingCashFlow, freeCashFlow
       ]
     );
 
