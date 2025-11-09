@@ -142,6 +142,73 @@ router.post('/', async (req, res) => {
   }
 });
 
+// Sauvegarder les données financières brutes
+router.post('/donnees-financieres', async (req, res) => {
+  try {
+    console.log('💾 Sauvegarde données financières brutes');
+    
+    const {
+      symbol,
+      date_import,
+      profile_data,
+      quote_data, 
+      cash_flow_data,
+      income_statement_data,
+      balance_sheet_data
+    } = req.body;
+
+    // 1. Trouver ou créer l'entreprise
+    let entrepriseResult = await query(
+      'SELECT id FROM entreprises WHERE symbole = $1',
+      [symbol]
+    );
+
+    let entrepriseId;
+    if (entrepriseResult.rows.length === 0) {
+      const entreprise = await query(
+        `INSERT INTO entreprises (symbole, nom, secteur, industrie) 
+         VALUES ($1, $2, $3, $4) RETURNING id`,
+        [symbol, symbol, 'Unknown', 'Unknown']
+      );
+      entrepriseId = entreprise.rows[0].id;
+    } else {
+      entrepriseId = entrepriseResult.rows[0].id;
+    }
+
+    // 2. Sauvegarder dans donnees_financieres
+    const result = await query(
+      `INSERT INTO donnees_financieres (
+        entreprise_id, date_import, profile_data, quote_data, 
+        cash_flow_data, income_statement_data, balance_sheet_data
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
+      [
+        entrepriseId,
+        date_import || new Date().toISOString().split('T')[0],
+        JSON.stringify(profile_data),
+        JSON.stringify(quote_data),
+        JSON.stringify(cash_flow_data),
+        JSON.stringify(income_statement_data),
+        JSON.stringify(balance_sheet_data)
+      ]
+    );
+
+    console.log('✅ Données financières sauvegardées ID:', result.rows[0].id);
+
+    res.status(201).json({
+      success: true,
+      message: 'Données financières sauvegardées',
+      id: result.rows[0].id
+    });
+
+  } catch (error) {
+    console.error('❌ Erreur sauvegarde données financières:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la sauvegarde des données financières',
+      error: error.message
+    });
+  }
+});
 
 // Récupérer l'historique des analyses d'une entreprise
 router.get('/:symbol', async (req, res) => {
