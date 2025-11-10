@@ -34,14 +34,14 @@ async function trouverOuCreerEntreprise(symbol) {
   
   // ⚠️ IMPORTANT: Utiliser le SYMBOLE TAPÉ par l'utilisateur comme nom aussi
   const nouvelleEntreprise = await query(
-    `INSERT INTO entreprises (symbole, nom, secteur, industrie, date_creation) 
+    `INSERT INTO entreprises (symbole, nom, secteur, industrie, created_at) 
      VALUES ($1, $2, $3, $4, $5) RETURNING id`,
     [
       symbolClean,           // symbole exact de l'utilisateur
       symbolClean,           // ⚠️ MÊME CHOSE pour le nom (symbole utilisateur)
       'Non spécifié', 
       'Non spécifié',
-      new Date().toISOString().split('T')[0]
+      new Date() 
     ]
   );
   
