@@ -687,14 +687,18 @@ function displaySummaryAnalysis(metrics, recommendation) {
     
     const html = `
         <div class="analysis-container">
-            <!-- SCORE GLOBAL SOBRE -->
+            <!-- SCORE GLOBAL ULTRA COMPACT -->
             <div class="global-score">
-                <h3>📊 Score Global Buffett</h3>
-                <div class="score-value">${percentage.toFixed(0)}%</div>
+                <div class="score-main">
+                    <div class="score-value">${percentage.toFixed(0)}%</div>
+                    <div class="score-label">Score Buffett</div>
+                </div>
+                
                 <div class="rating-badge ${ratingClass}">${rating}</div>
-                <div class="global-details">
-                    <div>${details}</div>
-                    <div class="global-recommendation">Recommandation: ${recommendation}</div>
+                
+                <div class="score-details">
+                    <div class="details-text">${details}</div>
+                    <div class="recommendation">${recommendation}</div>
                 </div>
             </div>
 
