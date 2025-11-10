@@ -1,17 +1,67 @@
- // backend/routes/analyses.js - VERSION ANGLAISE
 import express from 'express';
 import { query } from '../database.js';
 
 const router = express.Router();
 
+// Fonction utilitaire pour trouver ou créer une entreprise
+async function trouverOuCreerEntreprise(symbol) {
+  console.log('🏢 Recherche entreprise:', symbol);
+  
+  // Validation du symbole
+  if (!symbol || symbol.trim() === '') {
+    throw new Error('Symbole invalide');
+  }
+
+  const symbolClean = symbol.trim().toUpperCase();
+  
+  // D'abord, essayer de trouver l'entreprise
+  let entrepriseResult = await query(
+    'SELECT id, symbole, nom FROM entreprises WHERE symbole = $1',
+    [symbolClean]
+  );
+
+  if (entrepriseResult.rows.length > 0) {
+    const entreprise = entrepriseResult.rows[0];
+    console.log('✅ Entreprise existante trouvée:', { 
+      id: entreprise.id, 
+      symbole: entreprise.symbole
+    });
+    return entreprise.id;
+  }
+
+  // Créer l'entreprise si elle n'existe pas
+  console.log('➕ Création nouvelle entreprise...');
+  
+  // ⚠️ IMPORTANT: Utiliser le SYMBOLE TAPÉ par l'utilisateur comme nom aussi
+  const nouvelleEntreprise = await query(
+    `INSERT INTO entreprises (symbole, nom, secteur, industrie, date_creation) 
+     VALUES ($1, $2, $3, $4, $5) RETURNING id`,
+    [
+      symbolClean,           // symbole exact de l'utilisateur
+      symbolClean,           // ⚠️ MÊME CHOSE pour le nom (symbole utilisateur)
+      'Non spécifié', 
+      'Non spécifié',
+      new Date().toISOString().split('T')[0]
+    ]
+  );
+  
+  const entrepriseId = nouvelleEntreprise.rows[0].id;
+  console.log('✅ Nouvelle entreprise créée:', { 
+    id: entrepriseId, 
+    symbole: symbolClean 
+  });
+  
+  return entrepriseId;
+}
+
 // Sauvegarder une analyse Buffett
 router.post('/', async (req, res) => {
   try {
-    console.log('🚨 REQUÊTE REÇUE - Début sauvegarde réelle');
+    console.log('🚨 REQUÊTE REÇUE - Début sauvegarde analyse');
     console.log('📦 Données reçues:', Object.keys(req.body));
     
     const {
-      symbol,
+      symbol, // ⚠️ SYMBOLE TAPÉ PAR L'UTILISATEUR
       date_analyse,
       periode,
       // Profitability metrics
@@ -38,87 +88,83 @@ router.post('/', async (req, res) => {
       recommandation,
       points_forts,
       points_faibles,
-      // Additional data
-      currentPrice,
-      movingAverage200,
-      dividendPerShare,
-      marketCap,
-      cashEquivalents,
-      currentAssets,
-      currentLiabilities,
-      totalDebt,
-      shareholdersEquity,
-      netCash,
-      revenue,
-      ebit,
-      netIncome,
-      eps,
-      interestExpense,
-      ebitda,
-      operatingCashFlow,
       freeCashFlow
     } = req.body;
 
-    console.log('🔍 Données extraites:', { symbol, roe, netMargin, recommandation });
+    console.log('🔍 Symbole utilisateur reçu:', symbol);
 
-    // 1. Trouver ou créer l'entreprise
-    console.log('🏢 Recherche entreprise:', symbol);
-    let entrepriseResult = await query(
-      'SELECT id FROM entreprises WHERE symbole = $1',
-      [symbol]
-    );
-
-    let entrepriseId;
-    if (entrepriseResult.rows.length === 0) {
-      // Créer l'entreprise si elle n'existe pas
-      console.log('➕ Création nouvelle entreprise...');
-      const entreprise = await query(
-        `INSERT INTO entreprises (symbole, nom, secteur, industrie) 
-         VALUES ($1, $2, $3, $4) RETURNING id`,
-        [symbol, symbol, 'Unknown', 'Unknown']
-      );
-      entrepriseId = entreprise.rows[0].id;
-      console.log('✅ Nouvelle entreprise ID:', entrepriseId);
-    } else {
-      entrepriseId = entrepriseResult.rows[0].id;
-      console.log('✅ Entreprise existante ID:', entrepriseId);
+    // ⚠️ VALIDATION CRITIQUE - Vérifier que le symbole est présent
+    if (!symbol || symbol.trim() === '') {
+      console.error('❌ SYMBOLE MANQUANT dans la requête');
+      return res.status(400).json({
+        success: false,
+        message: 'Le symbole est obligatoire',
+        error: 'Symbol is required'
+      });
     }
+
+    const symbolUtilisateur = symbol.trim().toUpperCase();
+
+    // 1. Trouver ou créer l'entreprise avec le SYMBOLE UTILISATEUR
+    const entrepriseId = await trouverOuCreerEntreprise(symbolUtilisateur);
 
     // 2. SAUVEGARDE RÉELLE
     console.log('💾 Insertion analyse dans la base...');
+    
+    const valeurs = [
+      entrepriseId, 
+      date_analyse || new Date().toISOString().split('T')[0], 
+      periode || 'annuel',
+      // Profitability
+      parseFloat(roe) || null,
+      parseFloat(netMargin) || null,
+      parseFloat(grossMargin) || null,
+      parseFloat(sgaMargin) || null,
+      parseFloat(roic) || null,
+      // Safety  
+      parseFloat(debtToEquity) || null,
+      parseFloat(currentRatio) || null,
+      parseFloat(interestCoverage) || null,
+      // Valuation
+      parseFloat(peRatio) || null,
+      parseFloat(earningsYield) || null,
+      parseFloat(priceToFCF) || null,
+      parseFloat(priceToMM200) || null,
+      parseFloat(dividendYield) || null,
+      parseFloat(pbRatio) || null,
+      parseFloat(pegRatio) || null,
+      parseFloat(evToEbitda) || null,
+      // Analysis
+      parseFloat(score_global) || null,
+      recommandation || 'NON_RECOMMANDE',
+      points_forts || '',
+      points_faibles || '',
+      parseFloat(freeCashFlow) || null
+    ];
+
     const analyseResult = await query(
       `INSERT INTO analyses_buffett (
         entreprise_id, date_analyse, periode, 
-        roe, netMargin, grossMargin, sgaMargin, roic,
-        debtToEquity, currentRatio, interestCoverage,
-        peRatio, earningsYield, priceToFCF, priceToMM200, 
-        dividendYield, pbRatio, pegRatio, evToEbitda,
+        roe, net_margin, gross_margin, sga_margin, roic,
+        debt_to_equity, current_ratio, interest_coverage,
+        pe_ratio, earnings_yield, price_to_fcf, price_to_mm200, 
+        dividend_yield, pb_ratio, peg_ratio, ev_to_ebitda,
         score_global, recommandation, points_forts, points_faibles,
-        freeCashFlow
+        free_cash_flow
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, 
                 $15, $16, $17, $18, $19, $20, $21, $22, $23, $24) 
       RETURNING id`,
-      [
-        entrepriseId, date_analyse, periode,
-        // Profitability
-        roe, netMargin, grossMargin, sgaMargin, roic,
-        // Safety  
-        debtToEquity, currentRatio, interestCoverage,
-        // Valuation
-        peRatio, earningsYield, priceToFCF, priceToMM200,
-        dividendYield, pbRatio, pegRatio, evToEbitda,
-        // Analysis
-        score_global, recommandation, points_forts, points_faibles
-      ]
+      valeurs
     );
 
     const newId = analyseResult.rows[0].id;
-    console.log('🎉 SAUVEGARDE RÉUSSIE - ID:', newId, 'Symbol:', symbol);
+    console.log('🎉 SAUVEGARDE RÉUSSIE - ID:', newId, 'Symbol utilisateur:', symbolUtilisateur);
 
     res.status(201).json({
       success: true,
       message: 'Analyse sauvegardée avec succès',
-      id: newId
+      id: newId,
+      symbol: symbolUtilisateur
     });
 
   } catch (error) {
@@ -136,7 +182,7 @@ router.post('/donnees-financieres', async (req, res) => {
     console.log('💾 REQUÊTE DONNÉES FINANCIÈRES REÇUE');
     
     const {
-      symbol,
+      symbol, // ⚠️ SYMBOLE TAPÉ PAR L'UTILISATEUR
       date_import,
       currentPrice,
       movingAverage200,
@@ -158,32 +204,56 @@ router.post('/donnees-financieres', async (req, res) => {
       freeCashFlow
     } = req.body;
 
-    console.log('📊 Données financières reçues pour:', symbol);
+    console.log('📊 Données financières reçues pour symbole utilisateur:', symbol);
 
-    // 1. Trouver ou créer l'entreprise
-    let entrepriseResult = await query(
-      'SELECT id FROM entreprises WHERE symbole = $1',
-      [symbol]
-    );
-
-    let entrepriseId;
-    if (entrepriseResult.rows.length === 0) {
-      const entreprise = await query(
-        `INSERT INTO entreprises (symbole, nom, secteur, industrie) 
-         VALUES ($1, $2, $3, $4) RETURNING id`,
-        [symbol, symbol, 'Unknown', 'Unknown']
-      );
-      entrepriseId = entreprise.rows[0].id;
-      console.log('✅ Nouvelle entreprise créée:', symbol);
-    } else {
-      entrepriseId = entrepriseResult.rows[0].id;
-      console.log('✅ Entreprise existante:', symbol);
+    // ⚠️ VALIDATION CRITIQUE
+    if (!symbol || symbol.trim() === '') {
+      console.error('❌ SYMBOLE MANQUANT pour données financières');
+      return res.status(400).json({
+        success: false,
+        message: 'Le symbole est obligatoire',
+        error: 'Symbol is required'
+      });
     }
 
-    // 2. SAUVEGARDE CORRIGÉE - AJOUT DE LA COLONNE "date"
+    const symbolUtilisateur = symbol.trim().toUpperCase();
+
+    // 1. Trouver ou créer l'entreprise avec le SYMBOLE UTILISATEUR
+    const entrepriseId = await trouverOuCreerEntreprise(symbolUtilisateur);
+
+    // 2. SAUVEGARDE
+    const dateActuelle = new Date().toISOString().split('T')[0];
+    
+    const valeurs = [
+      entrepriseId,
+      date_import || dateActuelle,
+      date_import || dateActuelle,
+      // Price data
+      parseFloat(currentPrice) || null,
+      parseFloat(movingAverage200) || null,
+      parseFloat(dividendPerShare) || null,
+      parseFloat(marketCap) || null,
+      // Balance sheet
+      parseFloat(cashEquivalents) || null,
+      parseFloat(currentAssets) || null,
+      parseFloat(currentLiabilities) || null,
+      parseFloat(totalDebt) || null,
+      parseFloat(shareholdersEquity) || null,
+      parseFloat(netCash) || null,
+      // Income statement
+      parseFloat(revenue) || null,
+      parseFloat(ebit) || null,
+      parseFloat(netIncome) || null,
+      parseFloat(eps) || null,
+      parseFloat(interestExpense) || null,
+      parseFloat(ebitda) || null,
+      parseFloat(operatingCashFlow) || null,
+      parseFloat(freeCashFlow) || null
+    ];
+
     const result = await query(
       `INSERT INTO donnees_financieres (
-        entreprise_id, date, date_import,  -- ⚠️ AJOUT DE "date"
+        entreprise_id, date, date_import,
         current_price, moving_average_200, dividend_per_share, market_cap,
         cash_equivalents, current_assets, current_liabilities, 
         total_debt, shareholders_equity, net_cash,
@@ -192,27 +262,16 @@ router.post('/donnees-financieres', async (req, res) => {
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, 
                 $15, $16, $17, $18, $19, $20, $21, $22) 
       RETURNING id`,
-      [
-        entrepriseId,
-        date_import || new Date().toISOString().split('T')[0], // ⚠️ COLONNE "date"
-        date_import || new Date().toISOString().split('T')[0], // ⚠️ COLONNE "date_import"
-        // Price data
-        currentPrice, movingAverage200, dividendPerShare, marketCap,
-        // Balance sheet
-        cashEquivalents, currentAssets, currentLiabilities,
-        totalDebt, shareholdersEquity, netCash,
-        // Income statement
-        revenue, ebit, netIncome, eps, interestExpense,
-        ebitda, operatingCashFlow, freeCashFlow
-      ]
+      valeurs
     );
 
-    console.log('✅ DONNÉES FINANCIÈRES SAUVEGARDÉES - ID:', result.rows[0].id);
+    console.log('✅ DONNÉES FINANCIÈRES SAUVEGARDÉES - ID:', result.rows[0].id, 'Symbol:', symbolUtilisateur);
 
     res.status(201).json({
       success: true,
       message: 'Données financières sauvegardées',
-      id: result.rows[0].id
+      id: result.rows[0].id,
+      symbol: symbolUtilisateur
     });
 
   } catch (error) {
@@ -229,6 +288,9 @@ router.post('/donnees-financieres', async (req, res) => {
 router.get('/:symbol', async (req, res) => {
   try {
     const { symbol } = req.params;
+    
+    // ⚠️ Utiliser le symbole exact de l'URL (celui que l'utilisateur a tapé)
+    const symbolRecherche = symbol.toUpperCase();
 
     const result = await query(
       `SELECT 
@@ -247,11 +309,12 @@ router.get('/:symbol', async (req, res) => {
        WHERE e.symbole = $1
        ORDER BY ab.date_analyse DESC
        LIMIT 50`,
-      [symbol]
+      [symbolRecherche]
     );
 
     res.json({
       success: true,
+      symbol: symbolRecherche,
       analyses: result.rows
     });
 
