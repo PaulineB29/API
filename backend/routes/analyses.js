@@ -144,18 +144,18 @@ router.post('/', async (req, res) => {
 
     const analyseResult = await query(
       `INSERT INTO analyses_buffett (
-        entreprise_id, date_analyse, periode, 
-        roe, netMargin, grossMargin, sgaMargin, roic,
-        debtToEquity, currentRatio, interestCoverage,
-        peRatio, earningsYield, priceToFcf, priceToMM200, 
-        dividendYield, pbRatio, pegRatio, evToEbitda,
-        score_global, recommandation, points_forts, points_faibles,
-        freeCashFlow
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, 
-                $15, $16, $17, $18, $19, $20, $21, $22, $23, $24) 
-      RETURNING id`,
-      valeurs
-    );
+          entreprise_id, date_analyse, periode, 
+          roe, "netMargin", "grossMargin", "sgaMargin", roic,
+          "debtToEquity", "currentRatio", "interestCoverage",
+          "peRatio", "earningsYield", "priceToFCF", "priceToMM200", 
+          "dividendYield", "pbRatio", "pegRatio", "evToEbitda",
+          score_global, recommandation, points_forts, points_faibles,
+          "freeCashFlow"
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, 
+                  $15, $16, $17, $18, $19, $20, $21, $22, $23, $24) 
+        RETURNING id`,
+        valeurs
+      );
 
     const newId = analyseResult.rows[0].id;
     console.log('🎉 SAUVEGARDE RÉUSSIE - ID:', newId, 'Symbol utilisateur:', symbolUtilisateur);
