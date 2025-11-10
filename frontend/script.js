@@ -541,9 +541,6 @@ function performAnalysis() {
     document.getElementById('companyName').textContent = profile.companyName;
     
     const metrics = calculateMetrics();
-    displayProfitabilityAnalysis(metrics);
-    displaySafetyAnalysis(metrics);
-    displayValuationAnalysis(metrics);
     
     // ✅ CALCULER LA VRAIE RECOMMANDATION
     const scores = calculateScores(metrics);
@@ -660,129 +657,117 @@ function displayValuationAnalysis(metrics) {
     document.getElementById('valuationAnalysis').innerHTML = html;
 }
 
-function displaySummaryAnalysis(metrics) {
+function displaySummaryAnalysis(metrics, recommendation) {
     const scores = calculateScores(metrics);
     const totalScore = scores.excellent * 3 + scores.good * 2 + scores.medium;
     const maxScore = (scores.excellent + scores.good + scores.medium + scores.bad) * 3;
     const percentage = (totalScore / maxScore) * 100;
     
-    // Analyse détaillée par catégorie
     const categoryAnalysis = analyzeByCategory(metrics, scores);
     
-    let rating, ratingClass, recommendation, details;
+    let rating, ratingClass, details;
     
     if (percentage >= 75) {
         rating = 'EXCELLENT';
         ratingClass = 'summary-excellent';
-        recommendation = '✅ FORTE RECOMMANDATION - Correspond bien aux critères Buffett';
         details = 'Entreprise de haute qualité avec valorisation attractive';
     } else if (percentage >= 60) {
         rating = 'BON';
         ratingClass = 'summary-good';
-        recommendation = '👍 BONNE OPPORTUNITÉ - À surveiller de près';
         details = 'Solide fondamentaux mais valorisation à surveiller';
     } else if (percentage >= 45) {
         rating = 'MOYEN';
         ratingClass = 'summary-medium';
-        recommendation = '⚠️ OPPORTUNITÉ MOYENNE - Nécessite une analyse plus poussée';
-        details = 'Points forts et faibles équilibrés, décision contextuelle';
-    } else if (percentage >= 30) {
+        details = 'Points forts et faibles équilibrés';
+    } else {
         rating = 'FAIBLE';
         ratingClass = 'summary-bad';
-        recommendation = '📉 OPPORTUNITÉ FAIBLE - Plusieurs points de vigilance';
-        details = 'Problèmes significatifs sur la valorisation ou la structure financière';
-    } else {
-        rating = 'TRÈS FAIBLE';
-        ratingClass = 'summary-bad';
-        recommendation = '❌ DÉCONSEILLÉ - Ne correspond pas aux critères Buffett';
-        details = 'Multiples problèmes structurels et de valorisation';
+        details = 'Problèmes significatifs détectés';
     }
     
     const html = `
-        <div class="summary-box">
-            <div class="score-header">
-                <h3>Score Global: ${percentage.toFixed(0)}%</h3>
-                <div class="performance-breakdown">
-                    <div class="performance-item">
-                        <span class="performance-label">Profitabilité:</span>
-                        <span class="performance-value ${categoryAnalysis.profitability.rating}">${categoryAnalysis.profitability.score}%</span>
-                    </div>
-                    <div class="performance-item">
-                        <span class="performance-label">Sécurité:</span>
-                        <span class="performance-value ${categoryAnalysis.safety.rating}">${categoryAnalysis.safety.score}%</span>
-                    </div>
-                    <div class="performance-item">
-                        <span class="performance-label">Valorisation:</span>
-                        <span class="performance-value ${categoryAnalysis.valuation.rating}">${categoryAnalysis.valuation.score}%</span>
+        <div class="analysis-container">
+            <!-- SCORE GLOBAL UNIQUE -->
+            <div class="global-score">
+                <h3>📊 SCORE GLOBAL BUFFETT</h3>
+                <div class="score-value">${percentage.toFixed(0)}%</div>
+                <div class="rating-badge ${ratingClass}">${rating}</div>
+                <p style="margin: 10px 0 0 0; opacity: 0.9;">${details}</p>
+                <p style="margin: 5px 0 0 0; font-size: 0.9em; opacity: 0.8;">
+                    Recommandation: ${recommendation}
+                </p>
+            </div>
+
+            <!-- MÉTRIQUES PAR CATÉGORIE (ACCORDÉON) -->
+            <div class="compact-section">
+                <div class="section-header" onclick="toggleSection('profitability')">
+                    <span>📈 Profitabilité</span>
+                    <span class="section-score ${categoryAnalysis.profitability.rating}">
+                        ${categoryAnalysis.profitability.score}%
+                    </span>
+                </div>
+                <div class="section-content active" id="profitability">
+                    <div class="metrics-grid">
+                        ${createMetricCard('ROE', `${metrics.roe.toFixed(1)}%`, metrics.roe, 20, 15, 10, false, 'roe')}
+                        ${createMetricCard('Marge Nette', `${metrics.netMargin.toFixed(1)}%`, metrics.netMargin, 20, 15, 10, false, 'netMargin')}
+                        ${createMetricCard('Marge Brute', `${metrics.grossMargin.toFixed(1)}%`, metrics.grossMargin, 50, 40, 30, false, 'grossMargin')}
+                        ${createMetricCard('ROIC', `${metrics.roic.toFixed(1)}%`, metrics.roic, 15, 10, 8, false, 'roic')}
                     </div>
                 </div>
             </div>
-            
-            <div class="summary-rating ${ratingClass}">
-                ${rating}
-                <div class="rating-details">${details}</div>
-            </div>
-            
-            <p><strong>Recommandation:</strong> ${recommendation}</p>
-            
-            <div class="analysis-details">
-                <div class="analysis-section">
-                    <h4>📈 Points Forts</h4>
-                    <div class="strengths-list">
-                        ${categoryAnalysis.profitability.strengths.map(strength => 
-                            `<div class="analysis-point positive">${strength}</div>`
-                        ).join('')}
-                    </div>
+
+            <div class="compact-section">
+                <div class="section-header" onclick="toggleSection('safety')">
+                    <span>🛡️ Sécurité Financière</span>
+                    <span class="section-score ${categoryAnalysis.safety.rating}">
+                        ${categoryAnalysis.safety.score}%
+                    </span>
                 </div>
-                
-                <div class="analysis-section">
-                    <h4>⚠️ Points de Vigilance</h4>
-                    <div class="concerns-list">
-                        ${categoryAnalysis.valuation.concerns.map(concern => 
-                            `<div class="analysis-point warning">${concern}</div>`
-                        ).join('')}
-                        ${categoryAnalysis.safety.concerns.map(concern => 
-                            `<div class="analysis-point warning">${concern}</div>`
-                        ).join('')}
+                <div class="section-content" id="safety">
+                    <div class="metrics-grid">
+                        ${createMetricCard('Dette/Equity', metrics.debtToEquity.toFixed(2), metrics.debtToEquity, 0.3, 0.5, 1.0, true, 'debtToEquity')}
+                        ${createMetricCard('Current Ratio', metrics.currentRatio.toFixed(2), metrics.currentRatio, 2.0, 1.5, 1.0, false, 'currentRatio')}
+                        ${createMetricCard('Couverture Intérêts', metrics.interestCoverage > 1000 ? '∞' : metrics.interestCoverage.toFixed(1) + 'x', metrics.interestCoverage, 10, 5, 3, false, 'interestCoverage')}
                     </div>
                 </div>
             </div>
-            
-            <div class="summary-points">
-                <h4>🎯 Analyse Détailée</h4>
-                ${getKeyPoints(metrics)}
+
+            <div class="compact-section">
+                <div class="section-header" onclick="toggleSection('valuation')">
+                    <span>💰 Valorisation</span>
+                    <span class="section-score ${categoryAnalysis.valuation.rating}">
+                        ${categoryAnalysis.valuation.score}%
+                    </span>
+                </div>
+                <div class="section-content" id="valuation">
+                    <div class="metrics-grid">
+                        ${createMetricCard('P/E Ratio', metrics.peRatio.toFixed(1), metrics.peRatio, 10, 15, 25, true, 'peRatio')}
+                        ${createMetricCard('Earnings Yield', `${metrics.earningsYield.toFixed(1)}%`, metrics.earningsYield, 10, 6, 4, false, 'earningsYield')}
+                        ${createMetricCard('Price/FCF', metrics.priceToFCF.toFixed(1), metrics.priceToFCF, 10, 15, 20, true, 'priceToFCF')}
+                        ${createMetricCard('EV/EBITDA', metrics.evToEbitda.toFixed(1), metrics.evToEbitda, 8, 12, 15, true, 'evToEbitda')}
+                    </div>
+                </div>
             </div>
-            
-            <div class="scores-breakdown">
-                <h4>📊 Répartition des Scores</h4>
-                <div class="scores-grid">
-                    <div class="score-category">
-                        <span class="score-label">Excellent:</span>
-                        <div class="score-bar">
-                            <div class="score-fill score-excellent" style="width: ${(scores.excellent/16)*100}%"></div>
+
+            <!-- POINTS CLÉS COMPACT -->
+            <div class="compact-section">
+                <div class="section-header" onclick="toggleSection('keypoints')">
+                    <span>🎯 Points Clés</span>
+                </div>
+                <div class="section-content" id="keypoints">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <div>
+                            <h4 style="color: #27ae60; margin-bottom: 10px;">✅ Points Forts</h4>
+                            ${getStrengths(metrics).map(strength => 
+                                `<div class="analysis-point positive">${strength}</div>`
+                            ).join('')}
                         </div>
-                        <span class="score-count">${scores.excellent}/16</span>
-                    </div>
-                    <div class="score-category">
-                        <span class="score-label">Bon:</span>
-                        <div class="score-bar">
-                            <div class="score-fill score-good" style="width: ${(scores.good/16)*100}%"></div>
+                        <div>
+                            <h4 style="color: #e74c3c; margin-bottom: 10px;">⚠️ Points Faibles</h4>
+                            ${getWeaknesses(metrics).map(weakness => 
+                                `<div class="analysis-point warning">${weakness}</div>`
+                            ).join('')}
                         </div>
-                        <span class="score-count">${scores.good}/16</span>
-                    </div>
-                    <div class="score-category">
-                        <span class="score-label">Moyen:</span>
-                        <div class="score-bar">
-                            <div class="score-fill score-medium" style="width: ${(scores.medium/16)*100}%"></div>
-                        </div>
-                        <span class="score-count">${scores.medium}/16</span>
-                    </div>
-                    <div class="score-category">
-                        <span class="score-label">Faible:</span>
-                        <div class="score-bar">
-                            <div class="score-fill score-bad" style="width: ${(scores.bad/16)*100}%"></div>
-                        </div>
-                        <span class="score-count">${scores.bad}/16</span>
                     </div>
                 </div>
             </div>
@@ -790,6 +775,27 @@ function displaySummaryAnalysis(metrics) {
     `;
     
     document.getElementById('summaryAnalysis').innerHTML = html;
+    
+    // Ouvrir automatiquement la première section
+    setTimeout(() => {
+        document.getElementById('profitability').classList.add('active');
+    }, 100);
+}
+
+// Fonction pour les accordéons
+function toggleSection(sectionId) {
+    const section = document.getElementById(sectionId);
+    const isActive = section.classList.contains('active');
+    
+    // Fermer toutes les sections
+    document.querySelectorAll('.section-content').forEach(s => {
+        s.classList.remove('active');
+    });
+    
+    // Ouvrir la section cliquée si elle n'était pas active
+    if (!isActive) {
+        section.classList.add('active');
+    }
 }
 
 // Nouvelle fonction pour l'analyse par catégorie
