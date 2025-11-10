@@ -241,7 +241,7 @@ async function sauvegarderAnalyse(metrics, recommendation) {
     console.log('📤 Préparation de la sauvegarde...', metrics, recommendation);
     
     const analyseData = {
-        symbole: currentData.profile.symbol,
+        symbol: currentData.profile.symbol,
         date_analyse: new Date().toISOString().split('T')[0],
         periode: 'FY',
         ...metrics,
