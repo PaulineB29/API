@@ -145,12 +145,12 @@ router.post('/', async (req, res) => {
     const analyseResult = await query(
       `INSERT INTO analyses_buffett (
         entreprise_id, date_analyse, periode, 
-        roe, net_margin, gross_margin, sga_margin, roic,
-        debt_to_equity, current_ratio, interest_coverage,
-        pe_ratio, earnings_yield, price_to_fcf, price_to_mm200, 
-        dividend_yield, pb_ratio, peg_ratio, ev_to_ebitda,
+        roe, netMargin, grossMargin, sgaMargin, roic,
+        debtToEquity, currentRatio, interestCoverage,
+        peRatio, earningsYield, priceToFcf, priceToMM200, 
+        dividendYield, pbRatio, pegRatio, evToEbitda,
         score_global, recommandation, points_forts, points_faibles,
-        free_cash_flow
+        freeCashFlow
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, 
                 $15, $16, $17, $18, $19, $20, $21, $22, $23, $24) 
       RETURNING id`,
@@ -296,10 +296,10 @@ router.get('/:symbol', async (req, res) => {
       `SELECT 
         ab.date_analyse,
         ab.roe,
-        ab.net_margin as "netMargin",
-        ab.gross_margin as "grossMargin", 
-        ab.debt_to_equity as "debtToEquity",
-        ab.pe_ratio as "peRatio",
+        ab.netMargin,
+        ab.grossMargin, 
+        ab.debtToEquity,
+        ab.peRatio,
         ab.score_global,
         ab.recommandation,
         ab.points_forts,
@@ -333,19 +333,19 @@ router.get('/', async (req, res) => {
   try {
     const result = await query(
       `SELECT 
-        e.symbole as symbol,
-        e.nom as name,
-        ab.date_analyse as analysis_date,
-        ab.score_global as global_score,
-        ab.recommandation as recommendation,
-        ab.roe,
-        ab.pe_ratio as "peRatio",
-        ab.net_margin as "netMargin",
-        ab.debt_to_equity as "debtToEquity"
-       FROM analyses_buffett ab
-       JOIN entreprises e ON ab.entreprise_id = e.id
-       ORDER BY ab.date_analyse DESC
-       LIMIT 100`
+          e.symbole as symbol,
+          e.nom as name,
+          ab.date_analyse as analysis_date,
+          ab.score_global as global_score,
+          ab.recommandation as recommendation,
+          ab.roe,
+          ab.peRatio,           
+          ab.netMargin,       
+          ab.debtToEquity  
+        FROM analyses_buffett ab
+        JOIN entreprises e ON ab.entreprise_id = e.id
+        ORDER BY ab.date_analyse DESC
+        LIMIT 100`
     );
 
     res.json({
