@@ -688,3 +688,200 @@ button:active {
         grid-template-columns: 1fr;
     }
 }
+
+/* === NOUVELLES CLASSES POUR UI COMPACTE - À AJOUTER À LA FIN === */
+
+/* Styles pour l'UI compacte */
+.analysis-container {
+    max-height: 80vh;
+    overflow-y: auto;
+    padding: 15px;
+}
+
+.summary-header {
+    position: sticky;
+    top: 0;
+    background: white;
+    z-index: 100;
+    padding: 15px;
+    margin: -15px -15px 15px -15px;
+    border-bottom: 2px solid var(--border-light);
+    box-shadow: var(--shadow);
+}
+
+.compact-section {
+    margin-bottom: 15px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+}
+
+.section-header {
+    background: var(--background);
+    padding: 16px 20px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 600;
+    transition: background-color 0.2s ease;
+    font-size: 1.1rem;
+}
+
+.section-header:hover {
+    background: var(--border-light);
+}
+
+.section-content {
+    padding: 0;
+    background: white;
+    display: none;
+}
+
+.section-content.active {
+    display: block;
+    padding: 20px;
+}
+
+.metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+}
+
+.metric-compact {
+    background: var(--surface);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius);
+    padding: 16px;
+    transition: all 0.2s ease;
+}
+
+.metric-compact:hover {
+    box-shadow: var(--shadow);
+    transform: translateY(-1px);
+}
+
+.global-score {
+    text-align: center;
+    padding: 30px;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    color: white;
+    border-radius: var(--radius-lg);
+    margin-bottom: 24px;
+}
+
+.global-score h3 {
+    margin: 0 0 12px 0;
+    font-size: 1.3rem;
+    font-weight: 600;
+    opacity: 0.95;
+}
+
+.score-value {
+    font-size: 3rem;
+    font-weight: 700;
+    margin: 12px 0;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.rating-badge {
+    display: inline-block;
+    padding: 10px 24px;
+    border-radius: 25px;
+    font-weight: 700;
+    font-size: 1.2rem;
+    margin-top: 12px;
+    background: rgba(255,255,255,0.2);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.3);
+}
+
+.section-score {
+    padding: 6px 14px;
+    border-radius: 16px;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.section-score.excellent { background: var(--success); color: white; }
+.section-score.good { background: var(--primary); color: white; }
+.section-score.medium { background: var(--warning); color: white; }
+.section-score.bad { background: var(--error); color: white; }
+
+/* Points d'analyse compactes */
+.keypoints-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.analysis-point {
+    padding: 10px 14px;
+    margin: 6px 0;
+    border-radius: var(--radius);
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+.analysis-point.positive {
+    background: #d1fae5;
+    color: #065f46;
+    border-left: 4px solid var(--success);
+}
+
+.analysis-point.warning {
+    background: #fef3c7;
+    color: #92400e;
+    border-left: 4px solid var(--warning);
+}
+
+/* Responsive pour la nouvelle UI */
+@media (max-width: 768px) {
+    .analysis-container {
+        max-height: none;
+        padding: 10px;
+    }
+    
+    .metrics-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+    
+    .keypoints-grid {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+    
+    .global-score {
+        padding: 20px;
+    }
+    
+    .score-value {
+        font-size: 2.5rem;
+    }
+    
+    .section-header {
+        padding: 14px 16px;
+        font-size: 1rem;
+    }
+    
+    .section-content.active {
+        padding: 16px;
+    }
+}
+
+@media (max-width: 480px) {
+    .global-score {
+        padding: 16px;
+    }
+    
+    .score-value {
+        font-size: 2rem;
+    }
+    
+    .rating-badge {
+        padding: 8px 20px;
+        font-size: 1rem;
+    }
+}
