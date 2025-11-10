@@ -764,37 +764,35 @@ button:active {
 
 .global-score {
     text-align: center;
-    padding: 30px;
-    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-    color: white;
+    padding: 25px;
+    background: var(--surface);
+    border: 2px solid var(--border);
     border-radius: var(--radius-lg);
-    margin-bottom: 24px;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow);
 }
 
 .global-score h3 {
-    margin: 0 0 12px 0;
+    margin: 0 0 15px 0;
     font-size: 1.3rem;
     font-weight: 600;
-    opacity: 0.95;
+    color: var(--text-primary);
 }
 
 .score-value {
-    font-size: 3rem;
+    font-size: 2.5rem;
     font-weight: 700;
-    margin: 12px 0;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin: 10px 0;
+    color: var(--text-primary);
 }
 
 .rating-badge {
     display: inline-block;
-    padding: 10px 24px;
-    border-radius: 25px;
-    font-weight: 700;
-    font-size: 1.2rem;
-    margin-top: 12px;
-    background: rgba(255,255,255,0.2);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255,255,255,0.3);
+    padding: 8px 20px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 1.1rem;
+    margin: 10px 0;
 }
 
 .section-score {
@@ -804,6 +802,43 @@ button:active {
     font-weight: 600;
 }
 
+/* Couleurs sobres pour les badges */
+.rating-badge.summary-excellent { 
+    background: #d1fae5; 
+    color: #065f46;
+    border: 1px solid #10b981;
+}
+
+.rating-badge.summary-good { 
+    background: #dbeafe; 
+    color: #1e40af;
+    border: 1px solid #3b82f6;
+}
+
+.rating-badge.summary-medium { 
+    background: #fef3c7; 
+    color: #92400e;
+    border: 1px solid #f59e0b;
+}
+
+.rating-badge.summary-bad { 
+    background: #fee2e2; 
+    color: #991b1b;
+    border: 1px solid #ef4444;
+}
+
+.global-details {
+    margin-top: 15px;
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+.global-recommendation {
+    margin-top: 8px;
+    font-weight: 500;
+    color: var(--text-primary);
+}
 .section-score.excellent { background: var(--success); color: white; }
 .section-score.good { background: var(--primary); color: white; }
 .section-score.medium { background: var(--warning); color: white; }
