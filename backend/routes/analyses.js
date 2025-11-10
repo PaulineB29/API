@@ -228,6 +228,8 @@ router.post('/donnees-financieres', async (req, res) => {
       entrepriseId,
       date_import || dateActuelle,
       date_import || dateActuelle,
+      'annuel', // periode - valeur par défaut
+      'brutes', // type_donnee - valeur par défaut
       // Price data
       parseFloat(currentPrice) || null,
       parseFloat(movingAverage200) || null,
@@ -251,16 +253,18 @@ router.post('/donnees-financieres', async (req, res) => {
       parseFloat(freeCashFlow) || null
     ];
 
+      console.log('💾 Insertion données financières avec', valeurs.length, 'valeurs');
+    
     const result = await query(
       `INSERT INTO donnees_financieres (
-        entreprise_id, date, date_import,
+        entreprise_id, date, date_import, periode, type_donnee,
         current_price, moving_average_200, dividend_per_share, market_cap,
         cash_equivalents, current_assets, current_liabilities, 
         total_debt, shareholders_equity, net_cash,
         revenue, ebit, net_income, eps, interest_expense,
         ebitda, operating_cash_flow, free_cash_flow
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, 
-                $15, $16, $17, $18, $19, $20, $21, $22) 
+                $15, $16, $17, $18, $19, $20, $21, $22, $23) 
       RETURNING id`,
       valeurs
     );
