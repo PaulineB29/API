@@ -145,6 +145,108 @@ function createHelpIcon(ratioKey) {
     `;
 }
 
+// FONCTION POUR CHANGER D'ONGLET
+function switchTab(tabName) {
+    // Masquer tous les onglets
+    document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    document.querySelectorAll('.tab-button').forEach(button => {
+        button.classList.remove('active');
+    });
+    
+    // Afficher l'onglet sélectionné
+    document.getElementById(tabName + 'Tab').classList.add('active');
+    event.target.classList.add('active');
+    
+    // Charger l'overview si on switch vers cet onglet
+    if (tabName === 'overview') {
+        loadOverview();
+    }
+}
+
+// FONCTION POUR CHARGER L'OVERVIEW
+async function loadOverview() {
+    const loadingElement = document.getElementById('overviewLoading');
+    const contentElement = document.getElementById('overviewContent');
+    
+    loadingElement.classList.remove('hidden');
+    contentElement.innerHTML = '';
+    
+    try {
+        const response = await fetch('https://api-u54u.onrender.com/api/analyses');
+        const result = await response.json();
+        
+        if (result.success && result.analyses.length > 0) {
+            displayOverviewTable(result.analyses);
+        } else {
+            contentElement.innerHTML = `
+                <div class="no-data">
+                    <h3>Aucune analyse sauvegardée</h3>
+                    <p>Effectuez des analyses Buffett pour les voir apparaître ici</p>
+                </div>
+            `;
+        }
+    } catch (error) {
+        console.error('Erreur chargement overview:', error);
+        contentElement.innerHTML = `
+            <div class="no-data">
+                <h3>Erreur de chargement</h3>
+                <p>Impossible de récupérer les analyses</p>
+            </div>
+        `;
+    } finally {
+        loadingElement.classList.add('hidden');
+    }
+}
+
+// FONCTION POUR AFFICHER LE TABLEAU
+function displayOverviewTable(analyses) {
+    const tableHTML = `
+        <table class="analyses-table">
+            <thead>
+                <tr>
+                    <th>Entreprise</th>
+                    <th>Symbole</th>
+                    <th>Date Analyse</th>
+                    <th>Score Global</th>
+                    <th>Recommandation</th>
+                    <th>ROE</th>
+                    <th>Marge Nette</th>
+                    <th>Dette/Equity</th>
+                    <th>P/E Ratio</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${analyses.map(analysis => `
+                    <tr>
+                        <td><strong>${analysis.name || analysis.symbol}</strong></td>
+                        <td>${analysis.symbol}</td>
+                        <td>${new Date(analysis.analysis_date).toLocaleDateString('fr-FR')}</td>
+                        <td class="score-cell">${analysis.global_score ? analysis.global_score.toFixed(0) + '%' : 'N/A'}</td>
+                        <td class="rating-cell ${analysis.recommendation?.toLowerCase() || 'medium'}">
+                            ${analysis.recommendation || 'N/A'}
+                        </td>
+                        <td>${analysis.roe ? analysis.roe.toFixed(1) + '%' : 'N/A'}</td>
+                        <td>${analysis.netMargin ? analysis.netMargin.toFixed(1) + '%' : 'N/A'}</td>
+                        <td>${analysis.debtToEquity ? analysis.debtToEquity.toFixed(2) : 'N/A'}</td>
+                        <td>${analysis.peRatio ? analysis.peRatio.toFixed(1) : 'N/A'}</td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>
+    `;
+    
+    document.getElementById('overviewContent').innerHTML = tableHTML;
+}
+
+// CHARGER L'OVERVIEW AU DEMARRAGE SI ON EST SUR CET ONGLET
+document.addEventListener('DOMContentLoaded', function() {
+    // Si l'URL contient un hash #overview, ouvrir cet onglet
+    if (window.location.hash === '#overview') {
+        switchTab('overview');
+    }
+});
 
 // Événements
 fetchDataBtn.addEventListener('click', fetchCompanyData);
