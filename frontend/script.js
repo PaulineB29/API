@@ -749,6 +749,10 @@ function displaySummaryAnalysis(metrics, recommendation) {
                         ${createMetricCard('Earnings Yield', `${metrics.earningsYield.toFixed(1)}%`, metrics.earningsYield, 10, 6, 4, false, 'earningsYield')}
                         ${createMetricCard('Price/FCF', metrics.priceToFCF.toFixed(1), metrics.priceToFCF, 10, 15, 20, true, 'priceToFCF')}
                         ${createMetricCard('EV/EBITDA', metrics.evToEbitda.toFixed(1), metrics.evToEbitda, 8, 12, 15, true, 'evToEbitda')}
+                        ${createMetricCard('Prix vs MM200', `${metrics.priceToMM200.toFixed(1)}%`, metrics.priceToMM200, 5, 0, -5, false, 'priceToMM200')}
+                        ${createMetricCard('Dividend Yield', `${metrics.dividendYield.toFixed(2)}%`, metrics.dividendYield, 4, 2, 1, false, 'dividendYield')}
+                        ${createMetricCard('P/B Ratio', metrics.pbRatio.toFixed(2), metrics.pbRatio, 1.5, 3, 5, true, 'pbRatio')}
+                        ${createMetricCard('PEG Ratio', metrics.pegRatio.toFixed(2), metrics.pegRatio, 0.8, 1.0, 1.2, true, 'pegRatio')}
                     </div>
                 </div>
             </div>
