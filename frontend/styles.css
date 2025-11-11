@@ -900,10 +900,23 @@ button:hover {
     }
 }
 
-/* 6. RESPONSIVE */
 @media (max-width: 768px) {
     .data-item {
         grid-template-columns: 1fr;
         gap: 5px;
+    }
+    
+    header,
+    .search-section,
+    .data-card,
+    .section-header,
+    .section-content.active {
+        padding-left: 20px;
+        padding-right: 20px;
+    }
+    
+    .global-score {
+        margin-left: 20px;
+        margin-right: 20px;
     }
 }
