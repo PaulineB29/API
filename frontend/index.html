@@ -19,16 +19,6 @@
                 <button id="fetchDataBtn">Get Data</button>
             </div>
         </div>
-        
-        <div class="tabs-container">
-            <div class="tabs-header">
-                <button class="tab-button active" onclick="switchTab('analysis')">
-                    📊 Analyse Buffett
-                </button>
-                <button class="tab-button" onclick="switchTab('overview')">
-                    📋 Overview des Analyses
-                </button>
-            </div>
             
         <div id="dataSection" class="hidden">
             <div class="data-grid">
@@ -78,30 +68,6 @@
                 </div>
             </div>
         </div>
-
-            <div id="overviewTab" class="tab-content">
-        <section class="overview-section">
-            <h2 style="text-align: center; margin-bottom: 30px;">
-                📋 Historique des Analyses Buffett
-            </h2>
-            
-            <div class="overview-controls">
-                <button onclick="loadOverview()" class="refresh-btn">
-                    🔄 Actualiser
-                </button>
-            </div>
-            
-            <div id="overviewLoading" class="loading hidden">
-                <div class="spinner"></div>
-                <p>Chargement des analyses...</p>
-            </div>
-            
-            <div id="overviewContent" class="overview-content">
-                <!-- Le tableau sera injecté ici -->
-            </div>
-        </section>
-    </div>
-</div>
         
         <div id="loading" class="hidden">
             <div class="spinner"></div>
