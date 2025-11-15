@@ -709,7 +709,7 @@ function displaySummaryAnalysis(metrics, recommendation) {
                         ${categoryAnalysis.profitability.score}%
                     </span>
                 </div>
-                <div class="section-content active" id="profitability">
+                <div class="section-content" id="profitability">
                     <div class="metrics-grid">
                         ${createMetricCard('ROE', `${metrics.roe.toFixed(1)}%`, metrics.roe, 20, 15, 10, false, 'roe')}
                         ${createMetricCard('Marge Nette', `${metrics.netMargin.toFixed(1)}%`, metrics.netMargin, 20, 15, 10, false, 'netMargin')}
@@ -782,11 +782,6 @@ function displaySummaryAnalysis(metrics, recommendation) {
     `;
     
     document.getElementById('summaryAnalysis').innerHTML = html;
-    
-    // Ouvrir automatiquement la première section
-    setTimeout(() => {
-        document.getElementById('profitability').classList.add('active');
-    }, 100);
 }
 
 // Fonction pour les accordéons
@@ -1103,6 +1098,30 @@ function getKeyPoints(metrics) {
     
     return points.map(point => `<div class="point ${point.split(' ')[0]}">${point.substring(12)}</div>`).join('');
 }
+
+// Fonction pour les accordéons - À AJOUTER
+function toggleSection(sectionId) {
+    const section = document.getElementById(sectionId);
+    const isActive = section.classList.contains('active');
+    
+    // Fermer toutes les sections
+    document.querySelectorAll('.section-content').forEach(s => {
+        s.classList.remove('active');
+    });
+    
+    // Ouvrir la section cliquée si elle n'était pas active
+    if (!isActive) {
+        section.classList.add('active');
+    }
+}
+
+// Initialisation des accordéons au chargement
+document.addEventListener('DOMContentLoaded', function() {
+    // Fermer toutes les sections au départ (sauf la première si souhaité)
+    document.querySelectorAll('.section-content').forEach(section => {
+        section.classList.remove('active');
+    });
+});
 
 // Fonction pour calculer la croissance 
 function calculateGrowth(previousRevenue, currentRevenue) {
