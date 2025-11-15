@@ -685,3 +685,59 @@ button:active {
         grid-template-columns: 1fr;
     }
 }
+/* Styles pour les accordéons */
+.compact-section {
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    margin-bottom: 16px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+}
+
+.section-header {
+    padding: 20px;
+    background: var(--surface);
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 600;
+    color: var(--text-primary);
+    transition: background-color 0.2s ease;
+    border-bottom: 1px solid transparent;
+}
+
+.section-header:hover {
+    background: var(--background);
+}
+
+.section-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease, padding 0.3s ease;
+    padding: 0 20px;
+}
+
+.section-content.active {
+    max-height: 2000px; /* Valeur suffisamment grande */
+    padding: 20px;
+    border-top: 1px solid var(--border-light);
+}
+
+.section-score {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.section-score.excellent { background: #d1fae5; color: #065f46; }
+.section-score.good { background: #dbeafe; color: #1e40af; }
+.section-score.medium { background: #fef3c7; color: #92400e; }
+.section-score.bad { background: #fee2e2; color: #991b1b; }
+
+.metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+}
