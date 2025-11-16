@@ -1095,3 +1095,115 @@ button:active {
     font-weight: 600;
 }
 
+/* Styles épurés pour le global score seulement */
+.global-score-modern {
+    background: white;
+    border-radius: 20px;
+    padding: 30px;
+    margin-bottom: 30px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+    border: 1px solid #f1f5f9;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 30px;
+    align-items: center;
+}
+
+.score-main-modern {
+    text-align: center;
+}
+
+.score-value-modern {
+    font-size: 4rem;
+    font-weight: 800;
+    color: #1e293b;
+    line-height: 1;
+    margin-bottom: 8px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.score-label-modern {
+    font-size: 1rem;
+    color: #64748b;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.rating-badge-modern {
+    padding: 16px 30px;
+    border-radius: 15px;
+    font-weight: 700;
+    font-size: 1.3rem;
+    text-align: center;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+    border: 3px solid transparent;
+    transition: all 0.3s ease;
+}
+
+.rating-badge-modern:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+}
+
+.rating-badge-modern.excellent { 
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+    border-color: #34d399;
+}
+
+.rating-badge-modern.good { 
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: white;
+    border-color: #fbbf24;
+}
+
+.rating-badge-modern.medium { 
+    background: linear-gradient(135deg, #f97316, #ea580c);
+    color: white;
+    border-color: #fdba74;
+}
+
+.rating-badge-modern.faible { 
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: white;
+    border-color: #f87171;
+}
+
+.score-details-modern {
+    text-align: right;
+}
+
+.details-text-modern {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 12px;
+    line-height: 1.4;
+}
+
+.recommendation-modern {
+    font-size: 1rem;
+    color: #64748b;
+    font-weight: 500;
+}
+
+/* Version mobile */
+@media (max-width: 768px) {
+    .global-score-modern {
+        grid-template-columns: 1fr;
+        gap: 20px;
+        text-align: center;
+    }
+    
+    .score-details-modern {
+        text-align: center;
+    }
+    
+    .score-value-modern {
+        font-size: 3rem;
+    }
+}
