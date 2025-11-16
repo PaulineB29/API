@@ -632,16 +632,22 @@ function createSummaryHTML(percentage, rating, ratingClass, details, recommendat
         <div class="analysis-container">
             <!-- SCORE GLOBAL ULTRA COMPACT -->
             <div class="global-score">
-                <div class="score-main">
+            <div class="score-main">
                     <div class="score-value">${percentage.toFixed(0)}%</div>
                     <div class="score-label">Score Buffett</div>
+                    <div class="performance-indicator">
+                        <div class="performance-dot ${ratingClass}"></div>
+                        <span>Performance ${rating.toLowerCase()}</span>
+                    </div>
                 </div>
                 
-                <div class="rating-badge ${ratingClass}">${rating}</div>
+                <div class="rating-badge ${ratingClass}">
+                    ${rating}
+                </div>
                 
                 <div class="score-details">
                     <div class="details-text">${details}</div>
-                    <div class="recommendation">${recommendation}</div>
+                    <div class="recommendation">Recommandation: ${recommendation}</div>
                 </div>
             </div>
 
