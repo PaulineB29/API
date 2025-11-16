@@ -577,30 +577,24 @@ function displaySummaryAnalysis(metrics, recommendation) {
         details = 'Problèmes significatifs détectés';
     }
     
-    document.getElementById('summaryAnalysis').innerHTML = createSummaryHTML(percentage, rating, ratingClass, details, recommendation, categoryAnalysis, metrics);
+    document.getElementById('summaryAnalysis').innerHTML = (percentage, rating, ratingClass, details, recommendation, categoryAnalysis, metrics);
 }
 
 function createSummaryHTML(percentage, rating, ratingClass, details, recommendation, categoryAnalysis, metrics) {
     return `
         <div class="analysis-container">
-            <!-- SCORE GLOBAL ULTRA COMPACT -->
-            <div class="global-score">
-            <div class="score-main">
-                    <div class="score-value">${percentage.toFixed(0)}%</div>
-                    <div class="score-label">Score Buffett</div>
-                    <div class="performance-indicator">
-                        <div class="performance-dot ${ratingClass}"></div>
-                        <span>Performance ${rating.toLowerCase()}</span>
-                    </div>
+            <!-- SCORE GLOBAL MODERNE ET ÉPURÉ -->
+            <div class="global-score-modern">
+                <div class="score-main-modern">
+                    <div class="score-value-modern">${percentage.toFixed(0)}%</div>
+                    <div class="score-label-modern">Score Buffett</div>
                 </div>
                 
-                <div class="rating-badge ${ratingClass}">
-                    ${rating}
-                </div>
+                <div class="rating-badge-modern ${rating.toLowerCase()}">${rating}</div>
                 
-                <div class="score-details">
-                    <div class="details-text">${details}</div>
-                    <div class="recommendation">Recommandation: ${recommendation}</div>
+                <div class="score-details-modern">
+                    <div class="details-text-modern">${details}</div>
+                    <div class="recommendation-modern">${recommendation}</div>
                 </div>
             </div>
 
