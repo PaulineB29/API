@@ -60,11 +60,28 @@
             <h2>🎯 Buffett Analysis - <span id="companyName"></span></h2>
             
             <div class="analysis-grid">
-                              
                 <!-- Summary -->
                 <div class="analysis-category full-width">
                     <h3>📋 Summary & Recommendation</h3>
                     <div id="summaryAnalysis"></div>
+                </div>
+
+                <!-- Profitability -->
+                <div class="analysis-category">
+                    <h3>📈 Profitability Analysis</h3>
+                    <div id="profitabilityAnalysis"></div>
+                </div>
+
+                <!-- Safety -->
+                <div class="analysis-category">
+                    <h3>🛡️ Safety Analysis</h3>
+                    <div id="safetyAnalysis"></div>
+                </div>
+
+                <!-- Valuation -->
+                <div class="analysis-category">
+                    <h3>💰 Valuation Analysis</h3>
+                    <div id="valuationAnalysis"></div>
                 </div>
             </div>
         </div>
@@ -76,6 +93,45 @@
 
         <div id="error" class="error hidden"></div>
     </div>
+
+    <!-- Templates pour le rendu dynamique -->
+    <template id="metricCardTemplate">
+        <div class="metric">
+            <div class="metric-header">
+                <span class="metric-name"></span>
+                <div class="metric-score">
+                    <span class="metric-value"></span>
+                    <span class="performance-indicator"></span>
+                </div>
+            </div>
+            <div class="metric-rating"></div>
+            <div class="score-bar">
+                <div class="score-fill"></div>
+            </div>
+            <div class="metric-details"></div>
+        </div>
+    </template>
+
+    <template id="helpIconTemplate">
+        <span class="help-icon">
+            ?
+            <div class="tooltip">
+                <h4></h4>
+                <div class="tooltip-section">
+                    <div class="tooltip-label">Définition:</div>
+                    <div class="tooltip-value definition"></div>
+                </div>
+                <div class="tooltip-section">
+                    <div class="tooltip-label">Calcul:</div>
+                    <div class="tooltip-value calculation"></div>
+                </div>
+                <div class="tooltip-section">
+                    <div class="tooltip-label">Signification:</div>
+                    <div class="tooltip-value significance"></div>
+                </div>
+            </div>
+        </span>
+    </template>
 
     <script src="/API/frontend/script.js"></script>
 </body>
