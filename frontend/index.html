@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stock Analysis - Buffett Method</title>
+    <title>Analyse par action</title>
     <link rel="stylesheet" href="/API/frontend/styles.css">
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>📈 Stock Analysis - Buffett Method</h1>
-            <p>Analyze stocks using Warren Buffett's methodology</p>
+            <h1>📈 Analyse par action</h1>
+            <p>Analyse une action selon les methodes de Warren Buffett</p>
         </header>
 
         <div class="search-section">
@@ -24,31 +24,31 @@
             <div class="data-grid">
                 <!-- Basic Data -->
                 <div class="data-card">
-                    <h3>📊 Basic Data</h3>
+                    <h3>📊 Données de base</h3>
                     <div id="basicData"></div>
                 </div>
                 
                 <!-- Balance Sheet -->
                 <div class="data-card">
-                    <h3>💰 Balance Sheet</h3>
+                    <h3>💰 Bilan</h3>
                     <div id="balanceSheetData"></div>
                 </div>
                 
                 <!-- Income Statement -->
                 <div class="data-card">
-                    <h3>📈 Income Statement</h3>
+                    <h3>📈 Compte de résultat</h3>
                     <div id="incomeStatementData"></div>
                 </div>
                 
                 <!-- Cash Flow -->
                 <div class="data-card">
-                    <h3>💸 Cash Flow</h3>
+                    <h3>💸 Flux de trésorerie</h3>
                     <div id="cashFlowData"></div>
                 </div>
                 
                 <!-- Revenue History -->
                 <div class="data-card">
-                    <h3>📊 Revenue History (10 years)</h3>
+                    <h3>📊 Historique du chiffre d'affaire (10 annees)</h3>
                     <div id="historicalData"></div>
                 </div>
             </div>
@@ -57,31 +57,13 @@
         </div>
 
         <div id="analysisSection" class="hidden">
-            <h2>🎯 Buffett Analysis - <span id="companyName"></span></h2>
+            <h2>🎯 Analyse - <span id="companyName"></span></h2>
             
             <div class="analysis-grid">
                 <!-- Summary -->
                 <div class="analysis-category full-width">
-                    <h3>📋 Summary & Recommendation</h3>
+                    <h3>📋 Résumé</h3>
                     <div id="summaryAnalysis"></div>
-                </div>
-
-                <!-- Profitability -->
-                <div class="analysis-category">
-                    <h3>📈 Profitability Analysis</h3>
-                    <div id="profitabilityAnalysis"></div>
-                </div>
-
-                <!-- Safety -->
-                <div class="analysis-category">
-                    <h3>🛡️ Safety Analysis</h3>
-                    <div id="safetyAnalysis"></div>
-                </div>
-
-                <!-- Valuation -->
-                <div class="analysis-category">
-                    <h3>💰 Valuation Analysis</h3>
-                    <div id="valuationAnalysis"></div>
                 </div>
             </div>
         </div>
