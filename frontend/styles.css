@@ -194,10 +194,7 @@ button:active {
 }
 
 .analysis-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-    gap: 24px;
-    margin-top: 0;
+    display: block;
 }
 
 .analysis-category {
