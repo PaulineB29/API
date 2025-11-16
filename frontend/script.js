@@ -498,9 +498,6 @@ function performAnalysis() {
     }
     
     displaySummaryAnalysis(metrics, recommendation);
-    displayProfitabilityAnalysis(metrics);
-    displaySafetyAnalysis(metrics);
-    displayValuationAnalysis(metrics);
     showAnalysisSection();
     
     console.log('💾 Tentative de sauvegarde...');
@@ -550,50 +547,6 @@ function calculateMetrics() {
         priceToMM200, dividendYield, pbRatio, pegRatio,
         roic, freeCashFlow, evToEbitda
     };
-}
-
-function displayProfitabilityAnalysis(metrics) {
-    const profitabilityMetrics = [
-        { key: 'roe', name: 'ROE', value: `${metrics.roe.toFixed(1)}%`, actual: metrics.roe, excellent: 20, good: 15, medium: 10, reverse: false },
-        { key: 'netMargin', name: 'Marge Nette', value: `${metrics.netMargin.toFixed(1)}%`, actual: metrics.netMargin, excellent: 20, good: 15, medium: 10, reverse: false },
-        { key: 'grossMargin', name: 'Marge Brute', value: `${metrics.grossMargin.toFixed(1)}%`, actual: metrics.grossMargin, excellent: 50, good: 40, medium: 30, reverse: false },
-        { key: 'sgaMargin', name: 'Marge SG&A', value: `${metrics.sgaMargin.toFixed(1)}%`, actual: metrics.sgaMargin, excellent: 10, good: 20, medium: 30, reverse: true },
-        { key: 'roic', name: 'ROIC', value: `${metrics.roic.toFixed(1)}%`, actual: metrics.roic, excellent: 15, good: 10, medium: 8, reverse: false }
-    ];
-    
-    document.getElementById('profitabilityAnalysis').innerHTML = profitabilityMetrics
-        .map(metric => createMetricCard(metric))
-        .join('');
-}
-
-function displaySafetyAnalysis(metrics) {
-    const safetyMetrics = [
-        { key: 'debtToEquity', name: 'Dette/Equity', value: metrics.debtToEquity.toFixed(2), actual: metrics.debtToEquity, excellent: 0.3, good: 0.5, medium: 1.0, reverse: true },
-        { key: 'currentRatio', name: 'Current Ratio', value: metrics.currentRatio.toFixed(2), actual: metrics.currentRatio, excellent: 2.0, good: 1.5, medium: 1.0, reverse: false },
-        { key: 'interestCoverage', name: 'Couverture Intérêts', value: metrics.interestCoverage > 1000 ? '∞' : metrics.interestCoverage.toFixed(1) + 'x', actual: metrics.interestCoverage, excellent: 10, good: 5, medium: 3, reverse: false },
-        { key: 'freeCashFlow', name: 'Free Cash Flow', value: `$${formatNumber(metrics.freeCashFlow)}`, actual: metrics.freeCashFlow > 0 ? 1 : 0, excellent: 1, good: 0, medium: -1, reverse: false }
-    ];
-    
-    document.getElementById('safetyAnalysis').innerHTML = safetyMetrics
-        .map(metric => createMetricCard(metric))
-        .join('');
-}
-
-function displayValuationAnalysis(metrics) {
-    const valuationMetrics = [
-        { key: 'peRatio', name: 'P/E Ratio', value: metrics.peRatio.toFixed(1), actual: metrics.peRatio, excellent: 10, good: 15, medium: 25, reverse: true },
-        { key: 'earningsYield', name: 'Earnings Yield', value: `${metrics.earningsYield.toFixed(1)}%`, actual: metrics.earningsYield, excellent: 10, good: 6, medium: 4, reverse: false },
-        { key: 'priceToFCF', name: 'Price/FCF', value: metrics.priceToFCF.toFixed(1), actual: metrics.priceToFCF, excellent: 10, good: 15, medium: 20, reverse: true },
-        { key: 'priceToMM200', name: 'Prix vs MM200', value: `${metrics.priceToMM200.toFixed(1)}%`, actual: metrics.priceToMM200, excellent: 5, good: 0, medium: -5, reverse: false },
-        { key: 'dividendYield', name: 'Rendement Dividende', value: `${metrics.dividendYield.toFixed(2)}%`, actual: metrics.dividendYield, excellent: 4, good: 2, medium: 1, reverse: false },
-        { key: 'pbRatio', name: 'P/B Ratio', value: metrics.pbRatio.toFixed(2), actual: metrics.pbRatio, excellent: 1.5, good: 3, medium: 5, reverse: true },
-        { key: 'pegRatio', name: 'PEG Ratio', value: metrics.pegRatio.toFixed(2), actual: metrics.pegRatio, excellent: 0.8, good: 1.0, medium: 1.2, reverse: true },
-        { key: 'evToEbitda', name: 'EV/EBITDA', value: metrics.evToEbitda.toFixed(1), actual: metrics.evToEbitda, excellent: 8, good: 12, medium: 15, reverse: true }
-    ];
-    
-    document.getElementById('valuationAnalysis').innerHTML = valuationMetrics
-        .map(metric => createMetricCard(metric))
-        .join('');
 }
 
 function displaySummaryAnalysis(metrics, recommendation) {
