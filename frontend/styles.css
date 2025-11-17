@@ -1096,6 +1096,11 @@ button:active {
 }
 
 /* Styles épurés pour le global score seulement */
+
+.analysis-container {
+    width: 100%;
+}
+
 .global-score-modern {
     background: white;
     border-radius: 20px;
