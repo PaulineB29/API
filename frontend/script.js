@@ -870,7 +870,7 @@ async function loadAllCompanies() {
     
     try {
         console.log('Chargement de toutes les entreprises...');
-        const companies = await fetchAPI('/stock-list');
+        const companies = await fetchAPI('/stock-list?');
         
         if (!companies || companies.length === 0) {
             companiesTableBody.innerHTML = '<tr><td colspan="2">Aucune entreprise trouvée</td></tr>';
