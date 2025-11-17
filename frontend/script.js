@@ -20,6 +20,15 @@ const companySearchInput = document.getElementById('companySearchInput');
 const searchCompanyBtn = document.getElementById('searchCompanyBtn');
 const searchResults = document.getElementById('searchResults');
 
+// Éléments recheche societe
+const showAllCompaniesBtn = document.getElementById('showAllCompaniesBtn');
+const companiesModal = document.getElementById('companiesModal');
+const closeModal = document.querySelector('.close-modal');
+const modalSearchInput = document.getElementById('modalSearchInput');
+const companiesTableBody = document.getElementById('companiesTableBody');
+const companiesCount = document.getElementById('companiesCount');
+
+
 // Données stockées
 let currentData = {};
 
@@ -142,6 +151,10 @@ searchCompanyBtn.addEventListener('click', searchCompany);
 companySearchInput.addEventListener('keypress', (event) => {
     if (event.key === 'Enter') searchCompany();
 });
+
+showAllCompaniesBtn.addEventListener('click', loadAllCompanies);
+closeModal.addEventListener('click', hideCompaniesModal);
+modalSearchInput.addEventListener('input', filterCompaniesTable);
 
 // Fonctions principales
 async function fetchCompanyData() {
@@ -846,6 +859,80 @@ function createSummaryHTML(percentage, rating, ratingClass, details, recommendat
         </div>
     `;
 }
+
+// Cache toutes les données pour la recherche
+let allCompaniesData = [];
+
+// Charger toutes les entreprises
+async function loadAllCompanies() {
+    showLoading();
+    companiesModal.classList.remove('hidden');
+    
+    try {
+        console.log('Chargement de toutes les entreprises...');
+        const companies = await fetchAPI('/stock-list');
+        
+        if (!companies || companies.length === 0) {
+            companiesTableBody.innerHTML = '<tr><td colspan="2">Aucune entreprise trouvée</td></tr>';
+            return;
+        }
+
+        allCompaniesData = companies;
+        displayCompaniesTable(companies);
+        
+    } catch (error) {
+        console.error('Erreur chargement entreprises:', error);
+        companiesTableBody.innerHTML = '<tr><td colspan="2">Erreur de chargement</td></tr>';
+    } finally {
+        hideLoading();
+    }
+}
+
+// Afficher le tableau
+function displayCompaniesTable(companies) {
+    const html = companies.map(company => `
+        <tr onclick="selectCompanyFromTable('${company.symbol}', '${company.name.replace(/'/g, "\\'")}')">
+            <td><strong>${company.symbol}</strong></td>
+            <td>${company.name}</td>
+        </tr>
+    `).join('');
+
+    companiesTableBody.innerHTML = html;
+    companiesCount.textContent = `${companies.length} entreprises`;
+}
+
+// Filtrer le tableau
+function filterCompaniesTable() {
+    const searchTerm = modalSearchInput.value.toLowerCase().trim();
+    
+    if (!searchTerm) {
+        displayCompaniesTable(allCompaniesData);
+        return;
+    }
+
+    const filtered = allCompaniesData.filter(company => 
+        company.symbol.toLowerCase().includes(searchTerm) ||
+        company.name.toLowerCase().includes(searchTerm)
+    );
+
+    displayCompaniesTable(filtered);
+}
+
+// Sélectionner une entreprise depuis le tableau
+function selectCompanyFromTable(symbol, companyName) {
+    symbolInput.value = symbol;
+    hideCompaniesModal();
+    
+    // Optionnel: lancer la recherche automatiquement
+    fetchCompanyData();
+}
+
+function hideCompaniesModal() {
+    companiesModal.classList.add('hidden');
+    modalSearchInput.value = '';
+    allCompaniesData = [];
+}
+
 // Fonctions utilitaires
 function createMetricCard({ key, name, value, actual, excellent, good, medium, reverse = false }) {
     const rating = getRating(actual, excellent, good, medium, reverse);
