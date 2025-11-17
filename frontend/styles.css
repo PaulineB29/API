@@ -575,20 +575,6 @@ button:active {
     font-size: 0.85rem;
 }
 
-/* Performance Indicators */
-.performance-indicator {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 0.8rem;
-    padding: 4px 8px;
-    border-radius: 12px;
-    font-weight: 600;
-}
-
-.indicator-positive { background: #d1fae5; color: #065f46; }
-.indicator-negative { background: #fee2e2; color: #991b1b; }
-.indicator-warning { background: #fef3c7; color: #92400e; }
 
 /* Responsive */
 @media (max-width: 768px) {
