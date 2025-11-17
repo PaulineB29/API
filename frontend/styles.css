@@ -291,6 +291,7 @@ button:active {
     text-transform: uppercase;
     letter-spacing: 0.5px;
     background: transparent !important;
+    color: inherit !important;
 }
 
 .rating-excellent { color: var(--success); } /* #10b981 */
