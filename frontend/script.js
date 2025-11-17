@@ -385,7 +385,7 @@ function createBalanceSheetHTML(balanceSheet) {
 function createIncomeStatementHTML(incomeStatement) {
     return `
         <div class="data-item">
-            <span class="data-label">Chiffre d'affaires:/span>
+            <span class="data-label">Chiffre d'affaires:</span>
             <span class="data-value">$${formatNumber(incomeStatement.revenue)}</span>
         </div>
         <div class="data-item">
@@ -397,7 +397,7 @@ function createIncomeStatementHTML(incomeStatement) {
             <span class="data-value">$${formatNumber(incomeStatement.netIncome)}</span>
         </div>
         <div class="data-item">
-            <span class="data-label">BénéficePpar Action:</span>
+            <span class="data-label">Bénéfice Par Action:</span>
             <span class="data-value">$${incomeStatement.eps?.toFixed(2) || 'N/A'}</span>
         </div>
         <div class="data-item">
