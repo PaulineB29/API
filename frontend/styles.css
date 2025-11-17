@@ -290,12 +290,13 @@ button:active {
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    background: transparent !important;
 }
 
-.rating-excellent { background: #d1fae5; color: #065f46; }
-.rating-good { background: #dbeafe; color: #1e40af; }
-.rating-medium { background: #fef3c7; color: #92400e; }
-.rating-bad { background: #fee2e2; color: #991b1b; }
+.rating-excellent { color: #065f46; }
+.rating-good { color: #1e40af; }
+.rating-medium { color: #92400e; }
+.rating-bad { color: #991b1b; }
 
 .metric-details {
     color: var(--text-muted);
