@@ -893,18 +893,27 @@ async function loadAllCompanies() {
 
 // Afficher le tableau
 function displayCompaniesTable(companies) {
-    const html = companies.map(company => 
+    if (!companies || !Array.isArray(companies)) {
+        companiesTableBody.innerHTML = '<tr><td colspan="2">Données invalides</td></tr>';
+        return;
+    }
+
+    const html = companies.map(company => {
+        if (!company) return ''; // ← Ignorer les éléments null
+        
         const symbol = company.symbol || 'N/A';
         const name = company.companyName || 'Nom non disponible';
+        const safeName = String(name).replace(/'/g, "\\'"); // ← Convertir en string
         
         return `
-        <tr onclick="selectCompanyFromTable('${company.symbol}', '${company.name.replace(/'/g, "\\'")}')">
-            <td><strong>${company.symbol}</strong></td>
-            <td>${company.name}</td>
-        </tr>
-    `).join('');
+            <tr onclick="selectCompanyFromTable('${symbol}', '${safeName}')">
+                <td><strong>${symbol}</strong></td>
+                <td>${name}</td>
+            </tr>
+        `;
+    }).join('');
 
-    companiesTableBody.innerHTML = html;
+    companiesTableBody.innerHTML = html || '<tr><td colspan="2">Aucune donnée</td></tr>';
     companiesCount.textContent = `${companies.length} entreprises`;
 }
 
