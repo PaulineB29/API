@@ -177,7 +177,8 @@ async function fetchCompanyData() {
             fetchAPI(`/cash-flow-statement?symbol=${symbol}`),
             fetchAPI(`/income-statement?symbol=${symbol}`),
             fetchAPI(`/balance-sheet-statement?symbol=${symbol}`),
-            fetchHistoricalData(symbol)
+            fetchHistoricalData(symbol),
+            fetchAPI('/stock-list?') 
         ]);
 
         if (!profile || profile.length === 0) {
