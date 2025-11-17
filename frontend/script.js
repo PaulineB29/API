@@ -926,18 +926,6 @@ function getRating(actual, excellent, good, medium, reverse = false) {
     }
 }
 
-function getPerformanceIndicator(actual, excellent, good, medium, reverse) {
-    if (reverse ? actual <= excellent : actual >= excellent) {
-        return '<span class="performance-indicator indicator-positive">✓ Excellent</span>';
-    } else if (reverse ? actual <= good : actual >= good) {
-        return '<span class="performance-indicator indicator-positive">✓ Bon</span>';
-    } else if (reverse ? actual <= medium : actual >= medium) {
-        return '<span class="performance-indicator indicator-warning">⚠ Moyen</span>';
-    } else {
-        return '<span class="performance-indicator indicator-negative">✗ Faible</span>';
-    }
-}
-
 function calculateScoreWidth(actual, excellent, good, medium, reverse) {
     if (reverse) {
         if (actual <= excellent) return 100;
