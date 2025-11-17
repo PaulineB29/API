@@ -128,6 +128,12 @@ const ratioDefinitions = {
 fetchDataBtn.addEventListener('click', fetchCompanyData);
 analyzeBtn.addEventListener('click', performAnalysis);
 
+symbolInput.addEventListener('keypress', function(event) {
+    if (event.key === 'Enter') {
+        fetchCompanyData();
+    }
+});
+
 // Fonctions principales
 async function fetchCompanyData() {
     const symbol = symbolInput.value.trim().toUpperCase();
