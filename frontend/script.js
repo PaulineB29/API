@@ -811,8 +811,6 @@ function createHelpIcon(ratioKey) {
     return helpIconElement.outerHTML;
 }
 
-// ... (le reste des fonctions utilitaires reste identique - getStrengths, getWeaknesses, calculateScores, etc.)
-// Je garde toutes les fonctions existantes mais je les raccourcis pour la lisibilité
 
 function getStrengths(metrics) {
     const strengths = [];
