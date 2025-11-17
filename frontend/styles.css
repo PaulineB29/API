@@ -507,6 +507,7 @@ button:active {
     font-size: 0.8rem;
     font-weight: 600;
     transition: all 0.2s ease;
+    position: relative; 
 }
 
 .help-icon:hover {
@@ -532,6 +533,7 @@ button:active {
     box-shadow: var(--shadow-lg);
     font-size: 0.9rem;
     line-height: 1.5;
+    white-space: normal;
 }
 
 .tooltip::after {
