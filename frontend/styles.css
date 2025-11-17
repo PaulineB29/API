@@ -519,7 +519,7 @@ button:active {
 
 .tooltip {
     visibility: hidden;
-    width: 300px;
+    width: 280px;
     background: var(--text-primary);
     color: white;
     text-align: left;
@@ -527,9 +527,9 @@ button:active {
     padding: 12px;
     position: absolute;
     z-index: 10000;
-    bottom: 100%;
-    left: 50%;
-    transform: translateX(-50%);
+    top: 100%;
+    right: 0%;
+    transform: none;
     opacity: 0;
     transition: opacity 0.2s ease;
     box-shadow: var(--shadow-lg);
@@ -541,12 +541,12 @@ button:active {
 .tooltip::after {
     content: "";
     position: absolute;
-    top: 100%;
-    left: 50%;
-    margin-left: -6px;
+    bottom: 100%;
+    right: 10%;
+    margin-left: 0;
     border-width: 6px;
     border-style: solid;
-    border-color: var(--text-primary) transparent transparent transparent;
+    border-color: transparent transparent #1e293b transparent;;
     z-index: 10001;
 }
 
