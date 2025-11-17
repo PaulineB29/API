@@ -114,7 +114,39 @@
             </div>
         </div>
     </span>
-</template>
+    </template>
+
+    <!-- Bouton pour ouvrir le tableau -->
+    <button id="showAllCompaniesBtn" style="margin: 10px 0;">📋 Voir toutes les entreprises disponibles</button>
+    
+    <!-- Modal pour le tableau -->
+    <div id="companiesModal" class="modal hidden">
+        <div class="modal-content large-modal">
+            <div class="modal-header">
+                <h3>📋 Toutes les entreprises disponibles</h3>
+                <span class="close-modal">&times;</span>
+            </div>
+            <div class="modal-search">
+                <input type="text" id="modalSearchInput" placeholder="🔍 Rechercher par symbole ou nom...">
+            </div>
+            <div class="companies-table-container">
+                <table id="companiesTable" class="companies-table">
+                    <thead>
+                        <tr>
+                            <th>Symbole</th>
+                            <th>Nom de l'entreprise</th>
+                        </tr>
+                    </thead>
+                    <tbody id="companiesTableBody">
+                        <!-- Les données seront chargées ici -->
+                    </tbody>
+                </table>
+            </div>
+            <div class="modal-footer">
+                <div id="companiesCount"></div>
+            </div>
+        </div>
+    </div>
 
     
     <script src="/API/frontend/script.js"></script>
