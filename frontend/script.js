@@ -554,7 +554,6 @@ function displaySummaryAnalysis(metrics, recommendation) {
     const totalScore = scores.excellent * 3 + scores.good * 2 + scores.medium;
     const maxScore = (scores.excellent + scores.good + scores.medium + scores.bad) * 3;
     const percentage = (totalScore / maxScore) * 100;
-    
     const categoryAnalysis = analyzeByCategory(metrics, scores);
     
     let rating, ratingClass, details;
@@ -577,7 +576,7 @@ function displaySummaryAnalysis(metrics, recommendation) {
         details = 'Problèmes significatifs détectés';
     }
     
-    document.getElementById('summaryAnalysis').innerHTML = (percentage, rating, ratingClass, details, recommendation, categoryAnalysis, metrics);
+    document.getElementById('summaryAnalysis').createSummaryHTML = (percentage, rating, ratingClass, details, recommendation, categoryAnalysis, metrics);
 }
 
 function createSummaryHTML(percentage, rating, ratingClass, details, recommendation, categoryAnalysis, metrics) {
