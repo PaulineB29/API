@@ -803,9 +803,16 @@ function createHelpIcon(ratioKey) {
     const helpIcon = helpIconTemplate.content.cloneNode(true);
     const helpIconElement = helpIcon.querySelector('.help-icon');
         
-    helpIconElement.querySelector('.definition').textContent = definition.definition;
-    helpIconElement.querySelector('.calculation').textContent = definition.calculation;
-        
+    const definitionEl = helpIconElement.querySelector('.definition');
+    const calculationEl = helpIconElement.querySelector('.calculation');
+    
+    if (definitionEl) {
+        definitionEl.textContent = definition.definition;
+    }
+    
+    if (calculationEl) {
+        calculationEl.textContent = definition.calculation;
+    }
     return helpIconElement.outerHTML;
 }
 
