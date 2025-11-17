@@ -15,6 +15,11 @@ const errorDiv = document.getElementById('error');
 const metricCardTemplate = document.getElementById('metricCardTemplate');
 const helpIconTemplate = document.getElementById('helpIconTemplate');
 
+// Éléments DOM pour la recherche
+const companySearchInput = document.getElementById('companySearchInput');
+const searchCompanyBtn = document.getElementById('searchCompanyBtn');
+const searchResults = document.getElementById('searchResults');
+
 // Données stockées
 let currentData = {};
 
@@ -127,11 +132,15 @@ const ratioDefinitions = {
 // Événements
 fetchDataBtn.addEventListener('click', fetchCompanyData);
 analyzeBtn.addEventListener('click', performAnalysis);
-
 symbolInput.addEventListener('keypress', function(event) {
     if (event.key === 'Enter') {
         fetchCompanyData();
     }
+});
+
+searchCompanyBtn.addEventListener('click', searchCompany);
+companySearchInput.addEventListener('keypress', (event) => {
+    if (event.key === 'Enter') searchCompany();
 });
 
 // Fonctions principales
@@ -508,6 +517,63 @@ function performAnalysis() {
     
     console.log('💾 Tentative de sauvegarde...');
     sauvegarderAnalyse(metrics, recommendation);
+}
+// Fonction de recherche d'entreprise
+async function searchCompany() {
+    const query = companySearchInput.value.trim();
+    
+    if (!query) {
+        showError('Veuillez entrer un nom d\'entreprise');
+        return;
+    }
+
+    showLoading();
+    hideError();
+    searchResults.style.display = 'none';
+
+    try {
+        console.log(`Recherche d'entreprise: ${query}`);
+        const searchData = await fetchAPI(`/search?query=${encodeURIComponent(query)}`);
+        
+        if (!searchData || searchData.length === 0) {
+            searchResults.innerHTML = '<div class="search-result-item">Aucun résultat trouvé</div>';
+            searchResults.style.display = 'block';
+            return;
+        }
+
+        // Afficher les résultats
+        displaySearchResults(searchData);
+        
+    } catch (error) {
+        console.error('Erreur de recherche:', error);
+        showError('Erreur lors de la recherche');
+    } finally {
+        hideLoading();
+    }
+}
+
+// Fonction pour afficher les résultats de recherche
+function displaySearchResults(results) {
+    const html = results.map(company => `
+        <div class="search-result-item" onclick="selectCompany('${company.symbol}', '${company.name.replace(/'/g, "\\'")}')">
+            <div class="search-result-name">${company.name}</div>
+            <div class="search-result-symbol">${company.symbol}</div>
+            <div class="search-result-exchange">${company.exchange || 'N/A'} - ${company.currency || 'N/A'}</div>
+        </div>
+    `).join('');
+
+    searchResults.innerHTML = html;
+    searchResults.style.display = 'block';
+}
+
+// Fonction pour sélectionner une entreprise
+function selectCompany(symbol, companyName) {
+    symbolInput.value = symbol;
+    companySearchInput.value = companyName;
+    searchResults.style.display = 'none';
+    
+    // Lancer automatiquement la récupération des données
+    fetchCompanyData();
 }
 
 function calculateMetrics() {
