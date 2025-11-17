@@ -590,15 +590,15 @@ function createSummaryHTML(percentage, rating, ratingClass, details, recommendat
                     <div class="score-label-modern">Score Buffett</div>
                 </div>
                 
-                <div class="rating-badge-modern ${rating.toLowerCase()}">${rating}</div>
+                <div class="rating-badge-modern ${ratingClass}">${rating}</div>
                 
                 <div class="score-details-modern">
                     <div class="details-text-modern">${details}</div>
-                    <div class="recommendation-modern">${recommendation}</div>
+                    <div class="recommendation-modern">Recommandation: ${recommendation}</div>
                 </div>
             </div>
 
-            <!-- MÉTRIQUES PAR CATÉGORIE (ACCORDÉON) -->
+            <!-- PROFITABILITE -->
             <div class="compact-section">
                 <div class="section-header" onclick="toggleSection('profitability')">
                     <span>📈 Profitabilité</span>
@@ -611,8 +611,8 @@ function createSummaryHTML(percentage, rating, ratingClass, details, recommendat
                         ${createMetricCard({
                             key: 'roe', 
                             name: 'ROE', 
-                            value: `${metrics.roe.toFixed(1)}%`, 
-                            actual: metrics.roe, 
+                            value: `${metrics.roe?.toFixed(1) || 'N/A'}%`, 
+                            actual: metrics.roe || 0, 
                             excellent: 20, 
                             good: 15, 
                             medium: 10, 
@@ -621,8 +621,8 @@ function createSummaryHTML(percentage, rating, ratingClass, details, recommendat
                         ${createMetricCard({
                             key: 'netMargin', 
                             name: 'Marge Nette', 
-                            value: `${metrics.netMargin.toFixed(1)}%`, 
-                            actual: metrics.netMargin, 
+                            value: `${metrics.netMargin?.toFixed(1) || 'N/A'}%`, 
+                            actual: metrics.netMargin || 0, 
                             excellent: 20, 
                             good: 15, 
                             medium: 10, 
@@ -631,8 +631,8 @@ function createSummaryHTML(percentage, rating, ratingClass, details, recommendat
                         ${createMetricCard({
                             key: 'grossMargin', 
                             name: 'Marge Brute', 
-                            value: `${metrics.grossMargin.toFixed(1)}%`, 
-                            actual: metrics.grossMargin, 
+                            value: `${metrics.grossMargin?.toFixed(1) || 'N/A'}%`, 
+                            actual: metrics.grossMargin || 0, 
                             excellent: 50, 
                             good: 40, 
                             medium: 30, 
@@ -641,8 +641,8 @@ function createSummaryHTML(percentage, rating, ratingClass, details, recommendat
                         ${createMetricCard({
                             key: 'roic', 
                             name: 'ROIC', 
-                            value: `${metrics.roic.toFixed(1)}%`, 
-                            actual: metrics.roic, 
+                            value: `${metrics.roic?.toFixed(1) || 'N/A'}%`, 
+                            actual: metrics.roic || 0, 
                             excellent: 15, 
                             good: 10, 
                             medium: 8, 
@@ -652,6 +652,7 @@ function createSummaryHTML(percentage, rating, ratingClass, details, recommendat
                 </div>
             </div>
 
+            <!-- SECURITE -->
             <div class="compact-section">
                 <div class="section-header" onclick="toggleSection('safety')">
                     <span>🛡️ Sécurité Financière</span>
@@ -664,8 +665,8 @@ function createSummaryHTML(percentage, rating, ratingClass, details, recommendat
                         ${createMetricCard({
                             key: 'debtToEquity', 
                             name: 'Dette/Equity', 
-                            value: metrics.debtToEquity.toFixed(2), 
-                            actual: metrics.debtToEquity, 
+                            value: metrics.debtToEquity?.toFixed(2) || 'N/A', 
+                            actual: metrics.debtToEquity || 0, 
                             excellent: 0.3, 
                             good: 0.5, 
                             medium: 1.0, 
@@ -674,8 +675,8 @@ function createSummaryHTML(percentage, rating, ratingClass, details, recommendat
                         ${createMetricCard({
                             key: 'currentRatio', 
                             name: 'Current Ratio', 
-                            value: metrics.currentRatio.toFixed(2), 
-                            actual: metrics.currentRatio, 
+                            value: metrics.currentRatio?.toFixed(2) || 'N/A', 
+                            actual: metrics.currentRatio || 0, 
                             excellent: 2.0, 
                             good: 1.5, 
                             medium: 1.0, 
@@ -684,8 +685,8 @@ function createSummaryHTML(percentage, rating, ratingClass, details, recommendat
                         ${createMetricCard({
                             key: 'interestCoverage', 
                             name: 'Couverture Intérêts', 
-                            value: metrics.interestCoverage > 1000 ? '∞' : metrics.interestCoverage.toFixed(1) + 'x', 
-                            actual: metrics.interestCoverage, 
+                            value: metrics.interestCoverage > 1000 ? '∞' : (metrics.interestCoverage?.toFixed(1) || 'N/A') + 'x', 
+                            actual: metrics.interestCoverage || 0, 
                             excellent: 10, 
                             good: 5, 
                             medium: 3, 
@@ -695,6 +696,7 @@ function createSummaryHTML(percentage, rating, ratingClass, details, recommendat
                 </div>
             </div>
 
+            <!-- VALORISATION -->
             <div class="compact-section">
                 <div class="section-header" onclick="toggleSection('valuation')">
                     <span>💰 Valorisation</span>
@@ -707,8 +709,8 @@ function createSummaryHTML(percentage, rating, ratingClass, details, recommendat
                         ${createMetricCard({
                             key: 'peRatio', 
                             name: 'P/E Ratio', 
-                            value: metrics.peRatio.toFixed(1), 
-                            actual: metrics.peRatio, 
+                            value: metrics.peRatio?.toFixed(1) || 'N/A', 
+                            actual: metrics.peRatio || 0, 
                             excellent: 10, 
                             good: 15, 
                             medium: 25, 
@@ -717,8 +719,8 @@ function createSummaryHTML(percentage, rating, ratingClass, details, recommendat
                         ${createMetricCard({
                             key: 'earningsYield', 
                             name: 'Earnings Yield', 
-                            value: `${metrics.earningsYield.toFixed(1)}%`, 
-                            actual: metrics.earningsYield, 
+                            value: `${metrics.earningsYield?.toFixed(1) || 'N/A'}%`, 
+                            actual: metrics.earningsYield || 0, 
                             excellent: 10, 
                             good: 6, 
                             medium: 4, 
@@ -727,82 +729,42 @@ function createSummaryHTML(percentage, rating, ratingClass, details, recommendat
                         ${createMetricCard({
                             key: 'priceToFCF', 
                             name: 'Price/FCF', 
-                            value: metrics.priceToFCF.toFixed(1), 
-                            actual: metrics.priceToFCF, 
+                            value: metrics.priceToFCF?.toFixed(1) || 'N/A', 
+                            actual: metrics.priceToFCF || 0, 
                             excellent: 10, 
                             good: 15, 
                             medium: 20, 
                             reverse: true
                         })}
                         ${createMetricCard({
-                            key: 'evToEbitda', 
-                            name: 'EV/EBITDA', 
-                            value: metrics.evToEbitda.toFixed(1), 
-                            actual: metrics.evToEbitda, 
-                            excellent: 8, 
-                            good: 12, 
-                            medium: 15, 
-                            reverse: true
-                        })}
-                        ${createMetricCard({
                             key: 'priceToMM200', 
                             name: 'Prix vs MM200', 
-                            value: `${metrics.priceToMM200.toFixed(1)}%`, 
-                            actual: metrics.priceToMM200, 
+                            value: `${metrics.priceToMM200?.toFixed(1) || 'N/A'}%`, 
+                            actual: metrics.priceToMM200 || 0, 
                             excellent: 5, 
                             good: 0, 
                             medium: -5, 
                             reverse: false
                         })}
-                        ${createMetricCard({
-                            key: 'dividendYield', 
-                            name: 'Dividend Yield', 
-                            value: `${metrics.dividendYield.toFixed(2)}%`, 
-                            actual: metrics.dividendYield, 
-                            excellent: 4, 
-                            good: 2, 
-                            medium: 1, 
-                            reverse: false
-                        })}
-                        ${createMetricCard({
-                            key: 'pbRatio', 
-                            name: 'P/B Ratio', 
-                            value: metrics.pbRatio.toFixed(2), 
-                            actual: metrics.pbRatio, 
-                            excellent: 1.5, 
-                            good: 3, 
-                            medium: 5, 
-                            reverse: true
-                        })}
-                        ${createMetricCard({
-                            key: 'pegRatio', 
-                            name: 'PEG Ratio', 
-                            value: metrics.pegRatio.toFixed(2), 
-                            actual: metrics.pegRatio, 
-                            excellent: 0.8, 
-                            good: 1.0, 
-                            medium: 1.2, 
-                            reverse: true
-                        })}
                     </div>
                 </div>
             </div>
 
-            <!-- POINTS CLÉS COMPACT -->
+            <!-- POINTS CLES -->
             <div class="compact-section">
                 <div class="section-header" onclick="toggleSection('keypoints')">
                     <span>🎯 Points Clés</span>
                 </div>
                 <div class="section-content" id="keypoints">
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div class="keypoints-grid">
                         <div>
-                            <h4 style="color: #27ae60; margin-bottom: 10px;">✅ Points Forts</h4>
+                            <h4 class="points-title positive">✅ Points Forts</h4>
                             ${getStrengths(metrics).map(strength => 
                                 `<div class="analysis-point positive">${strength}</div>`
                             ).join('')}
                         </div>
                         <div>
-                            <h4 style="color: #e74c3c; margin-bottom: 10px;">⚠️ Points Faibles</h4>
+                            <h4 class="points-title warning">⚠️ Points Faibles</h4>
                             ${getWeaknesses(metrics).map(weakness => 
                                 `<div class="analysis-point warning">${weakness}</div>`
                             ).join('')}
@@ -813,7 +775,6 @@ function createSummaryHTML(percentage, rating, ratingClass, details, recommendat
         </div>
     `;
 }
-
 // Fonctions utilitaires
 function createMetricCard({ key, name, value, actual, excellent, good, medium, reverse = false }) {
     const rating = getRating(actual, excellent, good, medium, reverse);
