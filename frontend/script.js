@@ -872,6 +872,8 @@ async function loadAllCompanies() {
     try {
         console.log('Chargement de toutes les entreprises...');
         const companies = await fetchAPI('/stock-list?');
+
+        console.log('Données reçues:', companies);
         
         if (!companies || companies.length === 0) {
             companiesTableBody.innerHTML = '<tr><td colspan="2">Aucune entreprise trouvée</td></tr>';
@@ -891,7 +893,11 @@ async function loadAllCompanies() {
 
 // Afficher le tableau
 function displayCompaniesTable(companies) {
-    const html = companies.map(company => `
+    const html = companies.map(company => 
+        const symbol = company.symbol || 'N/A';
+        const name = company.name || 'Nom non disponible';
+        
+        return `
         <tr onclick="selectCompanyFromTable('${company.symbol}', '${company.name.replace(/'/g, "\\'")}')">
             <td><strong>${company.symbol}</strong></td>
             <td>${company.name}</td>
