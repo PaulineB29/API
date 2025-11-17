@@ -587,7 +587,7 @@ function createSummaryHTML(percentage, rating, ratingClass, details, recommendat
             <div class="global-score-modern">
                 <div class="score-main-modern">
                     <div class="score-value-modern">${percentage.toFixed(0)}%</div>
-                    <div class="score-label-modern">Score Buffett</div>
+                    <div class="score-label-modern">Score</div>
                 </div>
                 
                 <div class="rating-badge-modern ${ratingClass}">${rating}</div>
@@ -1026,4 +1026,4 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-console.log('Dashboard Buffett initialisé');
+console.log('Dashboard initialisé');
