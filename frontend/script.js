@@ -594,7 +594,6 @@ function createSummaryHTML(percentage, rating, ratingClass, details, recommendat
                 
                 <div class="score-details-modern">
                     <div class="details-text-modern">${details}</div>
-                    <div class="recommendation-modern">Recommandation: ${recommendation}</div>
                 </div>
             </div>
 
