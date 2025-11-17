@@ -507,7 +507,9 @@ button:active {
     font-size: 0.8rem;
     font-weight: 600;
     transition: all 0.2s ease;
-    position: relative; 
+    position: relative;
+    margin-left: 5px;
+    z-index: 100; 
 }
 
 .help-icon:hover {
@@ -517,21 +519,21 @@ button:active {
 
 .tooltip {
     visibility: hidden;
-    width: 320px;
+    width: 300px;
     background: var(--text-primary);
     color: white;
     text-align: left;
     border-radius: var(--radius);
-    padding: 16px;
+    padding: 12px;
     position: absolute;
-    z-index: 99999;
+    z-index: 10000;
     bottom: 100%;
     left: 50%;
     transform: translateX(-50%);
     opacity: 0;
     transition: opacity 0.2s ease;
     box-shadow: var(--shadow-lg);
-    font-size: 0.9rem;
+    font-size: 0.8rem;
     line-height: 1.5;
     pointer-events: none;
 }
@@ -545,11 +547,13 @@ button:active {
     border-width: 6px;
     border-style: solid;
     border-color: var(--text-primary) transparent transparent transparent;
+    z-index: 10001;
 }
 
 .help-icon:hover .tooltip {
     visibility: visible;
     opacity: 1;
+    pointer-events: auto;
 }
 
 .tooltip h4 {
@@ -679,6 +683,8 @@ button:active {
     margin-bottom: 16px;
     border: 1px solid var(--border);
     overflow: hidden;
+    position: relative;
+    z-index: 1;
 }
 
 .section-header {
@@ -692,7 +698,8 @@ button:active {
     color: var(--text-primary);
     transition: background-color 0.2s ease;
     border-bottom: 1px solid transparent;
-    z-index: 10;
+    position: relative;
+    z-index: 1;
 }
 
 .section-header:hover {
