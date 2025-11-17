@@ -533,7 +533,7 @@ async function searchCompany() {
 
     try {
         console.log(`Recherche d'entreprise: ${query}`);
-        const searchData = await fetchAPI(`/search?query=${encodeURIComponent(query)}`);
+        const searchData = await fetchAPI(`/search-symbol?query=${encodeURIComponent(query)}`);
         
         if (!searchData || searchData.length === 0) {
             searchResults.innerHTML = '<div class="search-result-item">Aucun résultat trouvé</div>';
