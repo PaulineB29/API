@@ -1013,13 +1013,9 @@ function showAnalysisSection() {
 
 function toggleSection(sectionId) {
     const section = document.getElementById(sectionId);
-    const isActive = section.classList.contains('active');
-    
-    document.querySelectorAll('.section-content').forEach(s => {
-        s.classList.remove('active');
-    });
-    
-    if (!isActive) {
+    if (section.classList.contains('active')) {
+        section.classList.remove('active');
+    } else {
         section.classList.add('active');
     }
 }
