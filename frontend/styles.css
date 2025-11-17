@@ -524,7 +524,7 @@ button:active {
     border-radius: var(--radius);
     padding: 16px;
     position: absolute;
-    z-index: 10000;
+    z-index: 99999;
     bottom: 100%;
     left: 50%;
     transform: translateX(-50%);
