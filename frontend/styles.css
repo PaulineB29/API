@@ -33,8 +33,8 @@ body {
 }
 
 .container {
-    max-width: 1200px;
-    margin: 0 auto;
+    max-width: 1400px;
+    margin: 40px auto;
     background: var(--surface);
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-lg);
@@ -64,7 +64,7 @@ header p {
 
 /* Search Section */
 .search-section {
-    padding: 30px;
+    padding: 40px;
     background: var(--surface);
     border-bottom: 1px solid var(--border-light);
 }
@@ -133,7 +133,7 @@ button:active {
 
 /* Data Grid */
 .data-section {
-    padding: 30px;
+    padding: 40px;
 }
 
 .data-grid {
@@ -189,7 +189,7 @@ button:active {
 
 /* Analysis Section */
 .analysis-section {
-    padding: 30px;
+    padding: 40px;
     background: var(--background);
 }
 
