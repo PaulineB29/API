@@ -802,12 +802,10 @@ function createHelpIcon(ratioKey) {
     
     const helpIcon = helpIconTemplate.content.cloneNode(true);
     const helpIconElement = helpIcon.querySelector('.help-icon');
-    
-    helpIconElement.querySelector('h4').textContent = definition.name;
+        
     helpIconElement.querySelector('.definition').textContent = definition.definition;
     helpIconElement.querySelector('.calculation').textContent = definition.calculation;
-    helpIconElement.querySelector('.significance').textContent = definition.significance;
-    
+        
     return helpIconElement.outerHTML;
 }
 
