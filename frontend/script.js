@@ -895,7 +895,7 @@ async function loadAllCompanies() {
 function displayCompaniesTable(companies) {
     const html = companies.map(company => 
         const symbol = company.symbol || 'N/A';
-        const name = company.name || 'Nom non disponible';
+        const name = company.companyName || 'Nom non disponible';
         
         return `
         <tr onclick="selectCompanyFromTable('${company.symbol}', '${company.name.replace(/'/g, "\\'")}')">
@@ -919,7 +919,7 @@ function filterCompaniesTable() {
 
     const filtered = allCompaniesData.filter(company => 
         company.symbol.toLowerCase().includes(searchTerm) ||
-        company.name.toLowerCase().includes(searchTerm)
+        (company.companyName && company.companyName.toLowerCase().includes(searchTerm))
     );
 
     displayCompaniesTable(filtered);
