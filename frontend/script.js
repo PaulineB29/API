@@ -343,7 +343,7 @@ function createBasicDataHTML(profile, quote) {
             <span class="data-value">$${profile.lastDividend?.toFixed(2) || 'N/A'}</span>
         </div>
         <div class="data-item">
-            <span class="data-label">Market Cap:</span>
+            <span class="data-label">Capitalisation Boursière:</span>
             <span class="data-value">$${formatNumber(quote.marketCap)}</span>
         </div>
         <div class="data-item">
@@ -376,7 +376,7 @@ function createBalanceSheetHTML(balanceSheet) {
             <span class="data-value">$${formatNumber(balanceSheet.totalStockholdersEquity)}</span>
         </div>
         <div class="data-item">
-            <span class="data-label">Net Cash:</span>
+            <span class="data-label">Trésorerie Nette:</span>
             <span class="data-value">$${formatNumber(balanceSheet.cashAndCashEquivalents - balanceSheet.totalDebt)}</span>
         </div>
     `;
@@ -385,7 +385,7 @@ function createBalanceSheetHTML(balanceSheet) {
 function createIncomeStatementHTML(incomeStatement) {
     return `
         <div class="data-item">
-            <span class="data-label">Revenus:</span>
+            <span class="data-label">Chiffre d'affaires:/span>
             <span class="data-value">$${formatNumber(incomeStatement.revenue)}</span>
         </div>
         <div class="data-item">
@@ -397,7 +397,7 @@ function createIncomeStatementHTML(incomeStatement) {
             <span class="data-value">$${formatNumber(incomeStatement.netIncome)}</span>
         </div>
         <div class="data-item">
-            <span class="data-label">BPA (EPS):</span>
+            <span class="data-label">BénéficePpar Action:</span>
             <span class="data-value">$${incomeStatement.eps?.toFixed(2) || 'N/A'}</span>
         </div>
         <div class="data-item">
