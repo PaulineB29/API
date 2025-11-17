@@ -524,8 +524,8 @@ button:active {
     border-radius: var(--radius);
     padding: 16px;
     position: absolute;
-    z-index: 1000;
-    bottom: 125%;
+    z-index: 10000;
+    bottom: 100%;
     left: 50%;
     transform: translateX(-50%);
     opacity: 0;
@@ -533,7 +533,7 @@ button:active {
     box-shadow: var(--shadow-lg);
     font-size: 0.9rem;
     line-height: 1.5;
-    white-space: normal;
+    pointer-events: none;
 }
 
 .tooltip::after {
