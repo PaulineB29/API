@@ -576,13 +576,14 @@ function displaySummaryAnalysis(metrics, recommendation) {
         details = 'Problèmes significatifs détectés';
     }
     
-    document.getElementById('summaryAnalysis').createSummaryHTML = (percentage, rating, ratingClass, details, recommendation, categoryAnalysis, metrics);
+    const summaryHTML = createSummaryHTML(percentage, rating, ratingClass, details, recommendation, categoryAnalysis, metrics);
+    document.getElementById('summaryAnalysis').innerHTML = summaryHTML;
 }
 
 function createSummaryHTML(percentage, rating, ratingClass, details, recommendation, categoryAnalysis, metrics) {
     return `
         <div class="analysis-container">
-            <!-- SCORE GLOBAL MODERNE ET ÉPURÉ -->
+            <!-- SCORE GLOBAL -->
             <div class="global-score-modern">
                 <div class="score-main-modern">
                     <div class="score-value-modern">${percentage.toFixed(0)}%</div>
