@@ -778,7 +778,6 @@ function createSummaryHTML(percentage, rating, ratingClass, details, recommendat
 function createMetricCard({ key, name, value, actual, excellent, good, medium, reverse = false }) {
     const rating = getRating(actual, excellent, good, medium, reverse);
     const ratingClass = `rating-${rating}`;
-    const performanceIndicator = getPerformanceIndicator(actual, excellent, good, medium, reverse);
     const helpIcon = createHelpIcon(key);
     const scoreWidth = calculateScoreWidth(actual, excellent, good, medium, reverse);
     const thresholdsText = getThresholdsText(excellent, good, medium, reverse);
@@ -788,7 +787,6 @@ function createMetricCard({ key, name, value, actual, excellent, good, medium, r
     
     metricElement.querySelector('.metric-name').innerHTML = name + helpIcon;
     metricElement.querySelector('.metric-value').textContent = value;
-    metricElement.querySelector('.performance-indicator').innerHTML = performanceIndicator;
     metricElement.querySelector('.metric-rating').textContent = getRatingText(rating);
     metricElement.querySelector('.metric-rating').className = `metric-rating ${ratingClass}`;
     metricElement.querySelector('.score-fill').style.width = `${scoreWidth}%`;
