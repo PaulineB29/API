@@ -293,10 +293,10 @@ button:active {
     background: transparent !important;
 }
 
-.rating-excellent { color: #065f46; }
-.rating-good { color: #1e40af; }
-.rating-medium { color: #92400e; }
-.rating-bad { color: #991b1b; }
+.rating-excellent { color: var(--success); } /* #10b981 */
+.rating-good { color: var(--primary); }     /* #2563eb */
+.rating-medium { color: var(--warning); }   /* #f59e0b */
+.rating-bad { color: var(--error); }        /* #ef4444 */
 
 .metric-details {
     color: var(--text-muted);
@@ -1106,7 +1106,7 @@ button:active {
 .score-value-modern {
     font-size: 2rem;
     font-weight: 800;
-    color: #1e293b;
+    color: #000000;
     line-height: 1;
     margin-bottom: 8px;
 }
