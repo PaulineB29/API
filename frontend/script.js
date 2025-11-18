@@ -145,7 +145,7 @@ symbolInput.addEventListener('keypress', function(event) {
     }
 });
 
-showAllCompaniesBtn.addEventListener('click', loadAllCompanies);
+showAllCompaniesBtn.addEventListener('click', ompanies);
 closeModal.addEventListener('click', hideCompaniesModal);
 modalSearchInput.addEventListener('input', filterCompaniesTable);
 
@@ -812,7 +812,7 @@ async function loadAllCompanies() {
         console.log('Chargement de toutes les entreprises...');
         
         // Utiliser l'endpoint stock-screener qui est disponible
-        const companies = await fetchAPI('/stock-screener?marketCapMoreThan=1000000000&limit=500');
+        const companies = await fetchAPI('/stock-list?');
         
         console.log('Données reçues:', companies);
         
