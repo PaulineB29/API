@@ -145,7 +145,7 @@ symbolInput.addEventListener('keypress', function(event) {
     }
 });
 
-showAllCompaniesBtn.addEventListener('click', ompanies);
+showAllCompaniesBtn.addEventListener('click', loadAllCompanies);
 closeModal.addEventListener('click', hideCompaniesModal);
 modalSearchInput.addEventListener('input', filterCompaniesTable);
 
