@@ -229,7 +229,7 @@ router.post('/donnees-financieres', async (req, res) => {
       date_import || dateActuelle,
       date_import || dateActuelle,
       'annuel', // periode - valeur par défaut
-      'brutes', // type_donnee - valeur par défaut
+      'balance_sheet', // type_donnee - valeur par défaut
       // Price data
       parseFloat(currentPrice) || null,
       parseFloat(movingAverage200) || null,
