@@ -211,7 +211,9 @@ async function fetchCompanyData() {
 async function fetchAPI(endpoint) {
     console.log(`Appel API: ${endpoint}`);
     
-    const url = `${BASE_URL}${endpoint}&apikey=${API_KEY}`;
+    const separator = endpoint.includes('?') ? '&' : '?';
+    const url = `${BASE_URL}${endpoint}${separator}apikey=${API_KEY}`;
+    
     console.log('URL complète:', url);
     
     const response = await fetch(url);
