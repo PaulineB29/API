@@ -810,12 +810,15 @@ async function loadAllCompanies() {
     
     try {
         console.log('Chargement de toutes les entreprises...');
-        const companies = await fetchAPI('/stock-list?');
-
+        
+        // Utiliser l'endpoint stock-screener qui est disponible
+        const companies = await fetchAPI('/stock-screener?marketCapMoreThan=1000000000&limit=500');
+        
         console.log('Données reçues:', companies);
         
         if (!companies || companies.length === 0) {
             companiesTableBody.innerHTML = '<tr><td colspan="2">Aucune entreprise trouvée</td></tr>';
+            companiesCount.textContent = '0 entreprises';
             return;
         }
 
@@ -824,7 +827,17 @@ async function loadAllCompanies() {
         
     } catch (error) {
         console.error('Erreur chargement entreprises:', error);
-        companiesTableBody.innerHTML = '<tr><td colspan="2">Erreur de chargement</td></tr>';
+        
+        // Message d'erreur propre sans données de test
+        companiesTableBody.innerHTML = `
+            <tr>
+                <td colspan="2" style="text-align: center; color: #e74c3c;">
+                    ❌ Erreur de chargement: ${error.message}<br>
+                    <small>Vérifiez votre connexion et votre clé API</small>
+                </td>
+            </tr>
+        `;
+        companiesCount.textContent = 'Erreur';
     } finally {
         hideLoading();
     }
@@ -836,24 +849,29 @@ function displayCompaniesTable(companies) {
         companiesTableBody.innerHTML = '<tr><td colspan="2">Données invalides</td></tr>';
         return;
     }
+// Trier par symbole pour une meilleure lisibilité
+    const sortedCompanies = companies.sort((a, b) => a.symbol.localeCompare(b.symbol));
 
-    const html = companies.map(company => {
-        if (!company) return ''; // ← Ignorer les éléments null
+    const html = sortedCompanies.map(company => {
+        if (!company || !company.symbol) return '';
         
-        const symbol = company.symbol || 'N/A';
-        const name = company.companyName || 'Nom non disponible';
-        const safeName = String(name).replace(/'/g, "\\'"); // ← Convertir en string
+        const symbol = company.symbol;
+        const name = company.companyName || company.name || 'Nom non disponible';
+        const safeName = String(name).replace(/'/g, "\\'").replace(/"/g, '\\"');
         
         return `
-            <tr onclick="selectCompanyFromTable('${symbol}', '${safeName}')">
+            <tr onclick="selectCompanyFromTable('${symbol}', '${safeName}')" 
+                style="cursor: pointer; transition: background-color 0.2s;">
                 <td><strong>${symbol}</strong></td>
                 <td>${name}</td>
             </tr>
         `;
     }).join('');
 
-    companiesTableBody.innerHTML = html || '<tr><td colspan="2">Aucune donnée</td></tr>';
-    companiesCount.textContent = `${companies.length} entreprises`;
+    companiesTableBody.innerHTML = html;
+    companiesCount.textContent = `${sortedCompanies.length} entreprises`;
+    
+    console.log(`Tableau affiché avec ${sortedCompanies.length} entreprises`);
 }
 
 // Filtrer le tableau
