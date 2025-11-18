@@ -17,6 +17,7 @@ const helpIconTemplate = document.getElementById('helpIconTemplate');
 
 // Éléments DOM pour la recherche
 const companySearchInput = document.getElementById('companySearchInput');
+const searchCompanyBtn = document.getElementById('searchCompanyBtn');
 const searchResults = document.getElementById('searchResults');
 
 // Éléments recheche societe
@@ -146,31 +147,14 @@ symbolInput.addEventListener('keypress', function(event) {
     }
 });
 
-companySearchInput.addEventListener('input', handleSearchInput); 
+searchCompanyBtn.addEventListener('click', searchCompany);
 companySearchInput.addEventListener('keypress', (event) => {
-    if (event.key === 'Enter' && companySearchInput.value.trim()) {
-        searchCompany(); 
-    }
+    if (event.key === 'Enter') searchCompany();
 });
 
 showAllCompaniesBtn.addEventListener('click', loadAllCompanies);
 closeModal.addEventListener('click', hideCompaniesModal);
 modalSearchInput.addEventListener('input', filterCompaniesTable);
-
-// fonction recherche temps réel
-function handleSearchInput() {
-    const query = companySearchInput.value.trim();
-    
-    if (query.length < 2) {
-        searchResults.style.display = 'none';
-        return;
-    }
-    
-    clearTimeout(handleSearchInput.timeout);
-    handleSearchInput.timeout = setTimeout(() => {
-        searchCompany();
-    }, 300);
-}
 
 // Fonctions principales
 async function fetchCompanyData() {
@@ -227,7 +211,7 @@ async function fetchCompanyData() {
 async function fetchAPI(endpoint) {
     console.log(`Appel API: ${endpoint}`);
     
-    const url = `${BASE_URL}${endpoint}?apikey=${API_KEY}`;
+    const url = `${BASE_URL}${endpoint}&apikey=${API_KEY}`;
     console.log('URL complète:', url);
     
     const response = await fetch(url);
@@ -599,8 +583,10 @@ function displaySearchResults(results) {
 // Fonction pour sélectionner une entreprise
 function selectCompany(symbol, companyName) {
     symbolInput.value = symbol;
-    companySearchInput.value = companyName; // ← AFFICHER LE NOM
+    companySearchInput.value = companyName;
     searchResults.style.display = 'none';
+    
+    // Lancer automatiquement la récupération des données
     fetchCompanyData();
 }
 
