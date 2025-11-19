@@ -265,7 +265,7 @@ async function sauvegarderAnalyseAutomatique(metrics, recommendation, companyDat
             // ============================================
             
             // Identifiants et dates
-            entreprise_id: 0 
+            entreprise_id: 0, 
             symbol: companyData.profile.symbol,
             date_analyse: new Date().toISOString().split('T')[0],
             periode: 'FY',
@@ -308,8 +308,8 @@ async function sauvegarderAnalyseAutomatique(metrics, recommendation, companyDat
             // ============================================
             entreprise_symbole: companyData.profile.symbol,
             entreprise_nom: companyData.profile.companyName,
-            secteur: companyData.profile.sector || 'Non spécifié',
-            industrie: companyData.profile.industry || 'Non spécifié',
+            entreprise_secteur: companyData.profile.sector || 'Non spécifié', 
+            entreprise_industrie: companyData.profile.industry || 'Non spécifié',
 
             // ============================================
             // POUR LES DONNÉES FINANCIÈRES BRUTES (table donnees_financieres)
@@ -381,11 +381,12 @@ async function sauvegarderAnalyseAutomatique(metrics, recommendation, companyDat
             recommendation: analyseData.recommandation,
             score_global: analyseData.score_global,
             donnees_brutes: {
-                prix: analyseData.prix_actuel,
+                prix: analyseData.current_price,
                 revenue: analyseData.revenue,
                 benefice: analyseData.benefice_net,
                 cash_flow: analyseData.free_cash_flow
              }  
+        });  
     
 console.log(`🏢 Données entreprise:`, {
             symbole: analyseData.entreprise_symbole,
