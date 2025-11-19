@@ -630,7 +630,12 @@ function createAnalysisProgressUI() {
         <div id="autoAnalysisProgress" class="auto-analysis-progress">
             <div class="progress-header">
                 <h3>🔍 Analyse Automatique en Cours</h3>
-                <button id="cancelAnalysis" class="btn-secondary">❌ Arrêter</button>
+                <div class="header-buttons">
+                    <button id="saveDataBtn" class="btn-save" style="display: none;">
+                        💾 Enregistrer les données
+                    </button>
+                    <button id="cancelAnalysis" class="btn-secondary">❌ Arrêter</button>
+                </div>
             </div>
             <div class="progress-stats">
                 <div class="progress-bar">
@@ -657,7 +662,153 @@ function createAnalysisProgressUI() {
 
     document.body.insertAdjacentHTML('beforeend', progressHTML);
 
+    // Événements
     document.getElementById('cancelAnalysis').addEventListener('click', stopAutoAnalysis);
+    document.getElementById('saveDataBtn').addEventListener('click', sauvegarderDonneesManuellement);
+}
+// =============================================================================
+// SAUVEGARDE MANUELLE DES DONNÉES
+// =============================================================================
+
+async function sauvegarderDonneesManuellement() {
+    const successResults = analysisResults.filter(r => r.success && !r.saved);
+    
+    if (successResults.length === 0) {
+        alert('Aucune nouvelle analyse à sauvegarder');
+        return;
+    }
+
+    if (!confirm(`Sauvegarder ${successResults.length} analyses en base de données ?`)) {
+        return;
+    }
+
+    // Désactiver le bouton pendant la sauvegarde
+    const saveBtn = document.getElementById('saveDataBtn');
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = '⏳ Sauvegarde en cours...';
+    saveBtn.style.opacity = '0.7';
+
+    let savedCount = 0;
+    let errorCount = 0;
+
+    addToAnalysisLog('SAUVEGARDE', `💾 Début de la sauvegarde manuelle...`, 'info');
+
+    for (const result of successResults) {
+        try {
+            // Ici vous devrez recréer companyData ou le stocker dans analysisResults
+            // Pour l'instant, on va utiliser une version simplifiée
+            const saved = await sauvegarderAnalyseManuelle(result);
+            
+            if (saved) {
+                result.saved = true; // Marquer comme sauvegardé
+                savedCount++;
+                addToAnalysisLog(result.symbol, `💾 Sauvegarde manuelle OK`, 'success');
+            } else {
+                errorCount++;
+            }
+            
+            // Pause pour éviter de surcharger l'API
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+        } catch (error) {
+            console.error(`❌ Erreur sauvegarde manuelle ${result.symbol}:`, error);
+            errorCount++;
+            addToAnalysisLog(result.symbol, `❌ Erreur sauvegarde: ${error.message}`, 'error');
+        }
+    }
+
+    // Réactiver le bouton
+    saveBtn.disabled = false;
+    saveBtn.innerHTML = '💾 Enregistrer les données';
+    saveBtn.style.opacity = '1';
+
+    // Résumé
+    addToAnalysisLog('SAUVEGARDE', `✅ Sauvegarde terminée: ${savedCount} réussites, ${errorCount} échecs`, 'success');
+    
+    alert(`Sauvegarde manuelle terminée :\n✅ ${savedCount} analyses sauvegardées\n❌ ${errorCount} erreurs`);
+
+    // Masquer le bouton si tout est sauvegardé
+    if (savedCount > 0 && errorCount === 0) {
+        saveBtn.style.display = 'none';
+    }
+}
+
+// Version pour la sauvegarde manuelle
+async function sauvegarderAnalyseManuelle(result) {
+    try {
+        const analyseData = {
+            symbol: result.symbol,
+            date_analyse: new Date().toISOString().split('T')[0],
+            periode: 'FY',
+            date_publication: new Date().toISOString().split('T')[0],
+            recommandation: result.recommendation,
+            
+            // Métriques principales
+            roe: result.metrics.roe,
+            netMargin: result.metrics.netMargin,
+            grossMargin: result.metrics.grossMargin,
+            debtToEquity: result.metrics.debtToEquity,
+            currentRatio: result.metrics.currentRatio,
+            peRatio: result.metrics.peRatio,
+            earningsYield: result.metrics.earningsYield,
+            
+            // Score
+            score_global: result.score,
+            
+            // Entreprise
+            entreprise_nom: result.companyName,
+            entreprise_symbole: result.symbol
+        };
+
+        const response = await fetch('https://api-u54u.onrender.com/api/analyses', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(analyseData)
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+
+        const apiResult = await response.json();
+        return apiResult.success;
+
+    } catch (error) {
+        console.error(`❌ Erreur sauvegarde manuelle ${result.symbol}:`, error);
+        return false;
+    }
+}
+
+function updateResultsCounters() {
+    const successResults = analysisResults.filter(r => r.success);
+    const errorResults = analysisResults.filter(r => r.error);
+    const unsavedResults = analysisResults.filter(r => r.success && !r.saved);
+    
+    const counts = {
+        excellent: successResults.filter(r => r.recommendation === 'EXCELLENT').length,
+        good: successResults.filter(r => r.recommendation === 'BON').length,
+        medium: successResults.filter(r => r.recommendation === 'MOYEN').length,
+        bad: successResults.filter(r => r.recommendation === 'FAIBLE').length,
+        errors: errorResults.length,
+        unsaved: unsavedResults.length
+    };
+
+    // Mettre à jour les compteurs
+    ['countExcellent', 'countGood', 'countMedium', 'countBad', 'countErrors'].forEach(id => {
+        const element = document.getElementById(id);
+        if (element) element.textContent = counts[id.replace('count', '').toLowerCase()] || 0;
+    });
+
+    // Gérer le bouton de sauvegarde
+    const saveBtn = document.getElementById('saveDataBtn');
+    if (saveBtn) {
+        if (counts.unsaved > 0) {
+            saveBtn.style.display = 'block';
+            saveBtn.innerHTML = `💾 Enregistrer (${counts.unsaved})`;
+        } else {
+            saveBtn.style.display = 'none';
+        }
+    }
 }
 
 function updateProgressUI(company, progress) {
@@ -720,15 +871,32 @@ function finishAutoAnalysis() {
         progressHeader.textContent = '✅ Analyse Terminée';
     }
 
+    // Afficher le bouton de sauvegarde s'il y a des données non sauvegardées
+    const unsavedCount = analysisResults.filter(r => r.success && !r.saved).length;
+    if (unsavedCount > 0) {
+        const saveBtn = document.getElementById('saveDataBtn');
+        if (saveBtn) {
+            saveBtn.style.display = 'block';
+            saveBtn.innerHTML = `💾 Enregistrer ${unsavedCount} analyses`;
+        }
+    }
+
     // Résumé final
     const excellent = analysisResults.filter(r => r.recommendation === 'EXCELLENT').length;
     const good = analysisResults.filter(r => r.recommendation === 'BON').length;
     const medium = analysisResults.filter(r => r.recommendation === 'MOYEN').length;
     const bad = analysisResults.filter(r => r.recommendation === 'FAIBLE').length;
     const errors = analysisResults.filter(r => r.error).length;
+    const unsaved = analysisResults.filter(r => r.success && !r.saved).length;
 
     setTimeout(() => {
-        alert(`🎉 Analyse terminée !\n\n✅ Excellent: ${excellent}\n👍 Bon: ${good}\n⚠️ Moyen: ${medium}\n❌ Faible: ${bad}\n🚫 Erreurs: ${errors}\n\nTotal: ${analysisResults.length} entreprises analysées`);
+        let message = `🎉 Analyse terminée !\n\n✅ Excellent: ${excellent}\n👍 Bon: ${good}\n⚠️ Moyen: ${medium}\n❌ Faible: ${bad}\n🚫 Erreurs: ${errors}`;
+        
+        if (unsaved > 0) {
+            message += `\n\n💾 ${unsaved} analyses prêtes à être enregistrées\nCliquez sur "Enregistrer les données"`;
+        }
+        
+        alert(message);
     }, 1000);
 }
 
