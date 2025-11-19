@@ -239,6 +239,7 @@ async function sauvegarderAnalyse(metrics, recommendation) {
         symbol: currentData.profile.symbol,
         date_analyse: new Date().toISOString().split('T')[0],
         periode: 'FY',
+        date_publication: datePublication,
         ...metrics,
         recommandation: recommendation,
         points_forts: getStrengths(metrics),
