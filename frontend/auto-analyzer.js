@@ -614,8 +614,9 @@ function calculateScoresAuto(metrics) {
 function filterCompaniesBeforeAnalysis(companies) {
     return companies.filter(company => {
         if (!company.symbol || company.symbol.length === 0) return false;
-        if (company.symbol.length < 2) return false;
-        if (!/^[A-Z0-9.-]+$/.test(company.symbol)) return false;
+        if (/^[0-9]/.test(company.symbol)) return false;
+        if (company.symbol.length < 2 || company.symbol.length > 6) return false;
+        if (!/^[A-Z]+$/.test(company.symbol)) return false;
         return true;
     });
 }
