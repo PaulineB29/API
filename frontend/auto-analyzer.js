@@ -239,178 +239,49 @@ async function analyzeSingleCompany(symbol, companyName) {
 }
 
 // =============================================================================
-// SAUVEGARDE EN BASE DE DONNÉES
+// SAUVEGARDE COMPLÈTE POUR LES 3 TABLES
 // =============================================================================
 
 async function sauvegarderAnalyseAutomatique(metrics, recommendation, companyData) {
     try {
-        console.log(`💾 Sauvegarde de ${companyData.profile.symbol}...`);
+        console.log(`💾 Sauvegarde COMPLÈTE de ${companyData.profile.symbol}...`);
 
-        // Étape 1: Vérifier/Créer l'entreprise dans la table 'entreprises'
-        const entrepriseId = await getOrCreateEntreprise(companyData.profile);
-        
-        if (!entrepriseId) {
-            throw new Error('Impossible de créer/récupérer l\'entreprise');
-        }
-
-        // Étape 2: Sauvegarder les données financières brutes
-        await sauvegarderDonneesFinancieres(entrepriseId, companyData);
-
-        // Étape 3: Sauvegarder l'analyse dans 'analyses_buffett'
-        const analyseSauvegardee = await sauvegarderAnalyseBuffett(entrepriseId, metrics, recommendation, companyData);
-
-        if (analyseSauvegardee) {
-            console.log(`✅ ${companyData.profile.symbol} sauvegardé avec succès`);
-            return true;
-        } else {
-            throw new Error('Échec de la sauvegarde de l\'analyse');
-        }
-
-    } catch (error) {
-        console.error(`❌ Erreur sauvegarde ${companyData.profile.symbol}:`, error);
-        return false;
-    }
-}
-
-// Étape 1: Gérer l'entreprise
-async function getOrCreateEntreprise(profile) {
-    try {
-        // D'abord vérifier si l'entreprise existe
-        const checkResponse = await fetch(`https://api-u54u.onrender.com/api/entreprises/symbole/${profile.symbol}`);
-        
-        if (checkResponse.ok) {
-            const existingEntreprise = await checkResponse.json();
-            return existingEntreprise.id;
-        }
-
-        // Si n'existe pas, créer l'entreprise
-        const nouvelleEntreprise = {
-            symbole: profile.symbol,
-            nom: profile.companyName,
-            secteur: profile.sector || 'Non spécifié',
-            industrie: profile.industry || 'Non spécifié'
-        };
-
-        const createResponse = await fetch('https://api-u54u.onrender.com/api/entreprises', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(nouvelleEntreprise)
-        });
-
-        if (createResponse.ok) {
-            const result = await createResponse.json();
-            return result.id;
-        } else {
-            throw new Error('Erreur création entreprise');
-        }
-
-    } catch (error) {
-        console.error(`❌ Erreur gestion entreprise ${profile.symbol}:`, error);
-        return null;
-    }
-}
-
-// Étape 2: Sauvegarder données financières brutes
-async function sauvegarderDonneesFinancieres(entrepriseId, companyData) {
-    try {
         const datePublication = companyData.incomeStatement?.date || 
                                companyData.incomeStatement?.filingDate || 
                                new Date().toISOString().split('T')[0];
 
-        const donneesFinancieres = {
-            entreprise_id: entrepriseId,
-            date: datePublication,
-            periode: 'FY',
-            type_donnee: 'complet',
-            
-            // Données de prix
-            current_price: companyData.quote.price,
-            moving_average_200: companyData.quote.priceAvg200,
-            dividend_per_share: companyData.profile.lastDividend,
-            market_cap: companyData.quote.marketCap,
-            
-            // Données de bilan
-            cash_equivalents: companyData.balanceSheet?.cashAndCashEquivalents,
-            current_assets: companyData.balanceSheet?.totalCurrentAssets,
-            current_liabilities: companyData.balanceSheet?.totalCurrentLiabilities,
-            total_debt: companyData.balanceSheet?.totalDebt,
-            shareholders_equity: companyData.balanceSheet?.totalStockholdersEquity,
-            net_cash: (companyData.balanceSheet?.cashAndCashEquivalents || 0) - (companyData.balanceSheet?.totalDebt || 0),
-            
-            // Données de compte de résultat
-            revenue: companyData.incomeStatement?.revenue,
-            ebit: companyData.incomeStatement?.operatingIncome,
-            ebitda: companyData.incomeStatement?.ebitda,
-            net_income: companyData.incomeStatement?.netIncome,
-            interest_expense: Math.abs(companyData.incomeStatement?.interestExpense || 0),
-            eps: companyData.incomeStatement?.eps,
-            bpa: companyData.incomeStatement?.eps,
-            
-            // Données de cash flow
-            operating_cash_flow: companyData.cashFlow?.operatingCashFlow,
-            free_cash_flow: companyData.cashFlow?.freeCashFlow,
-            capex: Math.abs(companyData.cashFlow?.capitalExpenditure || 0),
-            
-            // Compatibilité avec anciens noms
-            tresorerie: companyData.balanceSheet?.cashAndCashEquivalents,
-            actifs_courants: companyData.balanceSheet?.totalCurrentAssets,
-            passifs_courants: companyData.balanceSheet?.totalCurrentLiabilities,
-            dette_totale: companyData.balanceSheet?.totalDebt,
-            capitaux_propres: companyData.balanceSheet?.totalStockholdersEquity,
-            revenus: companyData.incomeStatement?.revenue,
-            benefice_net: companyData.incomeStatement?.netIncome,
-            frais_financiers: Math.abs(companyData.incomeStatement?.interestExpense || 0),
-            cash_flow_operationnel: companyData.cashFlow?.operatingCashFlow
-        };
-
-        const response = await fetch('https://api-u54u.onrender.com/api/donnees-financieres', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(donneesFinancieres)
-        });
-
-        if (!response.ok) {
-            console.warn(`⚠️ Erreur sauvegarde données financières pour ${companyData.profile.symbol}`);
-        }
-
-    } catch (error) {
-        console.error(`❌ Erreur données financières ${companyData.profile.symbol}:`, error);
-    }
-}
-
-// Étape 3: Sauvegarder l'analyse Buffett
-async function sauvegarderAnalyseBuffett(entrepriseId, metrics, recommendation, companyData) {
-    try {
-        const datePublication = companyData.incomeStatement?.date || 
-                               companyData.incomeStatement?.filingDate || 
-                               new Date().toISOString().split('T')[0];
-
-        // Calculer le score global
+        // CALCUL DU SCORE GLOBAL (important pour analyses_buffett)
         const scores = calculateScoresAuto(metrics);
         const totalScore = scores.excellent * 3 + scores.good * 2 + scores.medium;
         const maxScore = (scores.excellent + scores.good + scores.medium + scores.bad) * 3;
         const scoreGlobal = maxScore > 0 ? (totalScore / maxScore) * 100 : 0;
 
+        // DONNÉES COMPLÈTES POUR LES 3 TABLES
         const analyseData = {
-            entreprise_id: entrepriseId,
+            // ============================================
+            // POUR LA TABLE analyses_buffett (TOUTES les colonnes)
+            // ============================================
+            
+            // Identifiants et dates
+            symbol: companyData.profile.symbol,
             date_analyse: new Date().toISOString().split('T')[0],
             periode: 'FY',
             date_publication: datePublication,
             score_global: scoreGlobal,
             
-            // Métriques de profitabilité
+            // METRIQUES DE PROFITABILITÉ (22 colonnes au total)
             roe: metrics.roe,
             netMargin: metrics.netMargin,
             grossMargin: metrics.grossMargin,
             sgaMargin: metrics.sgaMargin,
             roic: metrics.roic,
             
-            // Métriques de sécurité
+            // METRIQUES DE SÉCURITÉ
             debtToEquity: metrics.debtToEquity,
             currentRatio: metrics.currentRatio,
             interestCoverage: metrics.interestCoverage,
             
-            // Métriques de valuation
+            // METRIQUES DE VALUATION
             peRatio: metrics.peRatio,
             earningsYield: metrics.earningsYield,
             priceToFCF: metrics.priceToFCF,
@@ -420,97 +291,215 @@ async function sauvegarderAnalyseBuffett(entrepriseId, metrics, recommendation, 
             pegRatio: metrics.pegRatio,
             evToEbitda: metrics.evToEbitda,
             
-            // Autres métriques
+            // AUTRES METRIQUES
             freeCashFlow: metrics.freeCashFlow,
             
-            // Recommandation et analyse
+            // RECOMMANDATION ET ANALYSE
             recommandation: recommendation,
             points_forts: getStrengthsAuto(metrics).join('; '),
-            points_faibles: getWeaknessesAuto(metrics).join('; ')
+            points_faibles: getWeaknessesAuto(metrics).join('; '),
+
+            // ============================================
+            // POUR CRÉER L'ENTREPRISE (table entreprises)
+            // ============================================
+            entreprise_nom: companyData.profile.companyName,
+            entreprise_symbole: companyData.profile.symbol,
+            secteur: companyData.profile.sector || 'Non spécifié',
+            industrie: companyData.profile.industry || 'Non spécifié',
+
+            // ============================================
+            // POUR LES DONNÉES FINANCIÈRES BRUTES (table donnees_financieres)
+            // ============================================
+            
+            // DONNÉES DE PRIX ET MARKET CAP
+            prix_actuel: companyData.quote.price,
+            mm_200: companyData.quote.priceAvg200,
+            current_price: companyData.quote.price,
+            moving_average_200: companyData.quote.priceAvg200,
+            dividend_per_share: companyData.profile.lastDividend,
+            market_cap: companyData.quote.marketCap,
+
+            // DONNÉES DE BILAN (balance sheet)
+            tresorerie: companyData.balanceSheet?.cashAndCashEquivalents,
+            cash_equivalents: companyData.balanceSheet?.cashAndCashEquivalents,
+            actifs_courants: companyData.balanceSheet?.totalCurrentAssets,
+            current_assets: companyData.balanceSheet?.totalCurrentAssets,
+            passifs_courants: companyData.balanceSheet?.totalCurrentLiabilities,
+            current_liabilities: companyData.balanceSheet?.totalCurrentLiabilities,
+            dette_totale: companyData.balanceSheet?.totalDebt,
+            total_debt: companyData.balanceSheet?.totalDebt,
+            capitaux_propres: companyData.balanceSheet?.totalStockholdersEquity,
+            shareholders_equity: companyData.balanceSheet?.totalStockholdersEquity,
+            net_cash: (companyData.balanceSheet?.cashAndCashEquivalents || 0) - (companyData.balanceSheet?.totalDebt || 0),
+
+            // DONNÉES DE COMPTE DE RÉSULTAT (income statement)
+            revenus: companyData.incomeStatement?.revenue,
+            revenue: companyData.incomeStatement?.revenue,
+            ebit: companyData.incomeStatement?.operatingIncome,
+            ebitda: companyData.incomeStatement?.ebitda,
+            benefice_net: companyData.incomeStatement?.netIncome,
+            net_income: companyData.incomeStatement?.netIncome,
+            frais_financiers: Math.abs(companyData.incomeStatement?.interestExpense || 0),
+            interest_expense: Math.abs(companyData.incomeStatement?.interestExpense || 0),
+            bpa: companyData.incomeStatement?.eps,
+            eps: companyData.incomeStatement?.eps,
+
+            // DONNÉES DE CASH FLOW
+            cash_flow_operationnel: companyData.cashFlow?.operatingCashFlow,
+            operating_cash_flow: companyData.cashFlow?.operatingCashFlow,
+            free_cash_flow: companyData.cashFlow?.freeCashFlow,
+            capex: Math.abs(companyData.cashFlow?.capitalExpenditure || 0),
+
+            // TYPE DE DONNÉES (important pour donnees_financieres)
+            type_donnee: 'complet'
         };
 
-        const response = await fetch('https://api-u54u.onrender.com/api/analyses-buffett', {
+        console.log(`📤 Envoi de ${Object.keys(analyseData).length} champs pour ${companyData.profile.symbol}...`);
+
+        // VÉRIFICATION : Afficher les données envoyées (pour debug)
+        console.log('🔍 Données envoyées:', {
+            symbol: analyseData.symbol,
+            metriques: Object.keys(metrics).length,
+            recommendation: analyseData.recommandation,
+            score_global: analyseData.score_global,
+            donnees_brutes: {
+                prix: analyseData.prix_actuel,
+                revenue: analyseData.revenue,
+                benefice: analyseData.benefice_net,
+                cash_flow: analyseData.free_cash_flow
+            }
+        });
+
+        // ENVOI VERS L'API
+        const response = await fetch('https://api-u54u.onrender.com/api/analyses', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json'
+            },
             body: JSON.stringify(analyseData)
         });
 
         if (!response.ok) {
-            throw new Error(`Erreur HTTP: ${response.status}`);
+            const errorText = await response.text();
+            console.error(`❌ Erreur HTTP ${response.status}:`, errorText);
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
         }
 
         const result = await response.json();
-        return result.success;
+        
+        if (result.success) {
+            console.log(`✅ ${companyData.profile.symbol} - ID: ${result.id}`);
+            addToAnalysisLog(companyData.profile.symbol, `💾 Sauvegardé (ID: ${result.id})`, 'success');
+            return true;
+        } else {
+            console.warn(`⚠️ ${companyData.profile.symbol} - ${result.message}`);
+            addToAnalysisLog(companyData.profile.symbol, `⚠️ ${result.message}`, 'warning');
+            return false;
+        }
 
     } catch (error) {
-        console.error(`❌ Erreur sauvegarde analyse Buffett:`, error);
+        console.error(`❌ Erreur sauvegarde ${companyData.profile.symbol}:`, error);
+        addToAnalysisLog(companyData.profile.symbol, `❌ ${error.message}`, 'error');
         return false;
     }
 }
 
-
-// Fonctions utilitaires
+// CALCUL DES POINTS FORTS/FAIBLES AMÉLIORÉ
 function getStrengthsAuto(metrics) {
     const strengths = [];
-    if (metrics.roe > 20) strengths.push('ROE exceptionnel');
-    if (metrics.netMargin > 20) strengths.push('Forte marge nette');
-    if (metrics.grossMargin > 40) strengths.push('Bonne marge brute');
-    if (metrics.debtToEquity < 0.3) strengths.push('Faible endettement');
-    if (metrics.currentRatio > 2.0) strengths.push('Bonne liquidité');
-    if (metrics.interestCoverage > 10) strengths.push('Excellente couverture des intérêts');
-    if (metrics.peRatio < 10) strengths.push('P/E ratio attractif');
-    if (metrics.roic > 15) strengths.push('ROIC excellent');
-    return strengths;
+    
+    // Profitabilité
+    if (metrics.roe > 20) strengths.push('ROE exceptionnel (>20%)');
+    if (metrics.netMargin > 20) strengths.push('Forte marge nette (>20%)');
+    if (metrics.grossMargin > 40) strengths.push('Bonne marge brute (>40%)');
+    if (metrics.roic > 15) strengths.push('ROIC excellent (>15%)');
+    if (metrics.sgaMargin < 20) strengths.push('Faibles frais généraux (<20%)');
+    
+    // Sécurité
+    if (metrics.debtToEquity < 0.3) strengths.push('Faible endettement (<0.3)');
+    if (metrics.currentRatio > 2.0) strengths.push('Bonne liquidité (>2.0)');
+    if (metrics.interestCoverage > 10) strengths.push('Excellente couverture des intérêts (>10x)');
+    
+    // Valuation
+    if (metrics.peRatio < 10) strengths.push('P/E ratio attractif (<10)');
+    if (metrics.earningsYield > 10) strengths.push('Rendement des bénéfices élevé (>10%)');
+    if (metrics.priceToFCF < 10) strengths.push('Price/FCF attractif (<10)');
+    if (metrics.dividendYield > 4) strengths.push('Dividende attractif (>4%)');
+    if (metrics.pbRatio < 1.5) strengths.push('Price/Book attractif (<1.5)');
+    if (metrics.evToEbitda < 8) strengths.push('EV/EBITDA attractif (<8)');
+    
+    return strengths.length > 0 ? strengths : ['Aucun point fort significatif'];
 }
 
 function getWeaknessesAuto(metrics) {
     const weaknesses = [];
-    if (metrics.roe < 10 && metrics.roe !== null) weaknesses.push('ROE faible');
-    if (metrics.netMargin < 10 && metrics.netMargin !== null) weaknesses.push('Marge nette faible');
-    if (metrics.debtToEquity > 1.0) weaknesses.push('Dette élevée');
-    if (metrics.currentRatio < 1.0) weaknesses.push('Problème de liquidité');
-    if (metrics.interestCoverage < 3 && metrics.interestCoverage !== null) weaknesses.push('Couverture des intérêts faible');
-    if (metrics.peRatio > 25) weaknesses.push('P/E ratio élevé');
-    if (metrics.roic < 8 && metrics.roic !== null) weaknesses.push('ROIC faible');
-    return weaknesses;
+    
+    // Profitabilité
+    if (metrics.roe < 10 && metrics.roe !== null) weaknesses.push('ROE faible (<10%)');
+    if (metrics.netMargin < 10 && metrics.netMargin !== null) weaknesses.push('Marge nette faible (<10%)');
+    if (metrics.grossMargin < 30 && metrics.grossMargin !== null) weaknesses.push('Marge brute faible (<30%)');
+    if (metrics.roic < 8 && metrics.roic !== null) weaknesses.push('ROIC faible (<8%)');
+    if (metrics.sgaMargin > 30) weaknesses.push('Frais généraux élevés (>30%)');
+    
+    // Sécurité
+    if (metrics.debtToEquity > 1.0) weaknesses.push('Dette élevée (>1.0)');
+    if (metrics.currentRatio < 1.0) weaknesses.push('Problème de liquidité (<1.0)');
+    if (metrics.interestCoverage < 3 && metrics.interestCoverage !== null) weaknesses.push('Couverture des intérêts faible (<3x)');
+    
+    // Valuation
+    if (metrics.peRatio > 25) weaknesses.push('P/E ratio élevé (>25)');
+    if (metrics.earningsYield < 4 && metrics.earningsYield !== null) weaknesses.push('Rendement des bénéfices faible (<4%)');
+    if (metrics.priceToFCF > 20) weaknesses.push('Price/FCF élevé (>20)');
+    if (metrics.dividendYield < 2 && metrics.dividendYield !== null) weaknesses.push('Dividende faible (<2%)');
+    if (metrics.pbRatio > 3) weaknesses.push('Price/Book élevé (>3)');
+    if (metrics.evToEbitda > 12) weaknesses.push('EV/EBITDA élevé (>12)');
+    
+    return weaknesses.length > 0 ? weaknesses : ['Aucun point faible significatif'];
 }
 
+// CALCUL DES SCORES DÉTAILLÉ
 function calculateScoresAuto(metrics) {
     const scores = { excellent: 0, good: 0, medium: 0, bad: 0 };
     
-    // ROE
-    if (metrics.roe > 20) scores.excellent++;
-    else if (metrics.roe > 15) scores.good++;
-    else if (metrics.roe > 10) scores.medium++;
-    else if (metrics.roe !== null) scores.bad++;
-    
-    // Marge nette
-    if (metrics.netMargin > 20) scores.excellent++;
-    else if (metrics.netMargin > 15) scores.good++;
-    else if (metrics.netMargin > 10) scores.medium++;
-    else if (metrics.netMargin !== null) scores.bad++;
-    
-    // Dette/Equity
-    if (metrics.debtToEquity < 0.3) scores.excellent++;
-    else if (metrics.debtToEquity < 0.5) scores.good++;
-    else if (metrics.debtToEquity < 1.0) scores.medium++;
-    else if (metrics.debtToEquity !== null) scores.bad++;
-    
-    // P/E Ratio
-    if (metrics.peRatio < 10) scores.excellent++;
-    else if (metrics.peRatio < 15) scores.good++;
-    else if (metrics.peRatio < 25) scores.medium++;
-    else if (metrics.peRatio !== null) scores.bad++;
-    
-    // ROIC
-    if (metrics.roic > 15) scores.excellent++;
-    else if (metrics.roic > 10) scores.good++;
-    else if (metrics.roic > 8) scores.medium++;
-    else if (metrics.roic !== null) scores.bad++;
+    // Liste complète des métriques à évaluer
+    const metricThresholds = [
+        { key: 'roe', excellent: 20, good: 15, medium: 10, reverse: false },
+        { key: 'netMargin', excellent: 20, good: 15, medium: 10, reverse: false },
+        { key: 'grossMargin', excellent: 40, good: 30, medium: 20, reverse: false },
+        { key: 'sgaMargin', excellent: 10, good: 20, medium: 30, reverse: true },
+        { key: 'roic', excellent: 15, good: 10, medium: 8, reverse: false },
+        { key: 'debtToEquity', excellent: 0.3, good: 0.5, medium: 1.0, reverse: true },
+        { key: 'currentRatio', excellent: 2.0, good: 1.5, medium: 1.0, reverse: false },
+        { key: 'interestCoverage', excellent: 10, good: 5, medium: 3, reverse: false },
+        { key: 'peRatio', excellent: 10, good: 15, medium: 25, reverse: true },
+        { key: 'earningsYield', excellent: 10, good: 6, medium: 4, reverse: false },
+        { key: 'priceToFCF', excellent: 10, good: 15, medium: 20, reverse: true },
+        { key: 'priceToMM200', excellent: 5, good: 0, medium: -5, reverse: false },
+        { key: 'dividendYield', excellent: 4, good: 2, medium: 1, reverse: false },
+        { key: 'pbRatio', excellent: 1.5, good: 3, medium: 5, reverse: true },
+        { key: 'pegRatio', excellent: 0.8, good: 1.0, medium: 1.2, reverse: true },
+        { key: 'evToEbitda', excellent: 8, good: 12, medium: 15, reverse: true }
+    ];
+
+    metricThresholds.forEach(threshold => {
+        const value = metrics[threshold.key];
+        if (value !== null && value !== undefined) {
+            if (threshold.reverse) {
+                if (value <= threshold.excellent) scores.excellent++;
+                else if (value <= threshold.good) scores.good++;
+                else if (value <= threshold.medium) scores.medium++;
+                else scores.bad++;
+            } else {
+                if (value >= threshold.excellent) scores.excellent++;
+                else if (value >= threshold.good) scores.good++;
+                else if (value >= threshold.medium) scores.medium++;
+                else scores.bad++;
+            }
+        }
+    });
     
     return scores;
 }
-
 // =============================================================================
 // FONCTIONS UTILITAIRES
 // =============================================================================
