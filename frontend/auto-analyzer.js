@@ -218,6 +218,12 @@ async function analyzeSingleCompany(symbol, companyName) {
 
         analysisResults.push(result);
 
+        // LIGNE POUR SAUVEGARDER 
+        const saved = await sauvegarderAnalyseAutomatique(metrics, recommendation, companyData);
+        if (saved) {
+            addToAnalysisLog(symbol, `💾 Données sauvegardées`, 'success');
+        }
+        
         // Afficher le résultat
         const logClass = getRecommendationClass(recommendation);
         addToAnalysisLog(symbol, `${recommendation} (${percentage.toFixed(0)}%) - ${companyName}`, logClass);
@@ -228,6 +234,93 @@ async function analyzeSingleCompany(symbol, companyName) {
     } catch (error) {
         throw error;
     }
+}
+
+// =============================================================================
+// SAUVEGARDE EN BASE DE DONNÉES
+// =============================================================================
+
+async function sauvegarderAnalyseAutomatique(metrics, recommendation, companyData) {
+    try {
+        const datePublication = companyData.incomeStatement?.date || 
+                               companyData.incomeStatement?.filingDate || 
+                               new Date().toISOString().split('T')[0];
+
+        const analyseData = {
+            symbol: companyData.profile.symbol,
+            date_analyse: new Date().toISOString().split('T')[0],
+            periode: 'FY',
+            date_publication: datePublication,
+            ...metrics,
+            recommandation: recommendation,
+            points_forts: getStrengthsAuto(metrics),
+            points_faibles: getWeaknessesAuto(metrics),
+            prix_actuel: companyData.quote.price,
+            mm_200: companyData.quote.priceAvg200,
+            dividende_action: companyData.profile.lastDividend,
+            market_cap: companyData.quote.marketCap,
+            tresorerie: companyData.balanceSheet?.cashAndCashEquivalents,
+            actifs_courants: companyData.balanceSheet?.totalCurrentAssets,
+            passifs_courants: companyData.balanceSheet?.totalCurrentLiabilities,
+            dette_totale: companyData.balanceSheet?.totalDebt,
+            capitaux_propres: companyData.balanceSheet?.totalStockholdersEquity,
+            net_cash: (companyData.balanceSheet?.cashAndCashEquivalents || 0) - (companyData.balanceSheet?.totalDebt || 0),
+            revenus: companyData.incomeStatement?.revenue,
+            ebit: companyData.incomeStatement?.operatingIncome,
+            benefice_net: companyData.incomeStatement?.netIncome,
+            bpa: companyData.incomeStatement?.eps,
+            frais_financiers: Math.abs(companyData.incomeStatement?.interestExpense || 0),
+            ebitda: companyData.incomeStatement?.ebitda,
+            cash_flow_operationnel: companyData.cashFlow?.operatingCashFlow,
+            free_cash_flow: companyData.cashFlow?.freeCashFlow
+        };
+
+        console.log(`💾 Sauvegarde de ${companyData.profile.symbol}...`);
+
+        const response = await fetch('https://api-u54u.onrender.com/api/analyses', {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(analyseData)
+        });
+
+        if (!response.ok) {
+            throw new Error(`Erreur HTTP: ${response.status}`);
+        }
+
+        const result = await response.json();
+        
+        if (result.success) {
+            console.log(`✅ ${companyData.profile.symbol} sauvegardé en base. ID: ${result.id}`);
+            return true;
+        } else {
+            console.warn(`⚠️ ${companyData.profile.symbol} - Erreur sauvegarde: ${result.message}`);
+            return false;
+        }
+
+    } catch (error) {
+        console.error(`❌ Erreur sauvegarde ${companyData.profile.symbol}:`, error);
+        return false;
+    }
+}
+
+function getStrengthsAuto(metrics) {
+    const strengths = [];
+    if (metrics.roe > 20) strengths.push('ROE exceptionnel');
+    if (metrics.netMargin > 20) strengths.push('Forte marge nette');
+    if (metrics.debtToEquity < 0.3) strengths.push('Faible endettement');
+    if (metrics.peRatio < 10) strengths.push('P/E ratio attractif');
+    return strengths;
+}
+
+function getWeaknessesAuto(metrics) {
+    const weaknesses = [];
+    if (metrics.roe < 10 && metrics.roe !== null) weaknesses.push('ROE faible');
+    if (metrics.netMargin < 10 && metrics.netMargin !== null) weaknesses.push('Marge nette faible');
+    if (metrics.debtToEquity > 1.0) weaknesses.push('Dette élevée');
+    if (metrics.peRatio > 25) weaknesses.push('P/E ratio élevé');
+    return weaknesses;
 }
 
 // =============================================================================
