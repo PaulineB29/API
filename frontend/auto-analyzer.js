@@ -1,9 +1,92 @@
 // =============================================================================
-// ANALYSE AUTOMATIQUE AVEC GESTION DES ERREURS
+// AUTO-ANALYZER.js - Analyse Automatique Complète
 // =============================================================================
 
+// Variables globales pour l'analyse automatique
+let analysisQueue = [];
+let currentAnalysisIndex = 0;
+let analysisResults = [];
+let isAnalyzing = false;
+
+console.log('📊 AutoAnalyzer chargé - Prêt pour l analyse automatique');
+
+// Initialisation
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(initAutoAnalyzer, 2000);
+});
+
+function initAutoAnalyzer() {
+    console.log('🚀 Initialisation de l analyseur automatique...');
+    addAutoAnalysisButton();
+    injectAutoAnalyzerStyles();
+}
+
+function addAutoAnalysisButton() {
+    const modalHeader = document.querySelector('.modal-header');
+    
+    if (modalHeader && !document.getElementById('autoAnalyzeBtn')) {
+        const autoAnalyzeBtn = document.createElement('button');
+        autoAnalyzeBtn.id = 'autoAnalyzeBtn';
+        autoAnalyzeBtn.className = 'btn-primary';
+        autoAnalyzeBtn.innerHTML = '🚀 Analyser toutes les entreprises';
+        autoAnalyzeBtn.addEventListener('click', startAutoAnalysis);
+        modalHeader.appendChild(autoAnalyzeBtn);
+        
+        console.log('✅ Bouton d analyse automatique ajouté');
+    } else {
+        console.log('⏳ Modal non trouvé, réessai dans 2 secondes...');
+        setTimeout(addAutoAnalysisButton, 2000);
+    }
+}
+
+// =============================================================================
+// FONCTIONS PRINCIPALES
+// =============================================================================
+
+async function startAutoAnalysis() {
+    console.log('🎯 Démarrage de l analyse automatique...');
+    
+    if (typeof allCompaniesData === 'undefined' || allCompaniesData.length === 0) {
+        alert('Veuillez d\'abord charger les entreprises en cliquant sur "📋 Rechercher entreprise"');
+        return;
+    }
+
+    // Filtrer les entreprises avant analyse
+    const filteredCompanies = filterCompaniesBeforeAnalysis(allCompaniesData);
+    
+    if (filteredCompanies.length === 0) {
+        alert('Aucune entreprise valide à analyser');
+        return;
+    }
+
+    const originalCount = allCompaniesData.length;
+    const filteredCount = filteredCompanies.length;
+    
+    if (filteredCount < originalCount) {
+        if (!confirm(`${originalCount - filteredCount} entreprises exclues (symboles invalides).\nAnalyser les ${filteredCount} entreprises restantes ?`)) {
+            return;
+        }
+    } else {
+        if (!confirm(`Voulez-vous analyser ${filteredCount} entreprises ?\nCela peut prendre plusieurs minutes.`)) {
+            return;
+        }
+    }
+
+    // Préparer l'analyse
+    analysisQueue = filteredCompanies;
+    currentAnalysisIndex = 0;
+    analysisResults = [];
+    isAnalyzing = true;
+
+    // Créer l'interface de progression
+    createAnalysisProgressUI();
+
+    // Démarrer l'analyse
+    await processNextCompany();
+}
+
 async function processNextCompany() {
-    if (currentAnalysisIndex >= analysisQueue.length) {
+    if (!isAnalyzing || currentAnalysisIndex >= analysisQueue.length) {
         finishAutoAnalysis();
         return;
     }
@@ -16,7 +99,7 @@ async function processNextCompany() {
 
     try {
         // Analyser cette entreprise
-        await analyzeSingleCompany(company.symbol, company.companyName);
+        await analyzeSingleCompany(company.symbol, company.companyName || company.name);
         
     } catch (error) {
         console.error(`❌ Erreur sur ${company.symbol}:`, error);
@@ -41,7 +124,7 @@ async function processNextCompany() {
         // Stocker l'échec dans les résultats
         analysisResults.push({
             symbol: company.symbol,
-            companyName: company.companyName,
+            companyName: company.companyName || company.name,
             error: true,
             errorMessage: errorMessage,
             date: new Date().toISOString()
@@ -52,26 +135,25 @@ async function processNextCompany() {
     currentAnalysisIndex++;
     
     // Délai adaptatif selon le type d'erreur
-    let delay = 1000; // délai par défaut
+    let delay = 1000;
     if (analysisQueue[currentAnalysisIndex - 1]?.errorMessage?.includes('Limite API')) {
-        delay = 5000; // Délai plus long pour les limites API
+        delay = 5000;
     }
     
     await new Promise(resolve => setTimeout(resolve, delay));
     await processNextCompany();
 }
 
-// Version robuste de analyzeSingleCompany
 async function analyzeSingleCompany(symbol, companyName) {
     addToAnalysisLog(symbol, `🔍 Analyse en cours...`, 'info');
 
     try {
-        // Vérification initiale - timeout global
+        // Timeout global de 30 secondes
         const timeoutPromise = new Promise((_, reject) => {
             setTimeout(() => reject(new Error('Timeout - Analyse trop longue')), 30000);
         });
 
-        // Récupérer les données avec timeout
+        // Récupérer les données
         const fetchPromise = Promise.all([
             fetchWithErrorHandling(`/profile?symbol=${symbol}`, 'profil'),
             fetchWithErrorHandling(`/quote?symbol=${symbol}`, 'cotation'),
@@ -109,9 +191,9 @@ async function analyzeSingleCompany(symbol, companyName) {
             throw new Error('Prix non disponible');
         }
 
-        // Calculer les métriques avec gestion d'erreur
+        // Calculer les métriques
         const metrics = calculateCompanyMetricsSafe(companyData);
-        const scores = calculateScores(metrics);
+        const scores = calculateScoresAuto(metrics);
         const totalScore = scores.excellent * 3 + scores.good * 2 + scores.medium;
         const maxScore = (scores.excellent + scores.good + scores.medium + scores.bad) * 3;
         const percentage = maxScore > 0 ? (totalScore / maxScore) * 100 : 0;
@@ -136,14 +218,6 @@ async function analyzeSingleCompany(symbol, companyName) {
 
         analysisResults.push(result);
 
-        // Sauvegarder en base de données (optionnel)
-        try {
-            await sauvegarderAnalyseAutomatique(metrics, recommendation, companyData);
-        } catch (saveError) {
-            console.warn(`⚠️ Erreur sauvegarde ${symbol}:`, saveError);
-            // Ne pas bloquer l'analyse pour une erreur de sauvegarde
-        }
-
         // Afficher le résultat
         const logClass = getRecommendationClass(recommendation);
         addToAnalysisLog(symbol, `${recommendation} (${percentage.toFixed(0)}%) - ${companyName}`, logClass);
@@ -152,14 +226,17 @@ async function analyzeSingleCompany(symbol, companyName) {
         updateResultsCounters();
 
     } catch (error) {
-        // Relancer l'erreur pour la gestion dans processNextCompany
         throw error;
     }
 }
 
-// Fonction de fetch avec gestion d'erreur détaillée
+// =============================================================================
+// FONCTIONS UTILITAIRES
+// =============================================================================
+
 async function fetchWithErrorHandling(endpoint, dataType) {
     try {
+        // Utiliser la fonction fetchAPI de votre script principal
         const data = await fetchAPI(endpoint);
         
         if (!data) {
@@ -172,7 +249,6 @@ async function fetchWithErrorHandling(endpoint, dataType) {
         
         return data;
     } catch (error) {
-        // Améliorer le message d'erreur
         if (error.message.includes('404') || error.message.includes('not found')) {
             throw new Error(`${dataType} introuvable`);
         } else if (error.message.includes('401') || error.message.includes('403')) {
@@ -185,12 +261,11 @@ async function fetchWithErrorHandling(endpoint, dataType) {
     }
 }
 
-// Version sécurisée de calculateCompanyMetrics
 function calculateCompanyMetricsSafe(companyData) {
     const { profile, quote, balanceSheet, incomeStatement, cashFlow } = companyData;
     const metrics = {};
     
-    // Profitabilité avec vérifications
+    // Profitabilité
     try {
         if (incomeStatement?.netIncome && balanceSheet?.totalStockholdersEquity && balanceSheet.totalStockholdersEquity !== 0) {
             metrics.roe = (incomeStatement.netIncome / balanceSheet.totalStockholdersEquity) * 100;
@@ -203,13 +278,7 @@ function calculateCompanyMetricsSafe(companyData) {
         }
     } catch (e) { metrics.netMargin = null; }
     
-    try {
-        if (incomeStatement?.revenue && incomeStatement?.costOfRevenue && incomeStatement.revenue !== 0) {
-            metrics.grossMargin = ((incomeStatement.revenue - incomeStatement.costOfRevenue) / incomeStatement.revenue) * 100;
-        }
-    } catch (e) { metrics.grossMargin = null; }
-    
-    // Sécurité financière avec vérifications
+    // Sécurité financière
     try {
         if (balanceSheet?.totalLiabilities && balanceSheet?.totalStockholdersEquity && balanceSheet.totalStockholdersEquity !== 0) {
             metrics.debtToEquity = balanceSheet.totalLiabilities / balanceSheet.totalStockholdersEquity;
@@ -222,13 +291,7 @@ function calculateCompanyMetricsSafe(companyData) {
         }
     } catch (e) { metrics.currentRatio = null; }
     
-    try {
-        if (incomeStatement?.operatingIncome && incomeStatement?.interestExpense && Math.abs(incomeStatement.interestExpense) > 0) {
-            metrics.interestCoverage = incomeStatement.operatingIncome / Math.abs(incomeStatement.interestExpense);
-        }
-    } catch (e) { metrics.interestCoverage = null; }
-    
-    // Valuation avec vérifications
+    // Valuation
     try {
         if (quote?.price && incomeStatement?.epsDiluted && incomeStatement.epsDiluted !== 0) {
             metrics.peRatio = quote.price / incomeStatement.epsDiluted;
@@ -241,12 +304,9 @@ function calculateCompanyMetricsSafe(companyData) {
         }
     } catch (e) { metrics.earningsYield = null; }
     
-    // Nettoyer les métriques infinies ou invalides
+    // Nettoyer les métriques invalides
     Object.keys(metrics).forEach(key => {
-        if (metrics[key] === null || 
-            metrics[key] === undefined || 
-            !isFinite(metrics[key]) || 
-            Math.abs(metrics[key]) > 1000000) {
+        if (metrics[key] === null || !isFinite(metrics[key]) || Math.abs(metrics[key]) > 1000000) {
             metrics[key] = null;
         }
     });
@@ -254,7 +314,103 @@ function calculateCompanyMetricsSafe(companyData) {
     return metrics;
 }
 
-// Mettre à jour l'interface pour montrer les échecs
+function calculateScoresAuto(metrics) {
+    const scores = { excellent: 0, good: 0, medium: 0, bad: 0 };
+    
+    // Scores simplifiés pour l'analyse automatique
+    if (metrics.roe > 20) scores.excellent++;
+    else if (metrics.roe > 15) scores.good++;
+    else if (metrics.roe > 10) scores.medium++;
+    else if (metrics.roe !== null) scores.bad++;
+    
+    if (metrics.netMargin > 20) scores.excellent++;
+    else if (metrics.netMargin > 15) scores.good++;
+    else if (metrics.netMargin > 10) scores.medium++;
+    else if (metrics.netMargin !== null) scores.bad++;
+    
+    if (metrics.debtToEquity < 0.3) scores.excellent++;
+    else if (metrics.debtToEquity < 0.5) scores.good++;
+    else if (metrics.debtToEquity < 1.0) scores.medium++;
+    else if (metrics.debtToEquity !== null) scores.bad++;
+    
+    if (metrics.peRatio < 10) scores.excellent++;
+    else if (metrics.peRatio < 15) scores.good++;
+    else if (metrics.peRatio < 25) scores.medium++;
+    else if (metrics.peRatio !== null) scores.bad++;
+    
+    return scores;
+}
+
+function filterCompaniesBeforeAnalysis(companies) {
+    return companies.filter(company => {
+        if (!company.symbol || company.symbol.length === 0) return false;
+        if (company.symbol.length < 2) return false;
+        if (!/^[A-Z0-9.-]+$/.test(company.symbol)) return false;
+        return true;
+    });
+}
+
+// =============================================================================
+// INTERFACE UTILISATEUR
+// =============================================================================
+
+function createAnalysisProgressUI() {
+    const progressHTML = `
+        <div id="autoAnalysisProgress" class="auto-analysis-progress">
+            <div class="progress-header">
+                <h3>🔍 Analyse Automatique en Cours</h3>
+                <button id="cancelAnalysis" class="btn-secondary">❌ Arrêter</button>
+            </div>
+            <div class="progress-stats">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+                </div>
+                <div class="progress-text">
+                    <span id="progressText">0/${analysisQueue.length}</span>
+                    <span id="currentCompany">Préparation...</span>
+                </div>
+                <div class="results-summary">
+                    <span class="result-excellent">✅ Excellent: <span id="countExcellent">0</span></span>
+                    <span class="result-good">👍 Bon: <span id="countGood">0</span></span>
+                    <span class="result-medium">⚠️ Moyen: <span id="countMedium">0</span></span>
+                    <span class="result-bad">❌ Faible: <span id="countBad">0</span></span>
+                    <span class="result-error">🚫 Erreurs: <span id="countErrors">0</span></span>
+                </div>
+            </div>
+            <div class="analysis-log" id="analysisLog"></div>
+        </div>
+    `;
+
+    const existingProgress = document.getElementById('autoAnalysisProgress');
+    if (existingProgress) existingProgress.remove();
+
+    document.body.insertAdjacentHTML('beforeend', progressHTML);
+
+    document.getElementById('cancelAnalysis').addEventListener('click', stopAutoAnalysis);
+}
+
+function updateProgressUI(company, progress) {
+    const progressFill = document.getElementById('progressFill');
+    const progressText = document.getElementById('progressText');
+    const currentCompany = document.getElementById('currentCompany');
+
+    if (progressFill) progressFill.style.width = `${progress}%`;
+    if (progressText) progressText.textContent = `${currentAnalysisIndex + 1}/${analysisQueue.length}`;
+    if (currentCompany) currentCompany.textContent = `${company.symbol} - ${company.companyName || company.name}`;
+}
+
+function addToAnalysisLog(symbol, message, type = 'info') {
+    const log = document.getElementById('analysisLog');
+    if (!log) return;
+
+    const logEntry = document.createElement('div');
+    logEntry.className = `log-entry log-${type}`;
+    logEntry.innerHTML = `<strong>${symbol}:</strong> ${message}`;
+    
+    log.appendChild(logEntry);
+    log.scrollTop = log.scrollHeight;
+}
+
 function updateResultsCounters() {
     const successResults = analysisResults.filter(r => r.success);
     const errorResults = analysisResults.filter(r => r.error);
@@ -267,90 +423,165 @@ function updateResultsCounters() {
         errors: errorResults.length
     };
 
-    document.getElementById('countExcellent').textContent = counts.excellent;
-    document.getElementById('countGood').textContent = counts.good;
-    document.getElementById('countMedium').textContent = counts.medium;
-    document.getElementById('countBad').textContent = counts.bad;
-    
-    // Ajouter un compteur d'erreurs si nécessaire
-    let errorCounter = document.getElementById('countErrors');
-    if (!errorCounter) {
-        const resultsSummary = document.querySelector('.results-summary');
-        if (resultsSummary) {
-            resultsSummary.innerHTML += `<span class="result-error">❌ Erreurs: <span id="countErrors">0</span></span>`;
-            errorCounter = document.getElementById('countErrors');
-        }
-    }
-    if (errorCounter) {
-        errorCounter.textContent = counts.errors;
-    }
-}
-
-// Ajouter les styles pour les erreurs
-const enhancedCSS = `
-.result-error { color: #e74c3c; font-weight: bold; }
-.log-not-found { color: #95a5a6; font-style: italic; }
-.log-api-limit { color: #e67e22; font-weight: bold; }
-.log-timeout { color: #d35400; }
-`;
-
-// Injecter le CSS supplémentaire
-const enhancedStyle = document.createElement('style');
-enhancedStyle.textContent = enhancedCSS;
-document.head.appendChild(enhancedStyle);
-
-// Fonction pour filtrer les entreprises problématiques avant l'analyse
-function filterCompaniesBeforeAnalysis(companies) {
-    return companies.filter(company => {
-        // Exclure les symboles vides ou invalides
-        if (!company.symbol || company.symbol.length === 0) return false;
-        
-        // Exclure les symboles trop courts (potentiellement invalides)
-        if (company.symbol.length < 2) return false;
-        
-        // Exclure les symboles avec caractères spéciaux (ajuster selon votre API)
-        if (!/^[A-Z0-9.-]+$/.test(company.symbol)) return false;
-        
-        return true;
+    // Mettre à jour les compteurs
+    ['countExcellent', 'countGood', 'countMedium', 'countBad', 'countErrors'].forEach(id => {
+        const element = document.getElementById(id);
+        if (element) element.textContent = counts[id.replace('count', '').toLowerCase()] || 0;
     });
 }
 
-// Modifier startAutoAnalysis pour inclure le filtrage
-async function startAutoAnalysis() {
-    if (allCompaniesData.length === 0) {
-        alert('Veuillez d\'abord charger les entreprises');
-        return;
-    }
-
-    // Filtrer les entreprises avant analyse
-    const filteredCompanies = filterCompaniesBeforeAnalysis(allCompaniesData);
+function stopAutoAnalysis() {
+    isAnalyzing = false;
+    addToAnalysisLog('SYSTEM', '⏹️ Analyse arrêtée par l utilisateur', 'warning');
     
-    if (filteredCompanies.length === 0) {
-        alert('Aucune entreprise valide à analyser');
-        return;
+    const progressHeader = document.querySelector('#autoAnalysisProgress .progress-header h3');
+    if (progressHeader) {
+        progressHeader.textContent = '🔍 Analyse Arrêtée';
     }
+}
 
-    const originalCount = allCompaniesData.length;
-    const filteredCount = filteredCompanies.length;
+function finishAutoAnalysis() {
+    isAnalyzing = false;
+    addToAnalysisLog('SYSTEM', '✅ Analyse terminée !', 'success');
     
-    if (filteredCount < originalCount) {
-        if (!confirm(`${originalCount - filteredCount} entreprises ont été exclues (symboles invalides).\nAnalyser les ${filteredCount} entreprises restantes ?`)) {
-            return;
-        }
-    } else {
-        if (!confirm(`Voulez-vous analyser ${filteredCount} entreprises ? Cela peut prendre plusieurs minutes.`)) {
-            return;
-        }
+    const progressHeader = document.querySelector('#autoAnalysisProgress .progress-header h3');
+    if (progressHeader) {
+        progressHeader.textContent = '✅ Analyse Terminée';
     }
 
-    // Préparer la file d'attente avec les entreprises filtrées
-    analysisQueue = filteredCompanies;
-    currentAnalysisIndex = 0;
-    analysisResults = [];
+    // Résumé final
+    const excellent = analysisResults.filter(r => r.recommendation === 'EXCELLENT').length;
+    const good = analysisResults.filter(r => r.recommendation === 'BON').length;
+    const medium = analysisResults.filter(r => r.recommendation === 'MOYEN').length;
+    const bad = analysisResults.filter(r => r.recommendation === 'FAIBLE').length;
+    const errors = analysisResults.filter(r => r.error).length;
 
-    // Créer l'interface de progression
-    createAnalysisProgressUI();
+    setTimeout(() => {
+        alert(`🎉 Analyse terminée !\n\n✅ Excellent: ${excellent}\n👍 Bon: ${good}\n⚠️ Moyen: ${medium}\n❌ Faible: ${bad}\n🚫 Erreurs: ${errors}\n\nTotal: ${analysisResults.length} entreprises analysées`);
+    }, 1000);
+}
 
-    // Démarrer l'analyse
-    await processNextCompany();
+function getRecommendationClass(recommendation) {
+    const classes = {
+        'EXCELLENT': 'excellent',
+        'BON': 'good', 
+        'MOYEN': 'medium',
+        'FAIBLE': 'bad'
+    };
+    return classes[recommendation] || 'info';
+}
+
+// =============================================================================
+// STYLES
+// =============================================================================
+
+function injectAutoAnalyzerStyles() {
+    const styles = `
+        .auto-analysis-progress {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            padding: 20px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            z-index: 10000;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #f0f0f0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4CAF50, #45a049);
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            display: flex;
+            justify-content: space-between;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+
+        .results-summary {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 15px 0;
+            font-size: 14px;
+        }
+
+        .result-excellent { color: #27ae60; }
+        .result-good { color: #3498db; }
+        .result-medium { color: #f39c12; }
+        .result-bad { color: #e74c3c; }
+        .result-error { color: #e74c3c; font-weight: bold; }
+
+        .analysis-log {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #eee;
+            border-radius: 5px;
+            padding: 10px;
+            margin-top: 15px;
+            font-size: 13px;
+        }
+
+        .log-entry {
+            padding: 5px 0;
+            border-bottom: 1px solid #f5f5f5;
+        }
+
+        .log-excellent { color: #27ae60; }
+        .log-good { color: #3498db; }
+        .log-medium { color: #f39c12; }
+        .log-bad { color: #e74c3c; }
+        .log-error { color: #e74c3c; font-weight: bold; }
+        .log-not-found { color: #95a5a6; font-style: italic; }
+        .log-api-limit { color: #e67e22; font-weight: bold; }
+        .log-timeout { color: #d35400; }
+        .log-info { color: #7f8c8d; }
+        .log-success { color: #27ae60; font-weight: bold; }
+        .log-warning { color: #f39c12; }
+
+        .btn-secondary {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .btn-secondary:hover {
+            background: #c0392b;
+        }
+    `;
+    
+    const styleElement = document.createElement('style');
+    styleElement.textContent = styles;
+    document.head.appendChild(styleElement);
 }
