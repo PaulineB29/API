@@ -341,7 +341,7 @@ async function sauvegarderDonneesFinancieres() {
 function displayBasicData() {
     const { profile, quote, balanceSheet, incomeStatement, cashFlow } = currentData;
     
-    document.getElementById('basicData').innerHTML = createBasicDataHTML(profile, quote);
+    document.getElementById('basicData').innerHTML = createBasicDataHTML(profile, quote, incomeStatement);
     document.getElementById('balanceSheetData').innerHTML = createBalanceSheetHTML(balanceSheet);
     document.getElementById('incomeStatementData').innerHTML = createIncomeStatementHTML(incomeStatement);
     document.getElementById('cashFlowData').innerHTML = createCashFlowHTML(cashFlow);
@@ -349,7 +349,15 @@ function displayBasicData() {
 }
 
 function createBasicDataHTML(profile, quote) {
+      const publicationDate = incomeStatement?.date || incomeStatement?.filingDate || 'Date non disponible';
+      const formattedDate = publicationDate !== 'Date non disponible' ? 
+        new Date(publicationDate).toLocaleDateString('fr-FR') : publicationDate;
+    
     return `
+        <div class="data-item publication-date">
+            <span class="data-label">Date de publication:</span>
+            <span class="data-value">${formattedDate}</span>
+        </div>
         <div class="data-item">
             <span class="data-label">Entreprise:</span>
             <span class="data-value">${profile.companyName}</span>
