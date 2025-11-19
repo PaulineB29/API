@@ -64,6 +64,7 @@ router.post('/', async (req, res) => {
       symbol, // ⚠️ SYMBOLE TAPÉ PAR L'UTILISATEUR
       date_analyse,
       periode,
+      date_publication,
       // Profitability metrics
       roe,
       netMargin,
@@ -115,6 +116,7 @@ router.post('/', async (req, res) => {
       entrepriseId, 
       date_analyse || new Date().toISOString().split('T')[0], 
       periode || 'annuel',
+      date_publication || null,
       // Profitability
       parseFloat(roe) || null,
       parseFloat(netMargin) || null,
