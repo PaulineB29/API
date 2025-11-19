@@ -349,7 +349,7 @@ function displayBasicData() {
     displayHistoricalData();
 }
 
-function createBasicDataHTML(profile, quote) {
+function createBasicDataHTML(profile, quote, incomeStatement) {
       const publicationDate = incomeStatement?.date || incomeStatement?.filingDate || 'Date non disponible';
       const formattedDate = publicationDate !== 'Date non disponible' ? 
         new Date(publicationDate).toLocaleDateString('fr-FR') : publicationDate;
