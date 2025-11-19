@@ -214,14 +214,16 @@ async function analyzeSingleCompany(symbol, companyName) {
             score: percentage,
             date: new Date().toISOString(),
             success: true
+            saved: false 
         };
 
         analysisResults.push(result);
 
-        // LIGNE POUR SAUVEGARDER 
-                const saved = await sauvegarderAnalyseAutomatique(metrics, recommendation, companyData);
+        // SAUVEGARDE AUTOMATIQUE
+        const saved = await sauvegarderAnalyseAutomatique(metrics, recommendation, companyData);
         if (saved) {
-            addToAnalysisLog(symbol, `💾 Données sauvegardées dans les 3 tables`, 'success');
+            result.saved = true; // ⭐ MARQUER COMME SAUVEGARDÉ
+            addToAnalysisLog(symbol, `💾 Données sauvegardées`, 'success');
         } else {
             addToAnalysisLog(symbol, `⚠️ Erreur sauvegarde base de données`, 'warning');
         }
@@ -695,19 +697,16 @@ async function sauvegarderDonneesManuellement() {
 
     for (const result of successResults) {
         try {
-            // Ici vous devrez recréer companyData ou le stocker dans analysisResults
-            // Pour l'instant, on va utiliser une version simplifiée
             const saved = await sauvegarderAnalyseManuelle(result);
             
             if (saved) {
-                result.saved = true; // Marquer comme sauvegardé
+                result.saved = true;
                 savedCount++;
                 addToAnalysisLog(result.symbol, `💾 Sauvegarde manuelle OK`, 'success');
             } else {
                 errorCount++;
             }
             
-            // Pause pour éviter de surcharger l'API
             await new Promise(resolve => setTimeout(resolve, 500));
             
         } catch (error) {
@@ -779,6 +778,34 @@ async function sauvegarderAnalyseManuelle(result) {
     }
 }
 
+
+
+// =============================================================================
+// FONCTIONS D'INTERFACE UNIQUES 
+// =============================================================================
+
+function updateProgressUI(company, progress) {
+    const progressFill = document.getElementById('progressFill');
+    const progressText = document.getElementById('progressText');
+    const currentCompany = document.getElementById('currentCompany');
+
+    if (progressFill) progressFill.style.width = `${progress}%`;
+    if (progressText) progressText.textContent = `${currentAnalysisIndex + 1}/${analysisQueue.length}`;
+    if (currentCompany) currentCompany.textContent = `${company.symbol} - ${company.companyName || company.name}`;
+}
+
+function addToAnalysisLog(symbol, message, type = 'info') {
+    const log = document.getElementById('analysisLog');
+    if (!log) return;
+
+    const logEntry = document.createElement('div');
+    logEntry.className = `log-entry log-${type}`;
+    logEntry.innerHTML = `<strong>${symbol}:</strong> ${message}`;
+    
+    log.appendChild(logEntry);
+    log.scrollTop = log.scrollHeight;
+}
+
 function updateResultsCounters() {
     const successResults = analysisResults.filter(r => r.success);
     const errorResults = analysisResults.filter(r => r.error);
@@ -809,47 +836,6 @@ function updateResultsCounters() {
             saveBtn.style.display = 'none';
         }
     }
-}
-
-function updateProgressUI(company, progress) {
-    const progressFill = document.getElementById('progressFill');
-    const progressText = document.getElementById('progressText');
-    const currentCompany = document.getElementById('currentCompany');
-
-    if (progressFill) progressFill.style.width = `${progress}%`;
-    if (progressText) progressText.textContent = `${currentAnalysisIndex + 1}/${analysisQueue.length}`;
-    if (currentCompany) currentCompany.textContent = `${company.symbol} - ${company.companyName || company.name}`;
-}
-
-function addToAnalysisLog(symbol, message, type = 'info') {
-    const log = document.getElementById('analysisLog');
-    if (!log) return;
-
-    const logEntry = document.createElement('div');
-    logEntry.className = `log-entry log-${type}`;
-    logEntry.innerHTML = `<strong>${symbol}:</strong> ${message}`;
-    
-    log.appendChild(logEntry);
-    log.scrollTop = log.scrollHeight;
-}
-
-function updateResultsCounters() {
-    const successResults = analysisResults.filter(r => r.success);
-    const errorResults = analysisResults.filter(r => r.error);
-    
-    const counts = {
-        excellent: successResults.filter(r => r.recommendation === 'EXCELLENT').length,
-        good: successResults.filter(r => r.recommendation === 'BON').length,
-        medium: successResults.filter(r => r.recommendation === 'MOYEN').length,
-        bad: successResults.filter(r => r.recommendation === 'FAIBLE').length,
-        errors: errorResults.length
-    };
-
-    // Mettre à jour les compteurs
-    ['countExcellent', 'countGood', 'countMedium', 'countBad', 'countErrors'].forEach(id => {
-        const element = document.getElementById(id);
-        if (element) element.textContent = counts[id.replace('count', '').toLowerCase()] || 0;
-    });
 }
 
 function stopAutoAnalysis() {
@@ -942,6 +928,48 @@ function injectAutoAnalyzerStyles() {
             border-bottom: 1px solid #eee;
         }
 
+        .header-buttons {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .btn-save {
+            background: #27ae60;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-save:hover {
+            background: #219a52;
+            transform: translateY(-1px);
+        }
+
+        .btn-save:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .btn-secondary:hover {
+            background: #c0392b;
+        }
+
         .progress-bar {
             width: 100%;
             height: 20px;
@@ -1004,98 +1032,8 @@ function injectAutoAnalyzerStyles() {
         .log-info { color: #7f8c8d; }
         .log-success { color: #27ae60; font-weight: bold; }
         .log-warning { color: #f39c12; }
-
-        .btn-secondary {
-            background: #e74c3c;
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 14px;
-        }
-
-        .btn-secondary:hover {
-            background: #c0392b;
-        }
-    `;
-    function injectAutoAnalyzerStyles() {
-    const styles = `
-        .auto-analysis-progress {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: white;
-            border: 2px solid #e1e5e9;
-            border-radius: 10px;
-            padding: 20px;
-            width: 90%;
-            max-width: 600px;
-            max-height: 80vh;
-            overflow-y: auto;
-            z-index: 10000;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-        }
-
-        .progress-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #eee;
-        }
-
-        .header-buttons {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-        }
-
-        .btn-save {
-            background: #27ae60;
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 14px;
-            transition: all 0.3s ease;
-        }
-
-        .btn-save:hover {
-            background: #219a52;
-            transform: translateY(-1px);
-        }
-
-        .btn-save:disabled {
-            background: #95a5a6;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .btn-secondary {
-            background: #e74c3c;
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 14px;
-        }
-
-        .btn-secondary:hover {
-            background: #c0392b;
-        }
-
-        /* ... reste des styles existants ... */
     `;
     
-    const styleElement = document.createElement('style');
-    styleElement.textContent = styles;
-    document.head.appendChild(styleElement);
-}
     const styleElement = document.createElement('style');
     styleElement.textContent = styles;
     document.head.appendChild(styleElement);
