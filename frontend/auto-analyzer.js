@@ -213,7 +213,7 @@ async function analyzeSingleCompany(symbol, companyName) {
             recommendation,
             score: percentage,
             date: new Date().toISOString(),
-            success: true
+            success: true,
             saved: false 
         };
 
