@@ -265,11 +265,13 @@ async function sauvegarderAnalyseAutomatique(metrics, recommendation, companyDat
             // ============================================
             
             // Identifiants et dates
+            entreprise_id: 0 
             symbol: companyData.profile.symbol,
             date_analyse: new Date().toISOString().split('T')[0],
             periode: 'FY',
             date_publication: datePublication,
             score_global: scoreGlobal,
+            recommandation: recommendation,
             
             // METRIQUES DE PROFITABILITÉ (22 colonnes au total)
             roe: metrics.roe,
@@ -290,22 +292,22 @@ async function sauvegarderAnalyseAutomatique(metrics, recommendation, companyDat
             priceToMM200: metrics.priceToMM200,
             dividendYield: metrics.dividendYield,
             pbRatio: metrics.pbRatio,
-            pegRatio: metrics.pegRatio,
+            pegRatio: metrics.pegRatio,  
             evToEbitda: metrics.evToEbitda,
             
             // AUTRES METRIQUES
-            freeCashFlow: metrics.freeCashFlow,
-            
+            freeCashFlow: metrics.freeCashFlow, 
+                        
             // RECOMMANDATION ET ANALYSE
-            recommandation: recommendation,
+            
             points_forts: getStrengthsAuto(metrics).join('; '),
             points_faibles: getWeaknessesAuto(metrics).join('; '),
 
             // ============================================
             // POUR CRÉER L'ENTREPRISE (table entreprises)
             // ============================================
-            entreprise_nom: companyData.profile.companyName,
             entreprise_symbole: companyData.profile.symbol,
+            entreprise_nom: companyData.profile.companyName,
             secteur: companyData.profile.sector || 'Non spécifié',
             industrie: companyData.profile.industry || 'Non spécifié',
 
@@ -313,52 +315,66 @@ async function sauvegarderAnalyseAutomatique(metrics, recommendation, companyDat
             // POUR LES DONNÉES FINANCIÈRES BRUTES (table donnees_financieres)
             // ============================================
             
-            // DONNÉES DE PRIX ET MARKET CAP
-            prix_actuel: companyData.quote.price,
-            mm_200: companyData.quote.priceAvg200,
+// Identifiants et type
+            donnees_symbole: companyData.profile.symbol,
+            donnees_date: datePublication,
+            donnees_periode: 'FY',
+            donnees_type: 'complet',
+            
+            // Données de prix et market cap
             current_price: companyData.quote.price,
             moving_average_200: companyData.quote.priceAvg200,
             dividend_per_share: companyData.profile.lastDividend,
             market_cap: companyData.quote.marketCap,
 
-            // DONNÉES DE BILAN (balance sheet)
-            tresorerie: companyData.balanceSheet?.cashAndCashEquivalents,
-            cash_equivalents: companyData.balanceSheet?.cashAndCashEquivalents,
+            // Données de bilan (balance sheet) - versions françaises et anglaises
             actifs_courants: companyData.balanceSheet?.totalCurrentAssets,
-            current_assets: companyData.balanceSheet?.totalCurrentAssets,
             passifs_courants: companyData.balanceSheet?.totalCurrentLiabilities,
-            current_liabilities: companyData.balanceSheet?.totalCurrentLiabilities,
             dette_totale: companyData.balanceSheet?.totalDebt,
-            total_debt: companyData.balanceSheet?.totalDebt,
             capitaux_propres: companyData.balanceSheet?.totalStockholdersEquity,
+            tresorerie: companyData.balanceSheet?.cashAndCashEquivalents,
+            net_cash: netCash,
+            
+            // Doublons anglais pour compatibilité
+            current_assets: companyData.balanceSheet?.totalCurrentAssets,
+            current_liabilities: companyData.balanceSheet?.totalCurrentLiabilities,
+            total_debt: companyData.balanceSheet?.totalDebt,
             shareholders_equity: companyData.balanceSheet?.totalStockholdersEquity,
-            net_cash: (companyData.balanceSheet?.cashAndCashEquivalents || 0) - (companyData.balanceSheet?.totalDebt || 0),
+            cash_equivalents: companyData.balanceSheet?.cashAndCashEquivalents,
 
-            // DONNÉES DE COMPTE DE RÉSULTAT (income statement)
+            // Données de compte de résultat (income statement) - versions françaises et anglaises
             revenus: companyData.incomeStatement?.revenue,
-            revenue: companyData.incomeStatement?.revenue,
             ebit: companyData.incomeStatement?.operatingIncome,
             ebitda: companyData.incomeStatement?.ebitda,
             benefice_net: companyData.incomeStatement?.netIncome,
-            net_income: companyData.incomeStatement?.netIncome,
             frais_financiers: Math.abs(companyData.incomeStatement?.interestExpense || 0),
-            interest_expense: Math.abs(companyData.incomeStatement?.interestExpense || 0),
             bpa: companyData.incomeStatement?.eps,
+            
+            // Doublons anglais pour compatibilité
+            revenue: companyData.incomeStatement?.revenue,
+            net_income: companyData.incomeStatement?.netIncome,
+            interest_expense: Math.abs(companyData.incomeStatement?.interestExpense || 0),
             eps: companyData.incomeStatement?.eps,
 
-            // DONNÉES DE CASH FLOW
+            // Données de cash flow - versions françaises et anglaises
             cash_flow_operationnel: companyData.cashFlow?.operatingCashFlow,
-            operating_cash_flow: companyData.cashFlow?.operatingCashFlow,
             free_cash_flow: companyData.cashFlow?.freeCashFlow,
             capex: Math.abs(companyData.cashFlow?.capitalExpenditure || 0),
-
-            // TYPE DE DONNÉES (important pour donnees_financieres)
-            type_donnee: 'complet'
+            
+            // Doublons anglais pour compatibilité
+            operating_cash_flow: companyData.cashFlow?.operatingCashFlow
         };
 
-        console.log(`📤 Envoi de ${Object.keys(analyseData).length} champs pour ${companyData.profile.symbol}...`);
-
-        // VÉRIFICATION : Afficher les données envoyées (pour debug)
+       // VÉRIFICATION : Afficher les données envoyées (pour debug)
+        console.log(`📤 Envoi des données pour ${companyData.profile.symbol}...`);
+        console.log(`📊 Résumé données financières:`, {
+            prix: analyseData.current_price,
+            revenue: analyseData.revenue,
+            benefice: analyseData.benefice_net,
+            cash_flow: analyseData.free_cash_flow,
+            market_cap: analyseData.market_cap
+        });
+     
         console.log('🔍 Données envoyées:', {
             symbol: analyseData.symbol,
             metriques: Object.keys(metrics).length,
@@ -369,8 +385,15 @@ async function sauvegarderAnalyseAutomatique(metrics, recommendation, companyDat
                 revenue: analyseData.revenue,
                 benefice: analyseData.benefice_net,
                 cash_flow: analyseData.free_cash_flow
-            }
-        });
+             }  
+    
+console.log(`🏢 Données entreprise:`, {
+            symbole: analyseData.entreprise_symbole,
+            nom: analyseData.entreprise_nom,
+            secteur: analyseData.entreprise_secteur,
+            industrie: analyseData.entreprise_industrie
+            });
+        
 
         // ENVOI VERS L'API
         const response = await fetch('https://api-u54u.onrender.com/api/analyses', {
