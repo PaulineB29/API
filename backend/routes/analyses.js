@@ -61,6 +61,59 @@ async function trouverOuCreerEntreprise(symbol) {
   return entrepriseId;
 }
 
+// Créer/mettre à jour entreprise seule
+router.post('/entreprise', async (req, res) => {
+  try {
+    console.log('🏢 REQUÊTE CRÉATION ENTREPRISE REÇUE');
+    
+    const { symbol, nom, secteur, industrie } = req.body;
+
+    console.log('📦 Données entreprise reçues:', { symbol, nom, secteur, industrie });
+
+    if (!symbol || symbol.trim() === '') {
+      return res.status(400).json({
+        success: false,
+        message: 'Le symbole est obligatoire'
+      });
+    }
+
+    const symbolClean = symbol.trim().toUpperCase();
+    
+    // Créer ou mettre à jour l'entreprise
+    const entrepriseResult = await query(
+      `INSERT INTO entreprises (symbole, nom, secteur, industrie, created_at) 
+       VALUES ($1, $2, $3, $4, $5)
+       ON CONFLICT (symbole) 
+       DO UPDATE SET nom = $2, secteur = $3, industrie = $4
+       RETURNING id, symbole, nom, secteur, industrie`,
+      [
+        symbolClean, 
+        nom || symbolClean, 
+        secteur || 'Non spécifié', 
+        industrie || 'Non spécifié',
+        new Date()
+      ]
+    );
+
+    const entreprise = entrepriseResult.rows[0];
+    console.log('✅ Entreprise créée/mise à jour:', entreprise);
+
+    res.json({
+      success: true,
+      message: 'Entreprise créée/mise à jour avec succès',
+      entreprise: entreprise
+    });
+
+  } catch (error) {
+    console.error('❌ Erreur création entreprise:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur création entreprise',
+      error: error.message
+    });
+  }
+});
+
 // Sauvegarder une analyse Buffett
 router.post('/', async (req, res) => {
   try {
