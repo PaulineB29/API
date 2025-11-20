@@ -208,7 +208,7 @@ router.post('/', async (req, res) => {
 
     const analyseResult = await query(
       `INSERT INTO analyses_buffett (
-          entreprise_id, date_analyse, periode, 
+          entreprise_id, date_analyse, periode, date_publication,
           roe, "netMargin", "grossMargin", "sgaMargin", roic,
           "debtToEquity", "currentRatio", "interestCoverage",
           "peRatio", "earningsYield", "priceToFCF", "priceToMM200", 
@@ -216,7 +216,7 @@ router.post('/', async (req, res) => {
           score_global, recommandation, points_forts, points_faibles,
           "freeCashFlow"
         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, 
-                  $15, $16, $17, $18, $19, $20, $21, $22, $23, $24) 
+                  $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25) 
         RETURNING id`,
         valeurs
       );
@@ -246,7 +246,7 @@ router.post('/donnees-financieres', async (req, res) => {
     console.log('💾 REQUÊTE DONNÉES FINANCIÈRES REÇUE');
     
     const {
-      symbol, // ⚠️ SYMBOLE TAPÉ PAR L'UTILISATEUR
+      symbol,  
       date_import,
       currentPrice,
       movingAverage200,
