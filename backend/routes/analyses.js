@@ -1,5 +1,6 @@
 import express from 'express';
 import { query } from '../database.js';
+import cors from 'cors';
 
 const router = express.Router();
 
