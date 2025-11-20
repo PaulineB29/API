@@ -4,6 +4,12 @@ import cors from 'cors';
 
 const router = express.Router();
 
+// MIDDLEWARE CORS
+router.use(cors({
+    origin: ['https://paulineb29.github.io', 'http://localhost:3000'],
+    credentials: true
+}));
+
 // Fonction utilitaire pour trouver ou créer une entreprise
 async function trouverOuCreerEntreprise(symbol) {
   console.log('🏢 Recherche entreprise:', symbol);
