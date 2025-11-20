@@ -10,57 +10,6 @@ router.use(cors({
     credentials: true
 }));
 
-// Fonction utilitaire pour trouver ou créer une entreprise
-async function trouverOuCreerEntreprise(symbol) {
-  console.log('🏢 Recherche entreprise:', symbol);
-  
-  // Validation du symbole
-  if (!symbol || symbol.trim() === '') {
-    throw new Error('Symbole invalide');
-  }
-
-  const symbolClean = symbol.trim().toUpperCase();
-  
-  // D'abord, essayer de trouver l'entreprise
-  let entrepriseResult = await query(
-    'SELECT id, symbole, nom FROM entreprises WHERE symbole = $1',
-    [symbolClean]
-  );
-
-  if (entrepriseResult.rows.length > 0) {
-    const entreprise = entrepriseResult.rows[0];
-    console.log('✅ Entreprise existante trouvée:', { 
-      id: entreprise.id, 
-      symbole: entreprise.symbole
-    });
-    return entreprise.id;
-  }
-
-  // Créer l'entreprise si elle n'existe pas
-  console.log('➕ Création nouvelle entreprise...');
-  
-  // ⚠️ IMPORTANT: Utiliser le SYMBOLE TAPÉ par l'utilisateur comme nom aussi
-  const nouvelleEntreprise = await query(
-    `INSERT INTO entreprises (symbole, nom, secteur, industrie, created_at) 
-     VALUES ($1, $2, $3, $4, $5) RETURNING id`,
-    [
-      symbolClean,           // symbole exact de l'utilisateur
-      symbolClean,           // ⚠️ MÊME CHOSE pour le nom (symbole utilisateur)
-      'Non spécifié', 
-      'Non spécifié',
-      new Date() 
-    ]
-  );
-  
-  const entrepriseId = nouvelleEntreprise.rows[0].id;
-  console.log('✅ Nouvelle entreprise créée:', { 
-    id: entrepriseId, 
-    symbole: symbolClean 
-  });
-  
-  return entrepriseId;
-}
-
 // Créer/mettre à jour entreprise seule
 router.post('/entreprise', async (req, res) => {
   try {
@@ -113,6 +62,59 @@ router.post('/entreprise', async (req, res) => {
     });
   }
 });
+
+// Fonction utilitaire pour trouver ou créer une entreprise
+async function trouverOuCreerEntreprise(symbol) {
+  console.log('🏢 Recherche entreprise:', symbol);
+  
+  // Validation du symbole
+  if (!symbol || symbol.trim() === '') {
+    throw new Error('Symbole invalide');
+  }
+
+  const symbolClean = symbol.trim().toUpperCase();
+  
+  // D'abord, essayer de trouver l'entreprise
+  let entrepriseResult = await query(
+    'SELECT id, symbole, nom FROM entreprises WHERE symbole = $1',
+    [symbolClean]
+  );
+
+  if (entrepriseResult.rows.length > 0) {
+    const entreprise = entrepriseResult.rows[0];
+    console.log('✅ Entreprise existante trouvée:', { 
+      id: entreprise.id, 
+      symbole: entreprise.symbole
+    });
+    return entreprise.id;
+  }
+
+  // Créer l'entreprise si elle n'existe pas
+  console.log('➕ Création nouvelle entreprise...');
+  
+  // ⚠️ IMPORTANT: Utiliser le SYMBOLE TAPÉ par l'utilisateur comme nom aussi
+  const nouvelleEntreprise = await query(
+    `INSERT INTO entreprises (symbole, nom, secteur, industrie, created_at) 
+     VALUES ($1, $2, $3, $4, $5) RETURNING id`,
+    [
+      symbolClean,           // symbole exact de l'utilisateur
+      symbolClean,           // ⚠️ MÊME CHOSE pour le nom (symbole utilisateur)
+      'Non spécifié', 
+      'Non spécifié',
+      new Date() 
+    ]
+  );
+  
+  const entrepriseId = nouvelleEntreprise.rows[0].id;
+  console.log('✅ Nouvelle entreprise créée:', { 
+    id: entrepriseId, 
+    symbole: symbolClean 
+  });
+  
+  return entrepriseId;
+}
+
+
 
 // Sauvegarder une analyse Buffett
 router.post('/', async (req, res) => {
