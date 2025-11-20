@@ -247,10 +247,9 @@ async function analyzeSingleCompany(symbol, companyName) {
 async function sauvegarderAnalyseAutomatique(metrics, recommendation, companyData) {
     try {
         const symbol = companyData.profile.symbol;
-        console.log(`💾 Sauvegarde COMPLÈTE de ${companyData.profile.symbol}...`);
+        console.log(`💾 Sauvegarde COMPLÈTE de ${symbol}...`);
 
         const datePublication = companyData.incomeStatement?.date || 
-                               companyData.incomeStatement?.filingDate || 
                                new Date().toISOString().split('T')[0];
 
         // CALCUL DU SCORE GLOBAL
@@ -263,204 +262,181 @@ async function sauvegarderAnalyseAutomatique(metrics, recommendation, companyDat
         const netCash = (companyData.balanceSheet?.cashAndCashEquivalents || 0) - 
                        (companyData.balanceSheet?.totalDebt || 0);
 
-        // DONNÉES COMPLÈTES POUR LES 3 TABLES
-        
-            // ============================================
-            // POUR CRÉER L'ENTREPRISE (table entreprises)
-            // ============================================
-            console.log('🏢 Création entreprise...');
-            try {
-                await fetch('https://api-u54u.onrender.com/api/analyses/entreprise', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        symbol: symbol,
-                        nom: companyData.profile.companyName,
-                        secteur: companyData.profile.sector || 'Non spécifié',
-                        industrie: companyData.profile.industry || 'Non spécifié'
-                    })
-                });
-                console.log('✅ Entreprise créée/mise à jour');
-            } catch (error) {
-                console.log('⚠️ Endpoint entreprise non disponible, continuation...');
+        // ============================================
+        // 1. CRÉATION ENTREPRISE
+        // ============================================
+        console.log('🏢 Création entreprise...');
+        try {
+            const responseEntreprise = await fetch('https://api-u54u.onrender.com/api/analyses/entreprise', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    symbol: symbol,
+                    nom: companyData.profile.companyName,
+                    secteur: companyData.profile.sector || 'Non spécifié',
+                    industrie: companyData.profile.industry || 'Non spécifié'
+                })
+            });
+
+            if (!responseEntreprise.ok) {
+                const errorText = await responseEntreprise.text();
+                throw new Error(`Erreur entreprise: HTTP ${responseEntreprise.status}: ${errorText}`);
             }
-        
-        
-            // ============================================
-            // POUR LA TABLE analyses_buffett (TOUTES les colonnes)
-            // ============================================
-            const analyseData = {
-                // Identifiants et dates
-                symbol: companyData.profile.symbol,
-                date_analyse: new Date().toISOString().split('T')[0],
-                periode: 'FY',
-                date_publication: datePublication,
-                score_global: scoreGlobal,
-                recommandation: recommendation,
-                
-                // METRIQUES DE PROFITABILITÉ (22 colonnes au total)
-                roe: metrics.roe,
-                netMargin: metrics.netMargin,
-                grossMargin: metrics.grossMargin,
-                sgaMargin: metrics.sgaMargin,
-                roic: metrics.roic,
-                
-                // METRIQUES DE SÉCURITÉ
-                debtToEquity: metrics.debtToEquity,
-                currentRatio: metrics.currentRatio,
-                interestCoverage: metrics.interestCoverage,
-                
-                // METRIQUES DE VALUATION
-                peRatio: metrics.peRatio,
-                earningsYield: metrics.earningsYield,
-                priceToFCF: metrics.priceToFCF,
-                priceToMM200: metrics.priceToMM200,
-                dividendYield: metrics.dividendYield,
-                pbRatio: metrics.pbRatio,
-                pegRatio: metrics.pegRatio,  
-                evToEbitda: metrics.evToEbitda,
-                
-                // AUTRES METRIQUES
-                freeCashFlow: metrics.freeCashFlow, 
-                            
-                // RECOMMANDATION ET ANALYSE
-                
-                points_forts: getStrengthsAuto(metrics).join('; '),
-                points_faibles: getWeaknessesAuto(metrics).join('; '),
-     };
-           
-            // ============================================
-            // POUR LES DONNÉES FINANCIÈRES BRUTES (table donnees_financieres)
-            // ============================================
-            const donneesData = {
-                // Identifiants et type
-                symbol: symbol,
-                donnees_date: datePublication,
-                donnees_periode: 'FY',
-                donnees_type: 'complet',
-                
-                // Données de prix et market cap
-                current_price: companyData.quote.price,
-                moving_average_200: companyData.quote.priceAvg200,
-                dividend_per_share: companyData.profile.lastDividend,
-                market_cap: companyData.quote.marketCap,
-    
-                // Données de bilan (balance sheet) - versions françaises et anglaises
-                actifs_courants: companyData.balanceSheet?.totalCurrentAssets,
-                passifs_courants: companyData.balanceSheet?.totalCurrentLiabilities,
-                dette_totale: companyData.balanceSheet?.totalDebt,
-                capitaux_propres: companyData.balanceSheet?.totalStockholdersEquity,
-                tresorerie: companyData.balanceSheet?.cashAndCashEquivalents,
-                net_cash: netCash,
-                
-                // Doublons anglais pour compatibilité
-                current_assets: companyData.balanceSheet?.totalCurrentAssets,
-                current_liabilities: companyData.balanceSheet?.totalCurrentLiabilities,
-                total_debt: companyData.balanceSheet?.totalDebt,
-                shareholders_equity: companyData.balanceSheet?.totalStockholdersEquity,
-                cash_equivalents: companyData.balanceSheet?.cashAndCashEquivalents,
-    
-                // Données de compte de résultat (income statement) - versions françaises et anglaises
-                revenus: companyData.incomeStatement?.revenue,
-                ebit: companyData.incomeStatement?.operatingIncome,
-                ebitda: companyData.incomeStatement?.ebitda,
-                benefice_net: companyData.incomeStatement?.netIncome,
-                frais_financiers: Math.abs(companyData.incomeStatement?.interestExpense || 0),
-                bpa: companyData.incomeStatement?.eps,
-                
-                // Doublons anglais pour compatibilité
-                revenue: companyData.incomeStatement?.revenue,
-                net_income: companyData.incomeStatement?.netIncome,
-                interest_expense: Math.abs(companyData.incomeStatement?.interestExpense || 0),
-                eps: companyData.incomeStatement?.eps,
-    
-                // Données de cash flow - versions françaises et anglaises
-                cash_flow_operationnel: companyData.cashFlow?.operatingCashFlow,
-                free_cash_flow: companyData.cashFlow?.freeCashFlow,
-                capex: Math.abs(companyData.cashFlow?.capitalExpenditure || 0),
-                
-                // Doublons anglais pour compatibilité
-                operating_cash_flow: companyData.cashFlow?.operatingCashFlow
-            };
-        
+
+            const resultEntreprise = await responseEntreprise.json();
+            console.log('✅ Entreprise créée/mise à jour:', resultEntreprise.entreprise);
+            
+        } catch (error) {
+            console.log('⚠️ Endpoint entreprise non disponible, continuation...', error.message);
+        }
+
+        // ============================================
+        // 2. DONNÉES POUR ANALYSES_BUFFETT
+        // ============================================
+        const analyseData = {
+            // Identifiants et dates
+            symbol: symbol,
+            date_analyse: new Date().toISOString().split('T')[0],
+            periode: 'FY',
+            date_publication: datePublication,
+            score_global: scoreGlobal,
+            recommandation: recommendation,
+            
+            // Métriques de profitabilité
+            roe: metrics.roe,
+            netMargin: metrics.netMargin,
+            grossMargin: metrics.grossMargin,
+            sgaMargin: metrics.sgaMargin,
+            roic: metrics.roic,
+            
+            // Métriques de sécurité
+            debtToEquity: metrics.debtToEquity,
+            currentRatio: metrics.currentRatio,
+            interestCoverage: metrics.interestCoverage,
+            
+            // Métriques de valuation
+            peRatio: metrics.peRatio,
+            earningsYield: metrics.earningsYield,
+            priceToFCF: metrics.priceToFCF,
+            priceToMM200: metrics.priceToMM200,
+            dividendYield: metrics.dividendYield,
+            pbRatio: metrics.pbRatio,
+            pegRatio: metrics.pegRatio,  
+            evToEbitda: metrics.evToEbitda,
+            
+            // Autres métriques
+            freeCashFlow: metrics.freeCashFlow, 
+                        
+            // Recommandation et analyse
+            points_forts: getStrengthsAuto(metrics).join('; '),
+            points_faibles: getWeaknessesAuto(metrics).join('; ')
+        };
+
+        // ============================================
+        // 3. DONNÉES POUR DONNEES_FINANCIERES
+        // ============================================
+        const donneesData = {
+            // ⚠️ IMPORTANT: Utiliser les noms EXACTS attendus par votre backend
+            symbol: symbol,
+            date_import: new Date().toISOString().split('T')[0],
+            
+            // Données de prix et market cap (noms anglais comme backend)
+            currentPrice: companyData.quote.price,
+            movingAverage200: companyData.quote.priceAvg200,
+            dividendPerShare: companyData.profile.lastDividend,
+            marketCap: companyData.quote.marketCap,
+
+            // Données de bilan
+            cashEquivalents: companyData.balanceSheet?.cashAndCashEquivalents,
+            currentAssets: companyData.balanceSheet?.totalCurrentAssets,
+            currentLiabilities: companyData.balanceSheet?.totalCurrentLiabilities,
+            totalDebt: companyData.balanceSheet?.totalDebt,
+            shareholdersEquity: companyData.balanceSheet?.totalStockholdersEquity,
+            netCash: netCash,
+
+            // Données de compte de résultat
+            revenue: companyData.incomeStatement?.revenue,
+            ebit: companyData.incomeStatement?.operatingIncome,
+            ebitda: companyData.incomeStatement?.ebitda,
+            netIncome: companyData.incomeStatement?.netIncome,
+            eps: companyData.incomeStatement?.eps,
+            interestExpense: Math.abs(companyData.incomeStatement?.interestExpense || 0),
+
+            // Données de cash flow
+            operatingCashFlow: companyData.cashFlow?.operatingCashFlow,
+            freeCashFlow: companyData.cashFlow?.freeCashFlow
+        };
+
         // ============================================
         // VÉRIFICATION DES DONNÉES
         // ============================================
-       
-            console.log(`📤 Envoi des données pour ${symbol}...`);
-            
-            console.log('🔍 Données analyse Buffett:', {
-                symbol: analyseData.symbol,
-                metriques: Object.keys(metrics).length,
-                recommendation: analyseData.recommandation,
-                score_global: analyseData.score_global
-            });
-    
-            console.log('📊 Données financières brutes:', {
-                prix: donneesData.currentPrice,
-                revenue: donneesData.revenue,
-                benefice: donneesData.netIncome,
-                cash_flow: donneesData.freeCashFlow,
-                market_cap: donneesData.marketCap
-            });
-    
-            console.log('🏢 Données entreprise:', {
-                symbole: symbol,
-                nom: companyData.profile.companyName,
-                secteur: companyData.profile.sector,
-                industrie: companyData.profile.industry
-            });
+        console.log(`📤 Envoi des données pour ${symbol}...`);
         
+        console.log('🔍 Données analyse Buffett:', {
+            symbol: analyseData.symbol,
+            metriques: Object.keys(metrics).length,
+            recommendation: analyseData.recommandation,
+            score_global: analyseData.score_global
+        });
 
-            // ============================================
-            // 4. ENVOI DES DONNÉES
-            // ============================================
-            // A. Sauvegarder l'analyse Buffett
-                console.log('💾 Envoi analyse Buffett...');
-                const responseAnalyse = await fetch('https://api-u54u.onrender.com/api/analyses', {
-                    method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(analyseData)
-                });
+        console.log('📊 Données financières brutes:', {
+            prix: donneesData.currentPrice,
+            revenue: donneesData.revenue,
+            benefice: donneesData.netIncome,
+            cash_flow: donneesData.freeCashFlow,
+            market_cap: donneesData.marketCap
+        });
 
-                if (!responseAnalyse.ok) {
-                    const errorText = await responseAnalyse.text();
-                    throw new Error(`Erreur analyse: HTTP ${responseAnalyse.status}: ${errorText}`);
-                }
+        // ============================================
+        // 4. ENVOI DES DONNÉES ANALYSE ET FINANCIÈRES
+        // ============================================
 
-                const resultAnalyse = await responseAnalyse.json();
-                console.log('✅ Analyse Buffett sauvegardée:', resultAnalyse.id);
+        // A. Sauvegarder l'analyse Buffett
+        console.log('💾 Envoi analyse Buffett...');
+        const responseAnalyse = await fetch('https://api-u54u.onrender.com/api/analyses', {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(analyseData)
+        });
+
+        if (!responseAnalyse.ok) {
+            const errorText = await responseAnalyse.text();
+            throw new Error(`Erreur analyse: HTTP ${responseAnalyse.status}: ${errorText}`);
+        }
+
+        const resultAnalyse = await responseAnalyse.json();
+        console.log('✅ Analyse Buffett sauvegardée:', resultAnalyse.id);
 
         // B. Sauvegarder les données financières
-            console.log('📊 Envoi données financières...');
-            const responseDonnees = await fetch('https://api-u54u.onrender.com/api/analyses/donnees-financieres', {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(donneesData)
-            });
-    
-            if (!responseDonnees.ok) {
-                const errorText = await responseDonnees.text();
-                throw new Error(`Erreur données financières: HTTP ${responseDonnees.status}: ${errorText}`);
-            }
-    
-            const resultDonnees = await responseDonnees.json();
-            console.log('✅ Données financières sauvegardées:', resultDonnees.id);
+        console.log('📊 Envoi données financières...');
+        const responseDonnees = await fetch('https://api-u54u.onrender.com/api/analyses/donnees-financieres', {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(donneesData)
+        });
+
+        if (!responseDonnees.ok) {
+            const errorText = await responseDonnees.text();
+            throw new Error(`Erreur données financières: HTTP ${responseDonnees.status}: ${errorText}`);
+        }
+
+        const resultDonnees = await responseDonnees.json();
+        console.log('✅ Données financières sauvegardées:', resultDonnees.id);
 
         // SUCCÈS COMPLET
-            addToAnalysisLog(companyData.profile.symbol, `💾 Sauvegardé (ID: ${resultAnalyse.id})`, 'success');
-            return true;
-    
-          } catch (error) {
-            console.error(`❌ Erreur sauvegarde ${companyData.profile.symbol}:`, error);
-            addToAnalysisLog(companyData.profile.symbol, `❌ ${error.message}`, 'error');
-            return false;
-        }
-        }
+        addToAnalysisLog(symbol, `💾 Sauvegardé (Analyse: ${resultAnalyse.id}, Données: ${resultDonnees.id})`, 'success');
+        return true;
+
+    } catch (error) {
+        console.error(`❌ Erreur sauvegarde ${companyData.profile.symbol}:`, error);
+        addToAnalysisLog(companyData.profile.symbol, `❌ ${error.message}`, 'error');
+        return false;
+    }
+}
 
 // CALCUL DES POINTS FORTS/FAIBLES AMÉLIORÉ
 function getStrengthsAuto(metrics) {
