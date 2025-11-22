@@ -277,8 +277,9 @@ async function analyzeSingleCompanyOptimized(symbol, companyName) {
             )
         );
 
+        // CORRECTION: Utiliser validation.profile au lieu de profile[0] qui n'existe pas
         const companyData = {
-            profile: profile[0],
+            profile: validation.profile, // ← CORRIGÉ ICI
             quote: quote?.[0] || {},
             cashFlow: cashFlow?.[0],
             incomeStatement: incomeStatement?.[0],
@@ -292,8 +293,10 @@ async function analyzeSingleCompanyOptimized(symbol, companyName) {
 
         // Vérifier les données financières essentielles
         const hasEssentialData = 
+            companyData.incomeStatement && 
             companyData.incomeStatement.revenue > 0 &&
             companyData.incomeStatement.netIncome !== undefined &&
+            companyData.balanceSheet &&
             companyData.balanceSheet.totalAssets > 0;
 
         if (!hasEssentialData) {
@@ -303,7 +306,7 @@ async function analyzeSingleCompanyOptimized(symbol, companyName) {
         // Étape 3: Calcul des métriques
         const metrics = await calculateMetricsInWorker(companyData);
         
-          // Validation des métriques calculées
+        // Validation des métriques calculées
         const essentialMetrics = ['roe', 'roa', 'netMargin', 'debtToEquity', 'peRatio'];
         const validEssentialMetrics = essentialMetrics.filter(metric => 
             metrics[metric] !== null && metrics[metric] !== undefined
@@ -348,6 +351,12 @@ async function analyzeSingleCompanyOptimized(symbol, companyName) {
             });
 
         const logClass = getRecommendationClass(recommendation);
+        
+        // CORRECTION: Calculer validMetricsCount correctement
+        const validMetricsCount = Object.values(metrics).filter(val => 
+            val !== null && val !== undefined
+        ).length;
+        
         addToAnalysisLog(symbol, `${recommendation} (${percentage.toFixed(0)}%) - ${validMetricsCount} métriques`, logClass);
 
         return result;
@@ -355,6 +364,25 @@ async function analyzeSingleCompanyOptimized(symbol, companyName) {
     } catch (error) {
         addToAnalysisLog(symbol, `❌ ${error.message}`, 'error');
         throw error;
+    }
+}
+
+// =============================================================================
+// FONCTION TOGGLE PAUSE MANQUANTE 
+// =============================================================================
+
+function togglePauseAnalysis() {
+    isAnalyzing = !isAnalyzing;
+    const pauseBtn = document.getElementById('pauseAnalysis');
+    
+    if (isAnalyzing) {
+        pauseBtn.innerHTML = '⏸️ Pause';
+        pauseBtn.className = 'btn-secondary';
+        addToAnalysisLog('SYSTEM', '▶️ Analyse reprise', 'info');
+    } else {
+        pauseBtn.innerHTML = '▶️ Reprendre';
+        pauseBtn.className = 'btn-primary';
+        addToAnalysisLog('SYSTEM', '⏸️ Analyse en pause', 'warning');
     }
 }
 
@@ -1017,26 +1045,40 @@ async function validateCompanyData(symbol) {
 function stopAutoAnalysis() {
     isAnalyzing = false;
     addToAnalysisLog('SYSTEM', '⏹️ Analyse arrêtée par l utilisateur', 'warning');
+    
+    const progressHeader = document.querySelector('#autoAnalysisProgress .progress-header h3');
+    if (progressHeader) progressHeader.textContent = '🔍 Analyse Arrêtée';
 }
 
 function updateResultsCounters() {
     const successResults = analysisResults.filter(r => r.success);
     const errorResults = analysisResults.filter(r => r.error);
+    const unsavedResults = analysisResults.filter(r => r.success && !r.saved);
     
     const counts = {
         excellent: successResults.filter(r => r.recommendation === 'EXCELLENT').length,
         good: successResults.filter(r => r.recommendation === 'BON').length,
         medium: successResults.filter(r => r.recommendation === 'MOYEN').length,
         bad: successResults.filter(r => r.recommendation === 'FAIBLE').length,
-        errors: errorResults.length
+        errors: errorResults.length,
+        unsaved: unsavedResults.length
     };
 
     ['countExcellent', 'countGood', 'countMedium', 'countBad', 'countErrors'].forEach(id => {
         const element = document.getElementById(id);
         if (element) element.textContent = counts[id.replace('count', '').toLowerCase()] || 0;
     });
-}
 
+    const saveBtn = document.getElementById('saveDataBtn');
+    if (saveBtn) {
+        if (counts.unsaved > 0) {
+            saveBtn.style.display = 'block';
+            saveBtn.innerHTML = `💾 Enregistrer (${counts.unsaved})`;
+        } else {
+            saveBtn.style.display = 'none';
+        }
+    }
+}
 function finishAutoAnalysis() {
     isAnalyzing = false;
     addToAnalysisLog('SYSTEM', '✅ Analyse terminée !', 'success');
