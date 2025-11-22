@@ -8,15 +8,6 @@ let currentAnalysisIndex = 0;
 let analysisResults = [];
 let isAnalyzing = false;
 
-// Configuration haute performance
-const PERFORMANCE_CONFIG = {
-    BATCH_SIZE: 12,              // ~300 appels/minute (12 * 25 = 300)
-    DELAY_BETWEEN_BATCHES: 2400, // 2.4s entre les lots
-    REQUEST_TIMEOUT: 10000,      // 10s max par requête
-    MAX_CONCURRENT_REQUESTS: 8   // Limite de requêtes simultanées
-};
-
-
 console.log('📊 AutoAnalyzer chargé - Prêt pour l analyse automatique');
 
 // Initialisation
@@ -45,7 +36,7 @@ function addAutoAnalysisButton() {
     } else {
         console.log('⏳ Modal non trouvé, réessai dans 2 secondes...');
         setTimeout(addAutoAnalysisButton, 2000);
-    }
+    }}
 
 // =============================================================================
 // FONCTIONS PRINCIPALES
@@ -183,9 +174,7 @@ async function analyzeSingleCompanyOptimized(symbol, companyName) {
             throw new Error('Données entreprise incomplètes');
         }
 
-        // CALCUL ASYNCHRONE DES MÉTRIQUES
-        const metrics = await calculateMetricsInWorker(companyData);
-        
+               
         // Vérifier si on a suffisamment de métriques valides
         const validMetricsCount = Object.values(metrics).filter(val => val !== null && val !== undefined).length;
         if (validMetricsCount < 10) {
@@ -276,24 +265,7 @@ async function fetchWithErrorHandlingOptimized(endpoint, dataType) {
     }
 }
 
-// =============================================================================
-// CALCUL ASYNCHRONE DES MÉTRIQUES
-// =============================================================================
 
-function calculateMetricsInWorker(companyData) {
-    return new Promise((resolve) => {
-        // Utiliser setTimeout pour libérer le thread principal
-        setTimeout(() => {
-            try {
-                const metrics = calculateCompanyMetricsSafe(companyData);
-                resolve(metrics);
-            } catch (error) {
-                console.error('Erreur calcul métriques:', error);
-                resolve({});
-            }
-        }, 0);
-    });
-}
     
 // =============================================================================
 // FONCTIONS DE CALCUL COMPLÈTES
@@ -593,68 +565,8 @@ function calculateCompanyMetricsSafe(companyData) {
         return emptyMetrics;
     }
 }
-}
 
 
-
-async function processNextCompany() {
-    if (!isAnalyzing || currentAnalysisIndex >= analysisQueue.length) {
-        finishAutoAnalysis();
-        return;
-    }
-
-    const company = analysisQueue[currentAnalysisIndex];
-    const progress = ((currentAnalysisIndex + 1) / analysisQueue.length) * 100;
-
-    // Mettre à jour la progression
-    updateProgressUI(company, progress);
-
-    try {
-        // Analyser cette entreprise
-        await analyzeSingleCompany(company.symbol, company.companyName || company.name);
-        
-    } catch (error) {
-        console.error(`❌ Erreur sur ${company.symbol}:`, error);
-        
-        // Déterminer le type d'erreur
-        let errorMessage = error.message;
-        let errorType = 'error';
-        
-        if (error.message.includes('non trouvé') || error.message.includes('not found') || error.message.includes('404')) {
-            errorMessage = 'Symbole introuvable';
-            errorType = 'not-found';
-        } else if (error.message.includes('quota') || error.message.includes('limit')) {
-            errorMessage = 'Limite API atteinte';
-            errorType = 'api-limit';
-        } else if (error.message.includes('timeout') || error.message.includes('time out')) {
-            errorMessage = 'Timeout - Trop long';
-            errorType = 'timeout';
-        }
-        
-        addToAnalysisLog(company.symbol, `❌ ${errorMessage}`, errorType);
-        
-        // Stocker l'échec dans les résultats
-        analysisResults.push({
-            symbol: company.symbol,
-            companyName: company.companyName || company.name,
-            error: true,
-            errorMessage: errorMessage,
-            date: new Date().toISOString()
-        });
-    }
-
-    // Passer à l'entreprise suivante après un délai
-    currentAnalysisIndex++;
-    
-    // Délai adaptatif selon le type d'erreur
-    let delay = 1000;
-    if (analysisQueue[currentAnalysisIndex - 1]?.errorMessage?.includes('Limite API')) {
-        delay = 5000;
-    }
-    
-    await new Promise(resolve => setTimeout(resolve, delay));
-    await processNextCompany();
-}
 
 // DÉLÉGUER LES CALCULS LOURDS
 function calculateMetricsInWorker(companyData) {
@@ -691,9 +603,7 @@ async function analyzeSingleCompany(symbol, companyName) {
 
         const [profile, quote, cashFlow, incomeStatement, balanceSheet] = 
             await Promise.race([fetchPromise, timeoutPromise]);
-
-         const companyData = { profile, quote, cashFlow, incomeStatement, balanceSheet };
-        
+     
         // OPTIMISATION: Calcul asynchrone des métriques
         const metrics = await calculateMetricsInWorker(companyData);
         
