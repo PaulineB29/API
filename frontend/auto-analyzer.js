@@ -10,14 +10,105 @@ let isAnalyzing = false;
 
 // Configuration haute performance
 const PERFORMANCE_CONFIG = {
-    BATCH_SIZE: 12,
-    DELAY_BETWEEN_BATCHES: 2400,
-    REQUEST_TIMEOUT: 10000,
-    MAX_CONCURRENT_REQUESTS: 8
+    BATCH_SIZE: 6, // Réduit de 12 à 6
+    DELAY_BETWEEN_BATCHES: 3000, // Augmenté à 3 secondes
+    REQUEST_TIMEOUT: 15000,
+    MAX_CONCURRENT_REQUESTS: 4, // Réduit de 8 à 4
+    DELAY_BETWEEN_REQUESTS: 200, // Délai entre chaque requête dans un batch
+    MAX_RETRIES: 3, // Nombre de tentatives en cas d'échec
+    RETRY_DELAY: 1000 // Délai avant retry
 };
 
 console.log('📊 AutoAnalyzer chargé - Prêt pour l analyse automatique');
+// =============================================================================
+// GESTION DU RATE LIMITING
+// =============================================================================
 
+let rateLimitStats = {
+    totalRequests: 0,
+    failedRequests: 0,
+    lastRequestTime: 0,
+    requestsPerMinute: 0
+};
+
+// Fonction améliorée avec gestion du rate limiting
+async function fetchWithRateLimiting(endpoint, dataType, retryCount = 0) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), PERFORMANCE_CONFIG.REQUEST_TIMEOUT);
+
+    try {
+        // Respecter un délai minimum entre les requêtes
+        const now = Date.now();
+        const timeSinceLastRequest = now - rateLimitStats.lastRequestTime;
+        if (timeSinceLastRequest < PERFORMANCE_CONFIG.DELAY_BETWEEN_REQUESTS) {
+            await new Promise(resolve => 
+                setTimeout(resolve, PERFORMANCE_CONFIG.DELAY_BETWEEN_REQUESTS - timeSinceLastRequest)
+            );
+        }
+
+        const separator = endpoint.includes('?') ? '&' : '?';
+        const url = `${BASE_URL}${endpoint}${separator}apikey=${API_KEY}`;
+        
+        rateLimitStats.lastRequestTime = Date.now();
+        rateLimitStats.totalRequests++;
+
+        const response = await fetch(url, { 
+            signal: controller.signal 
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (response.status === 429) {
+            // Rate limit exceeded - wait and retry
+            const retryAfter = response.headers.get('Retry-After') || 60;
+            const waitTime = parseInt(retryAfter) * 1000;
+            
+            addToAnalysisLog('SYSTEM', `⏳ Rate limit atteint, attente de ${waitTime/1000}s...`, 'warning');
+            
+            await new Promise(resolve => setTimeout(resolve, waitTime));
+            
+            if (retryCount < PERFORMANCE_CONFIG.MAX_RETRIES) {
+                return fetchWithRateLimiting(endpoint, dataType, retryCount + 1);
+            } else {
+                throw new Error(`Rate limit après ${PERFORMANCE_CONFIG.MAX_RETRIES} tentatives`);
+            }
+        }
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        if (Array.isArray(data) && data.length === 0) {
+            throw new Error('Aucune donnée disponible');
+        }
+        
+        return data;
+    } catch (error) {
+        clearTimeout(timeoutId);
+        
+        if (error.name === 'AbortError') {
+            throw new Error(`Timeout ${dataType}`);
+        }
+        
+        // Retry pour les erreurs temporaires
+        if (retryCount < PERFORMANCE_CONFIG.MAX_RETRIES && 
+            (error.message.includes('429') || error.message.includes('5'))) {
+            
+            addToAnalysisLog('SYSTEM', `🔄 Nouvelle tentative ${retryCount + 1}/${PERFORMANCE_CONFIG.MAX_RETRIES}`, 'warning');
+            
+            await new Promise(resolve => 
+                setTimeout(resolve, PERFORMANCE_CONFIG.RETRY_DELAY * (retryCount + 1))
+            );
+            
+            return fetchWithRateLimiting(endpoint, dataType, retryCount + 1);
+        }
+        
+        rateLimitStats.failedRequests++;
+        throw error;
+    }
+}
 // Initialisation
 document.addEventListener('DOMContentLoaded', function() {
     setTimeout(initAutoAnalyzer, 2000);
@@ -69,31 +160,48 @@ async function startAutoAnalysis() {
     const originalCount = allCompaniesData.length;
     const filteredCount = filteredCompanies.length;
     
-    if (filteredCount < originalCount) {
-        if (!confirm(`${originalCount - filteredCount} entreprises exclues (symboles invalides).\nAnalyser les ${filteredCount} entreprises restantes ?`)) {
-            return;
-        }
-    } else {
-        if (!confirm(`Voulez-vous analyser ${filteredCount} entreprises ?\nCela peut prendre plusieurs minutes.`)) {
-            return;
-        }
+    // Avertissement sur le temps d'analyse
+    const estimatedTime = Math.ceil((filteredCount * 3) / 60); // ~3 secondes par entreprise
+    const warningMessage = `${originalCount - filteredCount} entreprises exclues (symboles invalides).\n\n` +
+                          `Analyser les ${filteredCount} entreprises restantes ?\n\n` +
+                          `⏰ Temps estimé: ${estimatedTime} minutes\n` +
+                          `📊 Lots: ${Math.ceil(filteredCount / PERFORMANCE_CONFIG.BATCH_SIZE)}\n` +
+                          `⚠️ L'analyse peut être interrompue à tout moment`;
+
+    if (!confirm(warningMessage)) {
+        return;
     }
 
+    // Réinitialiser les statistiques
     analysisQueue = filteredCompanies;
     currentAnalysisIndex = 0;
     analysisResults = [];
     isAnalyzing = true;
+    
+    rateLimitStats = {
+        totalRequests: 0,
+        failedRequests: 0,
+        lastRequestTime: 0,
+        requestsPerMinute: 0
+    };
 
     createAnalysisProgressUI();
-    await processBatchOptimized(analysisQueue, PERFORMANCE_CONFIG.BATCH_SIZE);
-    finishAutoAnalysis();
+    
+    try {
+        await processBatchOptimized(analysisQueue, PERFORMANCE_CONFIG.BATCH_SIZE);
+        finishAutoAnalysis();
+    } catch (error) {
+        console.error('❌ Erreur lors de l analyse:', error);
+        addToAnalysisLog('SYSTEM', `❌ Erreur critique: ${error.message}`, 'error');
+        finishAutoAnalysis();
+    }
 }
 
 // =============================================================================
 // TRAITEMENT PAR LOTS OPTIMISÉ
 // =============================================================================
 
-async function processBatchOptimized(companies, batchSize = 10) {
+async function processBatchOptimized(companies, batchSize = PERFORMANCE_CONFIG.BATCH_SIZE) {
     console.log(`⚡ Démarrage traitement par lots (${batchSize} entreprises/lot)`);
     
     for (let i = 0; i < companies.length && isAnalyzing; i += batchSize) {
@@ -102,21 +210,41 @@ async function processBatchOptimized(companies, batchSize = 10) {
         const totalBatches = Math.ceil(companies.length / batchSize);
         
         console.log(`📦 Lot ${batchNumber}/${totalBatches} (${batch.length} entreprises)`);
+        addToAnalysisLog('SYSTEM', `📦 Lot ${batchNumber}/${totalBatches} (${batch.length} entreprises)`, 'info');
         
-        const batchPromises = batch.map(company => 
-            analyzeSingleCompanyOptimized(company.symbol, company.companyName || company.name)
-                .catch(error => ({
-                    symbol: company.symbol,
-                    error: true,
-                    errorMessage: error.message,
-                    date: new Date().toISOString()
-                }))
-        );
+        // Traiter les entreprises séquentiellement dans le batch pour éviter le rate limiting
+        const batchResults = [];
         
-        const batchResults = await Promise.allSettled(batchPromises);
+        for (const company of batch) {
+            if (!isAnalyzing) break;
+            
+            try {
+                const result = await analyzeSingleCompanyOptimized(company.symbol, company.companyName || company.name);
+                batchResults.push({ status: 'fulfilled', value: result });
+            } catch (error) {
+                batchResults.push({ 
+                    status: 'rejected', 
+                    reason: error,
+                    value: {
+                        symbol: company.symbol,
+                        error: true,
+                        errorMessage: error.message,
+                        date: new Date().toISOString()
+                    }
+                });
+            }
+            
+            // Petit délai entre chaque entreprise dans le même batch
+            if (isAnalyzing) {
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
+        }
         
+        // Traiter les résultats du batch
         batchResults.forEach(result => {
             if (result.status === 'fulfilled' && result.value) {
+                analysisResults.push(result.value);
+            } else if (result.status === 'rejected' && result.value) {
                 analysisResults.push(result.value);
             }
         });
@@ -125,8 +253,11 @@ async function processBatchOptimized(companies, batchSize = 10) {
         updateProgressUI(batch[0], (currentAnalysisIndex / companies.length) * 100);
         updateResultsCounters();
         
-        if (i + batchSize < companies.length) {
-            await new Promise(resolve => setTimeout(resolve, PERFORMANCE_CONFIG.DELAY_BETWEEN_BATCHES));
+        // Délai plus long entre les batches
+        if (i + batchSize < companies.length && isAnalyzing) {
+            const delay = PERFORMANCE_CONFIG.DELAY_BETWEEN_BATCHES;
+            addToAnalysisLog('SYSTEM', `⏳ Pause de ${delay/1000}s avant le prochain lot...`, 'info');
+            await new Promise(resolve => setTimeout(resolve, delay));
         }
     }
 }
@@ -139,40 +270,48 @@ async function analyzeSingleCompanyOptimized(symbol, companyName) {
     addToAnalysisLog(symbol, `🔍 Début analyse...`, 'info');
 
     try {
+        // Vérifier d'abord si l'entreprise a des données basiques
+        const profile = await fetchWithRateLimiting(`/profile?symbol=${symbol}`, 'profil');
+        
+        if (!profile || !profile[0] || !profile[0].companyName) {
+            throw new Error('Profil entreprise non disponible');
+        }
+
+        // Récupérer les autres données
         const endpoints = [
-            `/profile?symbol=${symbol}`,
             `/quote?symbol=${symbol}`, 
             `/cash-flow-statement?symbol=${symbol}`,
             `/income-statement?symbol=${symbol}`,
             `/balance-sheet-statement?symbol=${symbol}`
         ];
 
-        const fetchPromises = endpoints.map(endpoint => 
-            fetchWithErrorHandlingOptimized(endpoint, 'données')
+        const [quote, cashFlow, incomeStatement, balanceSheet] = await Promise.all(
+            endpoints.map(endpoint => 
+                fetchWithRateLimiting(endpoint, 'données financières')
+                    .catch(error => {
+                        console.warn(`⚠️ Donnée manquante pour ${symbol}:`, error.message);
+                        return null;
+                    })
+            )
         );
-
-        const [profile, quote, cashFlow, incomeStatement, balanceSheet] = await Promise.all(fetchPromises);
-
-        if (!profile || !profile[0] || !quote || !quote[0]) {
-            throw new Error('Données de base manquantes');
-        }
 
         const companyData = {
             profile: profile[0],
-            quote: quote[0],
+            quote: quote?.[0] || {},
             cashFlow: cashFlow?.[0],
             incomeStatement: incomeStatement?.[0],
             balanceSheet: balanceSheet?.[0]
         };
 
-        if (!companyData.profile.companyName || !companyData.quote.price) {
-            throw new Error('Données entreprise incomplètes');
+        // Validation des données minimales
+        if (!companyData.quote || !companyData.quote.price) {
+            throw new Error('Données de prix manquantes');
         }
 
         const metrics = await calculateMetricsInWorker(companyData);
         
         const validMetricsCount = Object.values(metrics).filter(val => val !== null && val !== undefined).length;
-        if (validMetricsCount < 10) {
+        if (validMetricsCount < 5) { // Réduit le seuil minimum
             throw new Error('Données financières insuffisantes');
         }
 
@@ -187,7 +326,7 @@ async function analyzeSingleCompanyOptimized(symbol, companyName) {
 
         const result = {
             symbol,
-            companyName,
+            companyName: companyData.profile.companyName,
             metrics,
             recommendation,
             score: percentage,
@@ -196,11 +335,13 @@ async function analyzeSingleCompanyOptimized(symbol, companyName) {
             saved: false
         };
 
+        // Sauvegarde asynchrone (ne pas attendre)
         sauvegarderAnalyseAutomatique(metrics, recommendation, companyData)
             .then(saved => {
                 if (saved) {
                     result.saved = true;
                     addToAnalysisLog(symbol, `💾 Sauvegarde OK`, 'success');
+                    updateResultsCounters(); // Mettre à jour le compteur
                 }
             })
             .catch(error => {
@@ -208,7 +349,7 @@ async function analyzeSingleCompanyOptimized(symbol, companyName) {
             });
 
         const logClass = getRecommendationClass(recommendation);
-        addToAnalysisLog(symbol, `${recommendation} (${percentage.toFixed(0)}%)`, logClass);
+        addToAnalysisLog(symbol, `${recommendation} (${percentage.toFixed(0)}%) - ${validMetricsCount} métriques`, logClass);
 
         return result;
 
@@ -695,8 +836,9 @@ function createAnalysisProgressUI() {
             <div class="progress-header">
                 <h3>🔍 Analyse Automatique en Cours</h3>
                 <div class="header-buttons">
-                    <button id="saveDataBtn" class="btn-save" style="display: none;">💾 Enregistrer les données</button>
-                    <button id="cancelAnalysis" class="btn-secondary">❌ Arrêter</button>
+                    <button id="pauseAnalysis" class="btn-secondary">⏸️ Pause</button>
+                    <button id="saveDataBtn" class="btn-save" style="display: none;">💾 Enregistrer</button>
+                    <button id="cancelAnalysis" class="btn-danger">❌ Arrêter</button>
                 </div>
             </div>
             <div class="progress-stats">
@@ -706,6 +848,10 @@ function createAnalysisProgressUI() {
                 <div class="progress-text">
                     <span id="progressText">0/${analysisQueue.length}</span>
                     <span id="currentCompany">Préparation...</span>
+                </div>
+                <div class="rate-limit-info">
+                    <span>📊 Requêtes: <span id="requestCount">0</span></span>
+                    <span>❌ Erreurs: <span id="errorCount">0</span></span>
                 </div>
                 <div class="results-summary">
                     <span class="result-excellent">✅ Excellent: <span id="countExcellent">0</span></span>
@@ -725,15 +871,29 @@ function createAnalysisProgressUI() {
     document.body.insertAdjacentHTML('beforeend', progressHTML);
 
     document.getElementById('cancelAnalysis').addEventListener('click', stopAutoAnalysis);
+    document.getElementById('pauseAnalysis').addEventListener('click', togglePauseAnalysis);
     
-    // Vérifier que la fonction existe avant d'ajouter l'event listener
     if (typeof sauvegarderDonneesManuellement === 'function') {
         document.getElementById('saveDataBtn').addEventListener('click', sauvegarderDonneesManuellement);
-    } else {
-        console.error('❌ Fonction sauvegarderDonneesManuellement non définie');
-        document.getElementById('saveDataBtn').style.display = 'none';
     }
 }
+
+function togglePauseAnalysis() {
+    isAnalyzing = !isAnalyzing;
+    const pauseBtn = document.getElementById('pauseAnalysis');
+    
+    if (isAnalyzing) {
+        pauseBtn.innerHTML = '⏸️ Pause';
+        pauseBtn.className = 'btn-secondary';
+        addToAnalysisLog('SYSTEM', '▶️ Analyse reprise', 'info');
+    } else {
+        pauseBtn.innerHTML = '▶️ Reprendre';
+        pauseBtn.className = 'btn-primary';
+        addToAnalysisLog('SYSTEM', '⏸️ Analyse en pause', 'warning');
+    }
+}
+
+
 function updateProgressUI(company, progress) {
     const progressFill = document.getElementById('progressFill');
     const progressText = document.getElementById('progressText');
@@ -1120,6 +1280,94 @@ function injectAutoAnalyzerStyles() {
         .log-info { color: #7f8c8d; }
         .log-success { color: #27ae60; font-weight: bold; }
         .log-warning { color: #f39c12; }
+    `;
+    
+    const styleElement = document.createElement('style');
+    styleElement.textContent = styles;
+    document.head.appendChild(styleElement);
+}
+
+function injectAutoAnalyzerStyles() {
+    const styles = `
+        .auto-analysis-progress {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            padding: 20px;
+            width: 90%;
+            max-width: 700px;
+            max-height: 80vh;
+            overflow-y: auto;
+            z-index: 10000;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        .header-buttons { 
+            display: flex; 
+            gap: 10px; 
+            align-items: center; 
+        }
+        .btn-primary {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .btn-primary:hover { background: #2980b9; }
+        .btn-secondary {
+            background: #f39c12;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .btn-secondary:hover { background: #e67e22; }
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .btn-danger:hover { background: #c0392b; }
+        .btn-save {
+            background: #27ae60;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        .btn-save:hover { background: #219a52; transform: translateY(-1px); }
+        .btn-save:disabled { background: #95a5a6; cursor: not-allowed; transform: none; }
+        .rate-limit-info {
+            display: flex;
+            justify-content: space-between;
+            margin: 10px 0;
+            font-size: 12px;
+            color: #7f8c8d;
+        }
+        /* ... autres styles existants ... */
     `;
     
     const styleElement = document.createElement('style');
