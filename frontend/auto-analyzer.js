@@ -37,6 +37,295 @@ function addAutoAnalysisButton() {
         console.log('⏳ Modal non trouvé, réessai dans 2 secondes...');
         setTimeout(addAutoAnalysisButton, 2000);
     }
+
+    // =============================================================================
+// FONCTIONS DE CALCUL COMPLÈTES
+// =============================================================================
+
+/**
+ * Calcule tous les ratios financiers pour l'analyse automatique
+ */
+function calculateAllFinancialRatios(companyData) {
+    const { profile, quote, balanceSheet, incomeStatement, cashFlow } = companyData;
+    
+    // Vérification des données nécessaires
+    if (!balanceSheet || !incomeStatement || !cashFlow) {
+        console.error('Données financières manquantes pour les calculs');
+        return null;
+    }
+
+    return {
+        // === PROFITABILITÉ ===
+        ...calculateProfitabilityRatios(incomeStatement, balanceSheet),
+        
+        // === SÉCURITÉ FINANCIÈRE ===
+        ...calculateSafetyRatios(balanceSheet, incomeStatement),
+        
+        // === VALORISATION ===
+        ...calculateValuationRatios(profile, quote, incomeStatement, cashFlow, balanceSheet),
+        
+        // === CROISSANCE ===
+        ...calculateGrowthRatios(incomeStatement, cashFlow),
+        
+        // === EFFICACITÉ ===
+        ...calculateEfficiencyRatios(incomeStatement, balanceSheet),
+        
+        // === CALCULS SPÉCIFIQUES EXISTANTS ===
+        ...calculateSpecificRatios(companyData)
+    };
+}
+
+/**
+ * Calcule les ratios de profitabilité
+ */
+function calculateProfitabilityRatios(incomeStatement, balanceSheet) {
+    const revenue = incomeStatement.revenue || 0;
+    const netIncome = incomeStatement.netIncome || 0;
+    const grossProfit = incomeStatement.grossProfit || 0;
+    const operatingIncome = incomeStatement.operatingIncome || 0;
+    const totalEquity = balanceSheet.totalStockholdersEquity || 1;
+    const totalAssets = balanceSheet.totalAssets || 1;
+    const sgaExpenses = incomeStatement.sellingGeneralAndAdministrativeExpenses || 0;
+    
+    // ROE (Return on Equity)
+    const roe = (netIncome / totalEquity) * 100;
+    
+    // ROA (Return on Assets)
+    const roa = (netIncome / totalAssets) * 100;
+    
+    // Marge Nette
+    const netMargin = revenue !== 0 ? (netIncome / revenue) * 100 : 0;
+    
+    // Marge Brute
+    const grossMargin = revenue !== 0 ? (grossProfit / revenue) * 100 : 0;
+    
+    // Marge Opérationnelle (EBIT Margin)
+    const operatingMargin = revenue !== 0 ? (operatingIncome / revenue) * 100 : 0;
+    
+    // Marge SG&A
+    const sgaMargin = revenue !== 0 ? (sgaExpenses / revenue) * 100 : 0;
+    
+    // ROIC (Return on Invested Capital)
+    const taxRate = incomeStatement.incomeBeforeTax ? 
+        (Math.abs(incomeStatement.incomeTaxExpense) / Math.abs(incomeStatement.incomeBeforeTax)) || 0.25 : 0.25;
+    const nopat = operatingIncome * (1 - taxRate);
+    const investedCapital = (balanceSheet.totalDebt || 0) + totalEquity;
+    const roic = investedCapital !== 0 ? (nopat / investedCapital) * 100 : 0;
+
+    return {
+        roe,
+        roa,
+        netMargin,
+        grossMargin,
+        operatingMargin,
+        sgaMargin,
+        roic
+    };
+}
+
+/**
+ * Calcule les ratios de sécurité financière
+ */
+function calculateSafetyRatios(balanceSheet, incomeStatement) {
+    const currentAssets = balanceSheet.totalCurrentAssets || 0;
+    const currentLiabilities = balanceSheet.totalCurrentLiabilities || 1;
+    const totalDebt = balanceSheet.totalDebt || 0;
+    const totalEquity = balanceSheet.totalStockholdersEquity || 1;
+    const operatingIncome = incomeStatement.operatingIncome || 0;
+    const interestExpense = Math.abs(incomeStatement.interestExpense || 1);
+    const cash = balanceSheet.cashAndCashEquivalents || 0;
+    
+    // Current Ratio
+    const currentRatio = currentAssets / currentLiabilities;
+    
+    // Quick Ratio (plus conservateur)
+    const inventory = balanceSheet.inventory || 0;
+    const quickRatio = (currentAssets - inventory) / currentLiabilities;
+    
+    // Debt to Equity
+    const debtToEquity = totalDebt / totalEquity;
+    
+    // Debt to Assets
+    const totalAssets = balanceSheet.totalAssets || 1;
+    const debtToAssets = totalDebt / totalAssets;
+    
+    // Interest Coverage
+    const interestCoverage = operatingIncome / interestExpense;
+    
+    // Cash Ratio
+    const cashRatio = cash / currentLiabilities;
+
+    return {
+        currentRatio,
+        quickRatio,
+        debtToEquity,
+        debtToAssets,
+        interestCoverage,
+        cashRatio
+    };
+}
+
+/**
+ * Calcule les ratios de valorisation
+ */
+function calculateValuationRatios(profile, quote, incomeStatement, cashFlow, balanceSheet) {
+    const price = quote.price || 1;
+    const marketCap = quote.marketCap || 1;
+    const eps = incomeStatement.eps || incomeStatement.epsDiluted || 1;
+    const sharesOutstanding = incomeStatement.weightedAverageShsOut || incomeStatement.weightedAverageShsOutDil || 1;
+    const bookValuePerShare = (balanceSheet.totalStockholdersEquity || 0) / sharesOutstanding;
+    const freeCashFlow = cashFlow.freeCashFlow || 1;
+    const ebitda = incomeStatement.ebitda || 1;
+    const priceAvg200 = quote.priceAvg200 || price;
+    
+    // P/E Ratio
+    const peRatio = price / eps;
+    
+    // Price to Book
+    const pbRatio = bookValuePerShare !== 0 ? price / bookValuePerShare : 0;
+    
+    // Price to Sales
+    const revenue = incomeStatement.revenue || 1;
+    const priceToSales = marketCap / revenue;
+    
+    // Price to Free Cash Flow
+    const priceToFCF = marketCap / freeCashFlow;
+    
+    // EV/EBITDA
+    const enterpriseValue = marketCap + (balanceSheet.totalDebt || 0) - (balanceSheet.cashAndCashEquivalents || 0);
+    const evToEbitda = enterpriseValue / ebitda;
+    
+    // Earnings Yield
+    const earningsYield = (eps / price) * 100;
+    
+    // Dividend Yield
+    const dividendPerShare = profile.lastDividend || 0;
+    const dividendYield = (dividendPerShare / price) * 100;
+    
+    // PEG Ratio (estimation)
+    const growthRate = 15; // Taux de croissance estimé à 15% par défaut
+    const pegRatio = peRatio / growthRate;
+    
+    // Price vs MM200
+    const priceToMM200 = ((price - priceAvg200) / priceAvg200) * 100;
+
+    return {
+        peRatio,
+        pbRatio,
+        priceToSales,
+        priceToFCF,
+        evToEbitda,
+        earningsYield,
+        dividendYield,
+        pegRatio,
+        priceToMM200
+    };
+}
+
+/**
+ * Calcule les ratios de croissance (simplifiés pour analyse auto)
+ */
+function calculateGrowthRatios(incomeStatement, cashFlow) {
+    // Ces calculs nécessitent des données historiques
+    // Pour l'instant, on retourne des valeurs par défaut
+    const revenueGrowth = 0;
+    const earningsGrowth = 0;
+    const fcfGrowth = 0;
+    
+    return {
+        revenueGrowth,
+        earningsGrowth,
+        fcfGrowth
+    };
+}
+
+/**
+ * Calcule les ratios d'efficacité
+ */
+function calculateEfficiencyRatios(incomeStatement, balanceSheet) {
+    const revenue = incomeStatement.revenue || 1;
+    const totalAssets = balanceSheet.totalAssets || 1;
+    const inventory = balanceSheet.inventory || 0;
+    const accountsReceivable = balanceSheet.netReceivables || 0;
+    const cogs = incomeStatement.costOfRevenue || 0;
+    
+    // Asset Turnover
+    const assetTurnover = revenue / totalAssets;
+    
+    // Inventory Turnover
+    const inventoryTurnover = inventory !== 0 ? cogs / inventory : 0;
+    
+    // Receivables Turnover
+    const receivablesTurnover = accountsReceivable !== 0 ? revenue / accountsReceivable : 0;
+    
+    return {
+        assetTurnover,
+        inventoryTurnover,
+        receivablesTurnover
+    };
+}
+
+/**
+ * Calcule les ratios spécifiques de votre application
+ */
+function calculateSpecificRatios(companyData) {
+    const { profile, quote, balanceSheet, incomeStatement, cashFlow } = companyData;
+    
+    // Free Cash Flow (déjà calculé mais on le récupère)
+    const freeCashFlow = cashFlow.freeCashFlow || 0;
+    
+    // Net Cash
+    const netCash = (balanceSheet.cashAndCashEquivalents || 0) - (balanceSheet.totalDebt || 0);
+    
+    return {
+        freeCashFlow,
+        netCash
+    };
+}
+
+/**
+ * Fonction principale de calcul des métriques avec gestion d'erreurs
+ */
+function calculateCompanyMetricsSafe(companyData) {
+    try {
+        const allRatios = calculateAllFinancialRatios(companyData);
+        
+        if (!allRatios) {
+            throw new Error('Impossible de calculer les ratios');
+        }
+        
+        // Nettoyer les métriques invalides
+        Object.keys(allRatios).forEach(key => {
+            if (allRatios[key] === null || 
+                !isFinite(allRatios[key]) || 
+                Math.abs(allRatios[key]) > 1000000) {
+                allRatios[key] = null;
+            }
+        });
+        
+        return allRatios;
+        
+    } catch (error) {
+        console.error('Erreur dans calculateCompanyMetricsSafe:', error);
+        
+        // Retourner un objet avec des valeurs nulles en cas d'erreur
+        const emptyMetrics = {};
+        const metricKeys = [
+            'roe', 'roa', 'netMargin', 'grossMargin', 'operatingMargin', 'sgaMargin', 'roic',
+            'currentRatio', 'quickRatio', 'debtToEquity', 'debtToAssets', 'interestCoverage', 'cashRatio',
+            'peRatio', 'pbRatio', 'priceToSales', 'priceToFCF', 'evToEbitda', 'earningsYield', 
+            'dividendYield', 'pegRatio', 'priceToMM200',
+            'assetTurnover', 'inventoryTurnover', 'receivablesTurnover',
+            'freeCashFlow', 'netCash'
+        ];
+        
+        metricKeys.forEach(key => {
+            emptyMetrics[key] = null;
+        });
+        
+        return emptyMetrics;
+    }
+}
 }
 
 // =============================================================================
@@ -302,30 +591,43 @@ async function sauvegarderAnalyseAutomatique(metrics, recommendation, companyDat
             score_global: scoreGlobal,
             recommandation: recommendation,
             
-            // Métriques de profitabilité
+             // === TOUS LES RATIOS CALCULÉS ===
+            // Profitabilité
             roe: metrics.roe,
+            roa: metrics.roa,
             netMargin: metrics.netMargin,
             grossMargin: metrics.grossMargin,
+            operatingMargin: metrics.operatingMargin,
             sgaMargin: metrics.sgaMargin,
             roic: metrics.roic,
             
-            // Métriques de sécurité
+            // Sécurité
             debtToEquity: metrics.debtToEquity,
+            debtToAssets: metrics.debtToAssets,
             currentRatio: metrics.currentRatio,
+            quickRatio: metrics.quickRatio,
+            cashRatio: metrics.cashRatio,
             interestCoverage: metrics.interestCoverage,
             
-            // Métriques de valuation
+            // Valuation
             peRatio: metrics.peRatio,
-            earningsYield: metrics.earningsYield,
-            priceToFCF: metrics.priceToFCF,
-            priceToMM200: metrics.priceToMM200,
-            dividendYield: metrics.dividendYield,
             pbRatio: metrics.pbRatio,
-            pegRatio: metrics.pegRatio,  
+            priceToSales: metrics.priceToSales,
+            priceToFCF: metrics.priceToFCF,
             evToEbitda: metrics.evToEbitda,
+            earningsYield: metrics.earningsYield,
+            dividendYield: metrics.dividendYield,
+            pegRatio: metrics.pegRatio,
+            priceToMM200: metrics.priceToMM200,
+            
+            // Efficacité
+            assetTurnover: metrics.assetTurnover,
+            inventoryTurnover: metrics.inventoryTurnover,
+            receivablesTurnover: metrics.receivablesTurnover,
             
             // Autres métriques
-            freeCashFlow: metrics.freeCashFlow, 
+            freeCashFlow: metrics.freeCashFlow,
+            netCash: metrics.netCash,
                         
             // Recommandation et analyse
             points_forts: getStrengthsAuto(metrics).join('; '),
@@ -336,7 +638,6 @@ async function sauvegarderAnalyseAutomatique(metrics, recommendation, companyDat
         // 3. DONNÉES POUR DONNEES_FINANCIERES
         // ============================================
         const donneesData = {
-            // ⚠️ IMPORTANT: Utiliser les noms EXACTS attendus par votre backend
             symbol: symbol,
             date_import: new Date().toISOString().split('T')[0],
             
@@ -438,29 +739,45 @@ async function sauvegarderAnalyseAutomatique(metrics, recommendation, companyDat
     }
 }
 
-// CALCUL DES POINTS FORTS/FAIBLES AMÉLIORÉ
+// =============================================================================
+// FONCTIONS GETSTRENGTHS/WEAKNESSES MISE À JOUR
+// =============================================================================
+
 function getStrengthsAuto(metrics) {
     const strengths = [];
     
     // Profitabilité
     if (metrics.roe > 20) strengths.push('ROE exceptionnel (>20%)');
+    if (metrics.roa > 10) strengths.push('ROA excellent (>10%)');
     if (metrics.netMargin > 20) strengths.push('Forte marge nette (>20%)');
-    if (metrics.grossMargin > 40) strengths.push('Bonne marge brute (>40%)');
+    if (metrics.grossMargin > 50) strengths.push('Marge brute excellente (>50%)');
+    if (metrics.operatingMargin > 20) strengths.push('Forte marge opérationnelle (>20%)');
     if (metrics.roic > 15) strengths.push('ROIC excellent (>15%)');
-    if (metrics.sgaMargin < 20) strengths.push('Faibles frais généraux (<20%)');
+    if (metrics.sgaMargin < 10) strengths.push('Faibles frais généraux (<10%)');
     
     // Sécurité
     if (metrics.debtToEquity < 0.3) strengths.push('Faible endettement (<0.3)');
+    if (metrics.debtToAssets < 0.2) strengths.push('Faible dette vs actifs (<0.2)');
     if (metrics.currentRatio > 2.0) strengths.push('Bonne liquidité (>2.0)');
+    if (metrics.quickRatio > 1.5) strengths.push('Liquidité rapide excellente (>1.5)');
     if (metrics.interestCoverage > 10) strengths.push('Excellente couverture des intérêts (>10x)');
+    if (metrics.cashRatio > 0.5) strengths.push('Fort ratio de trésorerie (>0.5)');
     
     // Valuation
     if (metrics.peRatio < 10) strengths.push('P/E ratio attractif (<10)');
+    if (metrics.pbRatio < 1.5) strengths.push('Price/Book attractif (<1.5)');
+    if (metrics.priceToSales < 1) strengths.push('Price/Sales très attractif (<1)');
     if (metrics.earningsYield > 10) strengths.push('Rendement des bénéfices élevé (>10%)');
     if (metrics.priceToFCF < 10) strengths.push('Price/FCF attractif (<10)');
     if (metrics.dividendYield > 4) strengths.push('Dividende attractif (>4%)');
-    if (metrics.pbRatio < 1.5) strengths.push('Price/Book attractif (<1.5)');
     if (metrics.evToEbitda < 8) strengths.push('EV/EBITDA attractif (<8)');
+    if (metrics.pegRatio < 0.8) strengths.push('PEG ratio très attractif (<0.8)');
+    if (metrics.priceToMM200 > 5) strengths.push('Tendance haussière vs MM200 (>5%)');
+    
+    // Efficacité
+    if (metrics.assetTurnover > 1.0) strengths.push('Rotation des actifs efficace (>1.0)');
+    if (metrics.inventoryTurnover > 8) strengths.push('Rotation des stocks efficace (>8)');
+    if (metrics.receivablesTurnover > 10) strengths.push('Gestion des créances efficace (>10)');
     
     return strengths.length > 0 ? strengths : ['Aucun point fort significatif'];
 }
@@ -470,23 +787,36 @@ function getWeaknessesAuto(metrics) {
     
     // Profitabilité
     if (metrics.roe < 10 && metrics.roe !== null) weaknesses.push('ROE faible (<10%)');
+    if (metrics.roa < 5 && metrics.roa !== null) weaknesses.push('ROA faible (<5%)');
     if (metrics.netMargin < 10 && metrics.netMargin !== null) weaknesses.push('Marge nette faible (<10%)');
     if (metrics.grossMargin < 30 && metrics.grossMargin !== null) weaknesses.push('Marge brute faible (<30%)');
+    if (metrics.operatingMargin < 10 && metrics.operatingMargin !== null) weaknesses.push('Marge opérationnelle faible (<10%)');
     if (metrics.roic < 8 && metrics.roic !== null) weaknesses.push('ROIC faible (<8%)');
     if (metrics.sgaMargin > 30) weaknesses.push('Frais généraux élevés (>30%)');
     
     // Sécurité
     if (metrics.debtToEquity > 1.0) weaknesses.push('Dette élevée (>1.0)');
+    if (metrics.debtToAssets > 0.6) weaknesses.push('Dette importante vs actifs (>0.6)');
     if (metrics.currentRatio < 1.0) weaknesses.push('Problème de liquidité (<1.0)');
+    if (metrics.quickRatio < 0.5) weaknesses.push('Liquidité rapide faible (<0.5)');
     if (metrics.interestCoverage < 3 && metrics.interestCoverage !== null) weaknesses.push('Couverture des intérêts faible (<3x)');
+    if (metrics.cashRatio < 0.1) weaknesses.push('Trésorerie insuffisante (<0.1)');
     
     // Valuation
     if (metrics.peRatio > 25) weaknesses.push('P/E ratio élevé (>25)');
+    if (metrics.pbRatio > 5) weaknesses.push('Price/Book élevé (>5)');
+    if (metrics.priceToSales > 5) weaknesses.push('Price/Sales élevé (>5)');
     if (metrics.earningsYield < 4 && metrics.earningsYield !== null) weaknesses.push('Rendement des bénéfices faible (<4%)');
     if (metrics.priceToFCF > 20) weaknesses.push('Price/FCF élevé (>20)');
     if (metrics.dividendYield < 2 && metrics.dividendYield !== null) weaknesses.push('Dividende faible (<2%)');
-    if (metrics.pbRatio > 3) weaknesses.push('Price/Book élevé (>3)');
-    if (metrics.evToEbitda > 12) weaknesses.push('EV/EBITDA élevé (>12)');
+    if (metrics.evToEbitda > 15) weaknesses.push('EV/EBITDA élevé (>15)');
+    if (metrics.pegRatio > 1.2) weaknesses.push('PEG ratio élevé (>1.2)');
+    if (metrics.priceToMM200 < -5) weaknesses.push('Tendance baissière vs MM200 (<-5%)');
+    
+    // Efficacité
+    if (metrics.assetTurnover < 0.5 && metrics.assetTurnover !== null) weaknesses.push('Rotation des actifs faible (<0.5)');
+    if (metrics.inventoryTurnover < 3 && metrics.inventoryTurnover !== null) weaknesses.push('Rotation des stocks lente (<3)');
+    if (metrics.receivablesTurnover < 4 && metrics.receivablesTurnover !== null) weaknesses.push('Gestion des créances lente (<4)');
     
     return weaknesses.length > 0 ? weaknesses : ['Aucun point faible significatif'];
 }
@@ -495,29 +825,45 @@ function getWeaknessesAuto(metrics) {
 function calculateScoresAuto(metrics) {
     const scores = { excellent: 0, good: 0, medium: 0, bad: 0 };
     
-    // Liste complète des métriques à évaluer
+    // Liste complète des métriques à évaluer avec tous les nouveaux ratios
     const metricThresholds = [
+        // Profitabilité
         { key: 'roe', excellent: 20, good: 15, medium: 10, reverse: false },
+        { key: 'roa', excellent: 10, good: 7, medium: 5, reverse: false },
         { key: 'netMargin', excellent: 20, good: 15, medium: 10, reverse: false },
-        { key: 'grossMargin', excellent: 40, good: 30, medium: 20, reverse: false },
+        { key: 'grossMargin', excellent: 50, good: 40, medium: 30, reverse: false },
+        { key: 'operatingMargin', excellent: 20, good: 15, medium: 10, reverse: false },
         { key: 'sgaMargin', excellent: 10, good: 20, medium: 30, reverse: true },
         { key: 'roic', excellent: 15, good: 10, medium: 8, reverse: false },
+        
+        // Sécurité financière
         { key: 'debtToEquity', excellent: 0.3, good: 0.5, medium: 1.0, reverse: true },
+        { key: 'debtToAssets', excellent: 0.2, good: 0.4, medium: 0.6, reverse: true },
         { key: 'currentRatio', excellent: 2.0, good: 1.5, medium: 1.0, reverse: false },
+        { key: 'quickRatio', excellent: 1.5, good: 1.0, medium: 0.5, reverse: false },
+        { key: 'cashRatio', excellent: 0.5, good: 0.3, medium: 0.1, reverse: false },
         { key: 'interestCoverage', excellent: 10, good: 5, medium: 3, reverse: false },
+        
+        // Valorisation
         { key: 'peRatio', excellent: 10, good: 15, medium: 25, reverse: true },
-        { key: 'earningsYield', excellent: 10, good: 6, medium: 4, reverse: false },
-        { key: 'priceToFCF', excellent: 10, good: 15, medium: 20, reverse: true },
-        { key: 'priceToMM200', excellent: 5, good: 0, medium: -5, reverse: false },
-        { key: 'dividendYield', excellent: 4, good: 2, medium: 1, reverse: false },
         { key: 'pbRatio', excellent: 1.5, good: 3, medium: 5, reverse: true },
+        { key: 'priceToSales', excellent: 1, good: 3, medium: 5, reverse: true },
+        { key: 'priceToFCF', excellent: 10, good: 15, medium: 20, reverse: true },
+        { key: 'evToEbitda', excellent: 8, good: 12, medium: 15, reverse: true },
+        { key: 'earningsYield', excellent: 10, good: 6, medium: 4, reverse: false },
+        { key: 'dividendYield', excellent: 4, good: 2, medium: 1, reverse: false },
         { key: 'pegRatio', excellent: 0.8, good: 1.0, medium: 1.2, reverse: true },
-        { key: 'evToEbitda', excellent: 8, good: 12, medium: 15, reverse: true }
+        { key: 'priceToMM200', excellent: 5, good: 0, medium: -5, reverse: false },
+        
+        // Efficacité
+        { key: 'assetTurnover', excellent: 1.0, good: 0.7, medium: 0.5, reverse: false },
+        { key: 'inventoryTurnover', excellent: 8, good: 5, medium: 3, reverse: false },
+        { key: 'receivablesTurnover', excellent: 10, good: 6, medium: 4, reverse: false }
     ];
-
-    metricThresholds.forEach(threshold => {
+    
+   metricThresholds.forEach(threshold => {
         const value = metrics[threshold.key];
-        if (value !== null && value !== undefined) {
+        if (value !== null && value !== undefined && isFinite(value)) {
             if (threshold.reverse) {
                 if (value <= threshold.excellent) scores.excellent++;
                 else if (value <= threshold.good) scores.good++;
@@ -534,6 +880,7 @@ function calculateScoresAuto(metrics) {
     
     return scores;
 }
+
 // =============================================================================
 // FONCTIONS UTILITAIRES
 // =============================================================================
