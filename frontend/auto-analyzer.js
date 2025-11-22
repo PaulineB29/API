@@ -150,70 +150,34 @@ async function startAutoAnalysis() {
         return;
     }
 
-    console.log(`📊 ${allCompaniesData.length} entreprises chargées, filtrage en cours...`);
-
-    // Filtrage en deux étapes
-    const preFilteredCompanies = filterCompaniesBeforeAnalysis(allCompaniesData);
+    const filteredCompanies = filterCompaniesBeforeAnalysis(allCompaniesData);
     
-    // Afficher les statistiques de filtrage
-    const excludedCount = allCompaniesData.length - preFilteredCompanies.length;
-    console.log(`✅ ${preFilteredCompanies.length} entreprises après filtrage initial (${excludedCount} exclues)`);
-
-    if (preFilteredCompanies.length === 0) {
-        alert('Aucune entreprise valide à analyser après filtrage');
+    if (filteredCompanies.length === 0) {
+        alert('Aucune entreprise valide à analyser');
         return;
     }
 
-    // Validation supplémentaire pour les premières entreprises
-    const sampleCompanies = preFilteredCompanies.slice(0, 10);
-    let validSampleCount = 0;
+    const originalCount = allCompaniesData.length;
+    const filteredCount = filteredCompanies.length;
     
-    addToAnalysisLog('SYSTEM', `🔍 Validation de ${sampleCompanies.length} entreprises test...`, 'info');
-    
-    for (const company of sampleCompanies) {
-        const validation = await validateCompanyData(company.symbol);
-        if (validation.isValid) {
-            validSampleCount++;
+    if (filteredCount < originalCount) {
+        if (!confirm(`${originalCount - filteredCount} entreprises exclues (symboles invalides).\nAnalyser les ${filteredCount} entreprises restantes ?`)) {
+            return;
         }
-    }
-
-    const validityRate = (validSampleCount / sampleCompanies.length) * 100;
-    console.log(`📈 Taux de validité estimé: ${validityRate.toFixed(1)}%`);
-
-    if (validityRate < 20) {
-        if (!confirm(`Seulement ${validityRate.toFixed(1)}% des entreprises semblent valides.\nVoulez-vous quand même continuer l'analyse ?`)) {
+    } else {
+        if (!confirm(`Voulez-vous analyser ${filteredCount} entreprises ?\nCela peut prendre plusieurs minutes.`)) {
             return;
         }
     }
 
-    const estimatedTime = Math.ceil((preFilteredCompanies.length * 5) / 60); // ~5 secondes par entreprise
-    const warningMessage = 
-        `📊 Analyse de ${preFilteredCompanies.length} entreprises (${excludedCount} exclues)\n\n` +
-        `📈 Taux de validité estimé: ${validityRate.toFixed(1)}%\n` +
-        `⏰ Temps estimé: ${estimatedTime} minutes\n` +
-        `📦 Lots: ${Math.ceil(preFilteredCompanies.length / PERFORMANCE_CONFIG.BATCH_SIZE)}\n\n` +
-        `Continuer l'analyse ?`;
-
-    if (!confirm(warningMessage)) {
-        return;
-    }
-
-    // Réinitialiser les statistiques
-    analysisQueue = preFilteredCompanies;
+    analysisQueue = filteredCompanies;
     currentAnalysisIndex = 0;
     analysisResults = [];
     isAnalyzing = true;
 
     createAnalysisProgressUI();
-    
-    try {
-        await processBatchOptimized(analysisQueue, PERFORMANCE_CONFIG.BATCH_SIZE);
-        finishAutoAnalysis();
-    } catch (error) {
-        console.error('❌ Erreur lors de l analyse:', error);
-        addToAnalysisLog('SYSTEM', `❌ Erreur critique: ${error.message}`, 'error');
-        finishAutoAnalysis();
-    }
+    await processBatchOptimized(analysisQueue, PERFORMANCE_CONFIG.BATCH_SIZE);
+    finishAutoAnalysis();
 }
 
 // =============================================================================
@@ -399,7 +363,7 @@ async function analyzeSingleCompanyOptimized(symbol, companyName) {
 // =============================================================================
 
 async function fetchWithErrorHandlingOptimized(endpoint, dataType) {
-    const controller = new AbortController();
+    const controller = new AbortController();f
     const timeoutId = setTimeout(() => controller.abort(), PERFORMANCE_CONFIG.REQUEST_TIMEOUT);
 
     try {
@@ -1026,12 +990,51 @@ function updateResultsCounters() {
     }
 }
 
+async function validateCompanyData(symbol) {
+    try {
+        const profile = await fetchWithErrorHandlingOptimized(`/profile?symbol=${symbol}`, 'profil');
+        
+        if (!profile || !profile[0]) {
+            return { isValid: false, reason: 'Profil non disponible' };
+        }
+
+        const companyProfile = profile[0];
+        
+        if (!companyProfile.companyName) {
+            return { isValid: false, reason: 'Nom entreprise invalide' };
+        }
+
+        return { 
+            isValid: true, 
+            profile: companyProfile
+        };
+
+    } catch (error) {
+        return { isValid: false, reason: error.message };
+    }
+}
+
 function stopAutoAnalysis() {
     isAnalyzing = false;
     addToAnalysisLog('SYSTEM', '⏹️ Analyse arrêtée par l utilisateur', 'warning');
+}
+
+function updateResultsCounters() {
+    const successResults = analysisResults.filter(r => r.success);
+    const errorResults = analysisResults.filter(r => r.error);
     
-    const progressHeader = document.querySelector('#autoAnalysisProgress .progress-header h3');
-    if (progressHeader) progressHeader.textContent = '🔍 Analyse Arrêtée';
+    const counts = {
+        excellent: successResults.filter(r => r.recommendation === 'EXCELLENT').length,
+        good: successResults.filter(r => r.recommendation === 'BON').length,
+        medium: successResults.filter(r => r.recommendation === 'MOYEN').length,
+        bad: successResults.filter(r => r.recommendation === 'FAIBLE').length,
+        errors: errorResults.length
+    };
+
+    ['countExcellent', 'countGood', 'countMedium', 'countBad', 'countErrors'].forEach(id => {
+        const element = document.getElementById(id);
+        if (element) element.textContent = counts[id.replace('count', '').toLowerCase()] || 0;
+    });
 }
 
 function finishAutoAnalysis() {
