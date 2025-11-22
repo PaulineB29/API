@@ -1047,35 +1047,7 @@ function stopAutoAnalysis() {
     if (progressHeader) progressHeader.textContent = '🔍 Analyse Arrêtée';
 }
 
-function updateResultsCounters() {
-    const successResults = analysisResults.filter(r => r.success);
-    const errorResults = analysisResults.filter(r => r.error);
-    const unsavedResults = analysisResults.filter(r => r.success && !r.saved);
-    
-    const counts = {
-        excellent: successResults.filter(r => r.recommendation === 'EXCELLENT').length,
-        good: successResults.filter(r => r.recommendation === 'BON').length,
-        medium: successResults.filter(r => r.recommendation === 'MOYEN').length,
-        bad: successResults.filter(r => r.recommendation === 'FAIBLE').length,
-        errors: errorResults.length,
-        unsaved: unsavedResults.length
-    };
 
-    ['countExcellent', 'countGood', 'countMedium', 'countBad', 'countErrors'].forEach(id => {
-        const element = document.getElementById(id);
-        if (element) element.textContent = counts[id.replace('count', '').toLowerCase()] || 0;
-    });
-
-    const saveBtn = document.getElementById('saveDataBtn');
-    if (saveBtn) {
-        if (counts.unsaved > 0) {
-            saveBtn.style.display = 'block';
-            saveBtn.innerHTML = `💾 Enregistrer (${counts.unsaved})`;
-        } else {
-            saveBtn.style.display = 'none';
-        }
-    }
-}
 function finishAutoAnalysis() {
     isAnalyzing = false;
     addToAnalysisLog('SYSTEM', '✅ Analyse terminée !', 'success');
@@ -1219,7 +1191,7 @@ async function getCompanyDataForSaving(symbol) {
         }
 
         return {
-            profile: validation.profile,
+            profile: profile[0],
             quote: quote[0],
             cashFlow: cashFlow?.[0],
             incomeStatement: incomeStatement?.[0],
@@ -1402,94 +1374,6 @@ function injectAutoAnalyzerStyles() {
         .log-info { color: #7f8c8d; }
         .log-success { color: #27ae60; font-weight: bold; }
         .log-warning { color: #f39c12; }
-    `;
-    
-    const styleElement = document.createElement('style');
-    styleElement.textContent = styles;
-    document.head.appendChild(styleElement);
-}
-
-function injectAutoAnalyzerStyles() {
-    const styles = `
-        .auto-analysis-progress {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: white;
-            border: 2px solid #e1e5e9;
-            border-radius: 10px;
-            padding: 20px;
-            width: 90%;
-            max-width: 700px;
-            max-height: 80vh;
-            overflow-y: auto;
-            z-index: 10000;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-        }
-        .progress-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #eee;
-        }
-        .header-buttons { 
-            display: flex; 
-            gap: 10px; 
-            align-items: center; 
-        }
-        .btn-primary {
-            background: #3498db;
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 14px;
-        }
-        .btn-primary:hover { background: #2980b9; }
-        .btn-secondary {
-            background: #f39c12;
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 14px;
-        }
-        .btn-secondary:hover { background: #e67e22; }
-        .btn-danger {
-            background: #e74c3c;
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 14px;
-        }
-        .btn-danger:hover { background: #c0392b; }
-        .btn-save {
-            background: #27ae60;
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 14px;
-            transition: all 0.3s ease;
-        }
-        .btn-save:hover { background: #219a52; transform: translateY(-1px); }
-        .btn-save:disabled { background: #95a5a6; cursor: not-allowed; transform: none; }
-        .rate-limit-info {
-            display: flex;
-            justify-content: space-between;
-            margin: 10px 0;
-            font-size: 12px;
-            color: #7f8c8d;
-        }
-        /* ... autres styles existants ... */
     `;
     
     const styleElement = document.createElement('style');
