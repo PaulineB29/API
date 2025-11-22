@@ -725,9 +725,15 @@ function createAnalysisProgressUI() {
     document.body.insertAdjacentHTML('beforeend', progressHTML);
 
     document.getElementById('cancelAnalysis').addEventListener('click', stopAutoAnalysis);
-    document.getElementById('saveDataBtn').addEventListener('click', sauvegarderDonneesManuellement);
+    
+    // Vérifier que la fonction existe avant d'ajouter l'event listener
+    if (typeof sauvegarderDonneesManuellement === 'function') {
+        document.getElementById('saveDataBtn').addEventListener('click', sauvegarderDonneesManuellement);
+    } else {
+        console.error('❌ Fonction sauvegarderDonneesManuellement non définie');
+        document.getElementById('saveDataBtn').style.display = 'none';
+    }
 }
-
 function updateProgressUI(company, progress) {
     const progressFill = document.getElementById('progressFill');
     const progressText = document.getElementById('progressText');
@@ -819,6 +825,194 @@ function finishAutoAnalysis() {
         
         alert(message);
     }, 1000);
+}
+
+// =============================================================================
+// SAUVEGARDE MANUELLE DES DONNÉES
+// =============================================================================
+
+async function sauvegarderDonneesManuellement() {
+    try {
+        const unsavedResults = analysisResults.filter(r => r.success && !r.saved);
+        
+        if (unsavedResults.length === 0) {
+            alert('✅ Toutes les analyses sont déjà sauvegardées !');
+            return;
+        }
+
+        const saveBtn = document.getElementById('saveDataBtn');
+        if (saveBtn) {
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '💾 Sauvegarde en cours...';
+        }
+
+        addToAnalysisLog('SYSTEM', `💾 Début sauvegarde manuelle (${unsavedResults.length} analyses)`, 'info');
+
+        let savedCount = 0;
+        let errorCount = 0;
+
+        // Sauvegarder chaque résultat non sauvegardé
+        for (const result of unsavedResults) {
+            try {
+                // Reconstruire les données de l'entreprise pour la sauvegarde
+                const companyData = await getCompanyDataForSaving(result.symbol);
+                
+                if (companyData) {
+                    const saved = await sauvegarderAnalyseAutomatique(result.metrics, result.recommendation, companyData);
+                    
+                    if (saved) {
+                        result.saved = true;
+                        savedCount++;
+                        addToAnalysisLog(result.symbol, '💾 Sauvegarde manuelle réussie', 'success');
+                    } else {
+                        errorCount++;
+                        addToAnalysisLog(result.symbol, '❌ Échec sauvegarde manuelle', 'error');
+                    }
+                } else {
+                    errorCount++;
+                    addToAnalysisLog(result.symbol, '❌ Données manquantes pour sauvegarde', 'error');
+                }
+            } catch (error) {
+                errorCount++;
+                addToAnalysisLog(result.symbol, `❌ Erreur: ${error.message}`, 'error');
+            }
+
+            // Petit délai entre chaque sauvegarde pour éviter les rate limits
+            await new Promise(resolve => setTimeout(resolve, 500));
+        }
+
+        // Mettre à jour l'interface
+        updateResultsCounters();
+
+        if (saveBtn) {
+            if (errorCount === 0) {
+                saveBtn.style.display = 'none';
+            } else {
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = `💾 Réessayer (${errorCount} erreurs)`;
+            }
+        }
+
+        // Afficher le résumé
+        const message = `💾 Sauvegarde terminée :\n✅ ${savedCount} analyses sauvegardées\n${errorCount > 0 ? `❌ ${errorCount} erreurs` : '✅ Aucune erreur'}`;
+        alert(message);
+        addToAnalysisLog('SYSTEM', message, errorCount > 0 ? 'warning' : 'success');
+
+    } catch (error) {
+        console.error('❌ Erreur lors de la sauvegarde manuelle:', error);
+        addToAnalysisLog('SYSTEM', `❌ Erreur critique: ${error.message}`, 'error');
+        
+        const saveBtn = document.getElementById('saveDataBtn');
+        if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = '💾 Erreur - Réessayer';
+        }
+        
+        alert('❌ Une erreur est survenue lors de la sauvegarde');
+    }
+}
+
+// =============================================================================
+// FONCTION UTILITAIRE POUR RÉCUPÉRER LES DONNÉES POUR SAUVEGARDE
+// =============================================================================
+
+async function getCompanyDataForSaving(symbol) {
+    try {
+        const endpoints = [
+            `/profile?symbol=${symbol}`,
+            `/quote?symbol=${symbol}`,
+            `/cash-flow-statement?symbol=${symbol}`,
+            `/income-statement?symbol=${symbol}`,
+            `/balance-sheet-statement?symbol=${symbol}`
+        ];
+
+        const fetchPromises = endpoints.map(endpoint => 
+            fetchWithErrorHandlingOptimized(endpoint, 'données sauvegarde')
+        );
+
+        const [profile, quote, cashFlow, incomeStatement, balanceSheet] = await Promise.all(fetchPromises);
+
+        if (!profile || !profile[0] || !quote || !quote[0]) {
+            throw new Error('Données de base manquantes');
+        }
+
+        return {
+            profile: profile[0],
+            quote: quote[0],
+            cashFlow: cashFlow?.[0],
+            incomeStatement: incomeStatement?.[0],
+            balanceSheet: balanceSheet?.[0]
+        };
+
+    } catch (error) {
+        console.error(`❌ Erreur récupération données ${symbol}:`, error);
+        return null;
+    }
+}
+
+// =============================================================================
+// FONCTION UTILITAIRE POUR LES CONFIRMATIONS
+// =============================================================================
+
+function confirmAction(message) {
+    return new Promise((resolve) => {
+        // Créer une modal de confirmation personnalisée
+        const modalHTML = `
+            <div id="confirmationModal" style="
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.5);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 10001;
+            ">
+                <div style="
+                    background: white;
+                    padding: 20px;
+                    border-radius: 10px;
+                    max-width: 400px;
+                    text-align: center;
+                ">
+                    <p>${message}</p>
+                    <div style="margin-top: 20px;">
+                        <button id="confirmYes" style="
+                            background: #27ae60;
+                            color: white;
+                            border: none;
+                            padding: 10px 20px;
+                            border-radius: 5px;
+                            margin-right: 10px;
+                            cursor: pointer;
+                        ">Oui</button>
+                        <button id="confirmNo" style="
+                            background: #e74c3c;
+                            color: white;
+                            border: none;
+                            padding: 10px 20px;
+                            border-radius: 5px;
+                            cursor: pointer;
+                        ">Non</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+        
+        document.getElementById('confirmYes').addEventListener('click', () => {
+            document.getElementById('confirmationModal').remove();
+            resolve(true);
+        });
+        
+        document.getElementById('confirmNo').addEventListener('click', () => {
+            document.getElementById('confirmationModal').remove();
+            resolve(false);
+        });
+    });
 }
 
 // =============================================================================
