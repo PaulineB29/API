@@ -150,40 +150,59 @@ async function startAutoAnalysis() {
         return;
     }
 
-    const filteredCompanies = filterCompaniesBeforeAnalysis(allCompaniesData);
+    console.log(`📊 ${allCompaniesData.length} entreprises chargées, filtrage en cours...`);
+
+    // Filtrage en deux étapes
+    const preFilteredCompanies = filterCompaniesBeforeAnalysis(allCompaniesData);
     
-    if (filteredCompanies.length === 0) {
-        alert('Aucune entreprise valide à analyser');
+    // Afficher les statistiques de filtrage
+    const excludedCount = allCompaniesData.length - preFilteredCompanies.length;
+    console.log(`✅ ${preFilteredCompanies.length} entreprises après filtrage initial (${excludedCount} exclues)`);
+
+    if (preFilteredCompanies.length === 0) {
+        alert('Aucune entreprise valide à analyser après filtrage');
         return;
     }
 
-    const originalCount = allCompaniesData.length;
-    const filteredCount = filteredCompanies.length;
+    // Validation supplémentaire pour les premières entreprises
+    const sampleCompanies = preFilteredCompanies.slice(0, 10);
+    let validSampleCount = 0;
     
-    // Avertissement sur le temps d'analyse
-    const estimatedTime = Math.ceil((filteredCount * 3) / 60); // ~3 secondes par entreprise
-    const warningMessage = `${originalCount - filteredCount} entreprises exclues (symboles invalides).\n\n` +
-                          `Analyser les ${filteredCount} entreprises restantes ?\n\n` +
-                          `⏰ Temps estimé: ${estimatedTime} minutes\n` +
-                          `📊 Lots: ${Math.ceil(filteredCount / PERFORMANCE_CONFIG.BATCH_SIZE)}\n` +
-                          `⚠️ L'analyse peut être interrompue à tout moment`;
+    addToAnalysisLog('SYSTEM', `🔍 Validation de ${sampleCompanies.length} entreprises test...`, 'info');
+    
+    for (const company of sampleCompanies) {
+        const validation = await validateCompanyData(company.symbol);
+        if (validation.isValid) {
+            validSampleCount++;
+        }
+    }
+
+    const validityRate = (validSampleCount / sampleCompanies.length) * 100;
+    console.log(`📈 Taux de validité estimé: ${validityRate.toFixed(1)}%`);
+
+    if (validityRate < 20) {
+        if (!confirm(`Seulement ${validityRate.toFixed(1)}% des entreprises semblent valides.\nVoulez-vous quand même continuer l'analyse ?`)) {
+            return;
+        }
+    }
+
+    const estimatedTime = Math.ceil((preFilteredCompanies.length * 5) / 60); // ~5 secondes par entreprise
+    const warningMessage = 
+        `📊 Analyse de ${preFilteredCompanies.length} entreprises (${excludedCount} exclues)\n\n` +
+        `📈 Taux de validité estimé: ${validityRate.toFixed(1)}%\n` +
+        `⏰ Temps estimé: ${estimatedTime} minutes\n` +
+        `📦 Lots: ${Math.ceil(preFilteredCompanies.length / PERFORMANCE_CONFIG.BATCH_SIZE)}\n\n` +
+        `Continuer l'analyse ?`;
 
     if (!confirm(warningMessage)) {
         return;
     }
 
     // Réinitialiser les statistiques
-    analysisQueue = filteredCompanies;
+    analysisQueue = preFilteredCompanies;
     currentAnalysisIndex = 0;
     analysisResults = [];
     isAnalyzing = true;
-    
-    rateLimitStats = {
-        totalRequests: 0,
-        failedRequests: 0,
-        lastRequestTime: 0,
-        requestsPerMinute: 0
-    };
 
     createAnalysisProgressUI();
     
@@ -270,11 +289,10 @@ async function analyzeSingleCompanyOptimized(symbol, companyName) {
     addToAnalysisLog(symbol, `🔍 Début analyse...`, 'info');
 
     try {
-        // Vérifier d'abord si l'entreprise a des données basiques
-        const profile = await fetchWithRateLimiting(`/profile?symbol=${symbol}`, 'profil');
-        
-        if (!profile || !profile[0] || !profile[0].companyName) {
-            throw new Error('Profil entreprise non disponible');
+        // Étape 1: Pré-validation
+        const validation = await validateCompanyData(symbol);
+        if (!validation.isValid) {
+            throw new Error(`Données insuffisantes: ${validation.reason}`);
         }
 
         // Récupérer les autres données
@@ -308,13 +326,30 @@ async function analyzeSingleCompanyOptimized(symbol, companyName) {
             throw new Error('Données de prix manquantes');
         }
 
-        const metrics = await calculateMetricsInWorker(companyData);
-        
-        const validMetricsCount = Object.values(metrics).filter(val => val !== null && val !== undefined).length;
-        if (validMetricsCount < 5) { // Réduit le seuil minimum
-            throw new Error('Données financières insuffisantes');
+        // Vérifier les données financières essentielles
+        const hasEssentialData = 
+            companyData.incomeStatement.revenue > 0 &&
+            companyData.incomeStatement.netIncome !== undefined &&
+            companyData.balanceSheet.totalAssets > 0;
+
+        if (!hasEssentialData) {
+            throw new Error('Données financières essentielles manquantes');
         }
 
+        // Étape 3: Calcul des métriques
+        const metrics = await calculateMetricsInWorker(companyData);
+        
+          // Validation des métriques calculées
+        const essentialMetrics = ['roe', 'roa', 'netMargin', 'debtToEquity', 'peRatio'];
+        const validEssentialMetrics = essentialMetrics.filter(metric => 
+            metrics[metric] !== null && metrics[metric] !== undefined
+        ).length;
+
+        if (validEssentialMetrics < 3) {
+            throw new Error('Métriques essentielles insuffisantes');
+        }
+
+        // Étape 4: Calcul des scores et recommandation
         const scores = calculateScoresAuto(metrics);
         const totalScore = scores.excellent * 3 + scores.good * 2 + scores.medium;
         const maxScore = (scores.excellent + scores.good + scores.medium + scores.bad) * 3;
@@ -631,6 +666,13 @@ async function sauvegarderAnalyseAutomatique(metrics, recommendation, companyDat
         const symbol = companyData.profile.symbol;
         console.log(`💾 Sauvegarde COMPLÈTE de ${symbol}...`);
 
+        // Validation des données avant sauvegarde
+        if (!symbol || !companyData.profile.companyName) {
+            throw new Error('Données entreprise invalides');
+        }
+
+        console.log(`💾 Tentative sauvegarde de ${symbol}...`);
+        
         const datePublication = companyData.incomeStatement?.date || new Date().toISOString().split('T')[0];
         const scores = calculateScoresAuto(metrics);
         const totalScore = scores.excellent * 3 + scores.good * 2 + scores.medium;
@@ -752,11 +794,49 @@ async function sauvegarderAnalyseAutomatique(metrics, recommendation, companyDat
 function filterCompaniesBeforeAnalysis(companies) {
     return companies.filter(company => {
         if (!company.symbol || company.symbol.length === 0) return false;
+        
+        // Exclusion des symboles courts (souvent des ETFs, fonds, etc.)
+        if (company.symbol.length < 2 || company.symbol.length > 5) return false;
+        
+        // Exclusion des symboles commençant par des chiffres
         if (/^[0-9]/.test(company.symbol)) return false;
-        if (company.symbol.length < 2 || company.symbol.length > 6) return false;
-        if (!/^[A-Z]+$/.test(company.symbol)) return false;
+        
+        // Exclusion des symboles avec caractères spéciaux
+        if (!/^[A-Z.]+$/.test(company.symbol)) return false;
+        
+        // Exclusion des extensions communes d'ETFs et fonds
+        const excludedExtensions = ['X', 'CX', 'PX', 'RX', 'UX', 'WX', 'TX'];
+        const symbolUpper = company.symbol.toUpperCase();
+        if (excludedExtensions.some(ext => symbolUpper.endsWith(ext))) return false;
+        
+        // Exclusion des types d'actifs non désirés
+        const excludedTypes = ['ETF', 'TRUST', 'FUND', 'BOND', 'NOTE', 'PREFERENCE'];
+        if (company.type && excludedTypes.includes(company.type.toUpperCase())) return false;
+        
+        // Exclusion des noms contenant certains termes
+        const excludedTerms = ['ETF', 'FUND', 'TRUST', 'BOND', 'NOTE', 'PREFERRED', 'SHARES'];
+        const companyName = (company.companyName || company.name || '').toUpperCase();
+        if (excludedTerms.some(term => companyName.includes(term))) return false;
+        
         return true;
     });
+}
+
+async function fetchWithTimeout(url, options, timeout = 10000) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
+    
+    try {
+        const response = await fetch(url, {
+            ...options,
+            signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        return response;
+    } catch (error) {
+        clearTimeout(timeoutId);
+        throw error;
+    }
 }
 
 function getStrengthsAuto(metrics) {
