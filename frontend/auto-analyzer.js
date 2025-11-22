@@ -8,6 +8,15 @@ let currentAnalysisIndex = 0;
 let analysisResults = [];
 let isAnalyzing = false;
 
+// Configuration haute performance
+const PERFORMANCE_CONFIG = {
+    BATCH_SIZE: 12,              // ~300 appels/minute (12 * 25 = 300)
+    DELAY_BETWEEN_BATCHES: 2400, // 2.4s entre les lots
+    REQUEST_TIMEOUT: 10000,      // 10s max par requête
+    MAX_CONCURRENT_REQUESTS: 8   // Limite de requêtes simultanées
+};
+
+
 console.log('📊 AutoAnalyzer chargé - Prêt pour l analyse automatique');
 
 // Initialisation
@@ -38,7 +47,255 @@ function addAutoAnalysisButton() {
         setTimeout(addAutoAnalysisButton, 2000);
     }
 
-    // =============================================================================
+// =============================================================================
+// FONCTIONS PRINCIPALES
+// =============================================================================
+
+async function startAutoAnalysis() {
+    console.log('🎯 Démarrage de l analyse automatique...');
+    
+    if (typeof allCompaniesData === 'undefined' || allCompaniesData.length === 0) {
+        alert('Veuillez d\'abord charger les entreprises en cliquant sur "📋 Rechercher entreprise"');
+        return;
+    }
+
+    // Filtrer les entreprises avant analyse
+    const filteredCompanies = filterCompaniesBeforeAnalysis(allCompaniesData);
+    
+    if (filteredCompanies.length === 0) {
+        alert('Aucune entreprise valide à analyser');
+        return;
+    }
+
+    const originalCount = allCompaniesData.length;
+    const filteredCount = filteredCompanies.length;
+    
+    if (filteredCount < originalCount) {
+        if (!confirm(`${originalCount - filteredCount} entreprises exclues (symboles invalides).\nAnalyser les ${filteredCount} entreprises restantes ?`)) {
+            return;
+        }
+    } else {
+        if (!confirm(`Voulez-vous analyser ${filteredCount} entreprises ?\nCela peut prendre plusieurs minutes.`)) {
+            return;
+        }
+    }
+
+// Préparer l'analyse
+    analysisQueue = filteredCompanies;
+    currentAnalysisIndex = 0;
+    analysisResults = [];
+    isAnalyzing = true;
+
+    // Créer l'interface de progression
+    createAnalysisProgressUI();
+
+    // OPTIMISATION: Traitement par lots de 10 entreprises
+    const batchSize = 10; // Ajustable selon les performances
+    await processBatch(analysisQueue, batchSize);
+    
+    finishAutoAnalysis();
+}
+
+// =============================================================================
+// TRAITEMENT PAR LOTS OPTIMISÉ
+//=============================================================================
+
+async function processBatchOptimized(companies, batchSize = 10) {
+    console.log(`⚡ Démarrage traitement par lots (${batchSize} entreprises/lot)`);
+    
+    for (let i = 0; i < companies.length && isAnalyzing; i += batchSize) {
+        const batch = companies.slice(i, i + batchSize);
+        const batchNumber = Math.floor(i / batchSize) + 1;
+        const totalBatches = Math.ceil(companies.length / batchSize);
+        
+        console.log(`📦 Lot ${batchNumber}/${totalBatches} (${batch.length} entreprises)`);
+        
+        // Traiter le lot en parallèle avec limite de concurrence
+        const batchPromises = batch.map(company => 
+            analyzeSingleCompanyOptimized(company.symbol, company.companyName || company.name)
+                .catch(error => ({
+                    symbol: company.symbol,
+                    error: true,
+                    errorMessage: error.message,
+                    date: new Date().toISOString()
+                }))
+        );
+        
+        // Attendre que tout le lot soit traité
+        const batchResults = await Promise.allSettled(batchPromises);
+        
+        // Traiter les résultats du lot
+        batchResults.forEach(result => {
+            if (result.status === 'fulfilled' && result.value) {
+                analysisResults.push(result.value);
+            }
+        });
+        
+        // Mettre à jour la progression
+        currentAnalysisIndex += batch.length;
+        updateProgressUI(batch[0], (currentAnalysisIndex / companies.length) * 100);
+        updateResultsCounters();
+        
+        // Délai entre les lots pour respecter les limites API
+        if (i + batchSize < companies.length) {
+            await new Promise(resolve => setTimeout(resolve, PERFORMANCE_CONFIG.DELAY_BETWEEN_BATCHES));
+        }
+    }
+}
+
+// =============================================================================
+// ANALYSE OPTIMISÉE D'UNE ENTREPRISE
+// =============================================================================
+
+async function analyzeSingleCompanyOptimized(symbol, companyName) {
+    addToAnalysisLog(symbol, `🔍 Début analyse...`, 'info');
+
+    try {
+        // REQUÊTES PARALLÈLES AVEC TIMEOUT
+        const endpoints = [
+            `/profile?symbol=${symbol}`,
+            `/quote?symbol=${symbol}`, 
+            `/cash-flow-statement?symbol=${symbol}`,
+            `/income-statement?symbol=${symbol}`,
+            `/balance-sheet-statement?symbol=${symbol}`
+        ];
+
+        const fetchPromises = endpoints.map(endpoint => 
+            fetchWithErrorHandlingOptimized(endpoint, 'données')
+        );
+
+        const [profile, quote, cashFlow, incomeStatement, balanceSheet] = await Promise.all(fetchPromises);
+
+        // VÉRIFICATION RAPIDE DES DONNÉES
+        if (!profile || !profile[0] || !quote || !quote[0]) {
+            throw new Error('Données de base manquantes');
+        }
+
+        const companyData = {
+            profile: profile[0],
+            quote: quote[0],
+            cashFlow: cashFlow?.[0],
+            incomeStatement: incomeStatement?.[0],
+            balanceSheet: balanceSheet?.[0]
+        };
+
+        if (!companyData.profile.companyName || !companyData.quote.price) {
+            throw new Error('Données entreprise incomplètes');
+        }
+
+        // CALCUL ASYNCHRONE DES MÉTRIQUES
+        const metrics = await calculateMetricsInWorker(companyData);
+        
+        // Vérifier si on a suffisamment de métriques valides
+        const validMetricsCount = Object.values(metrics).filter(val => val !== null && val !== undefined).length;
+        if (validMetricsCount < 10) {
+            throw new Error('Données financières insuffisantes');
+        }
+
+        // CALCUL DU SCORE ET RECOMMANDATION
+        const scores = calculateScoresAuto(metrics);
+        const totalScore = scores.excellent * 3 + scores.good * 2 + scores.medium;
+        const maxScore = (scores.excellent + scores.good + scores.medium + scores.bad) * 3;
+        const percentage = maxScore > 0 ? (totalScore / maxScore) * 100 : 0;
+
+        const recommendation = percentage >= 75 ? 'EXCELLENT' :
+                              percentage >= 60 ? 'BON' :
+                              percentage >= 45 ? 'MOYEN' : 'FAIBLE';
+
+        const result = {
+            symbol,
+            companyName,
+            metrics,
+            recommendation,
+            score: percentage,
+            date: new Date().toISOString(),
+            success: true,
+            saved: false
+        };
+
+        // SAUVEGARDE ASYNCHRONE (ne pas attendre)
+        sauvegarderAnalyseAutomatique(metrics, recommendation, companyData)
+            .then(saved => {
+                if (saved) {
+                    result.saved = true;
+                    addToAnalysisLog(symbol, `💾 Sauvegarde OK`, 'success');
+                }
+            })
+            .catch(error => {
+                console.error(`❌ Erreur sauvegarde ${symbol}:`, error);
+            });
+
+        // Afficher le résultat immédiatement
+        const logClass = getRecommendationClass(recommendation);
+        addToAnalysisLog(symbol, `${recommendation} (${percentage.toFixed(0)}%)`, logClass);
+
+        return result;
+
+    } catch (error) {
+        addToAnalysisLog(symbol, `❌ ${error.message}`, 'error');
+        throw error;
+    }
+}
+
+// =============================================================================
+// FONCTIONS DE REQUÊTES OPTIMISÉES
+// =============================================================================
+
+async function fetchWithErrorHandlingOptimized(endpoint, dataType) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), PERFORMANCE_CONFIG.REQUEST_TIMEOUT);
+
+    try {
+        const separator = endpoint.includes('?') ? '&' : '?';
+        const url = `${BASE_URL}${endpoint}${separator}apikey=${API_KEY}`;
+        
+        const response = await fetch(url, { 
+            signal: controller.signal 
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        if (Array.isArray(data) && data.length === 0) {
+            throw new Error('Aucune donnée disponible');
+        }
+        
+        return data;
+    } catch (error) {
+        clearTimeout(timeoutId);
+        
+        if (error.name === 'AbortError') {
+            throw new Error(`Timeout ${dataType}`);
+        }
+        throw error;
+    }
+}
+
+// =============================================================================
+// CALCUL ASYNCHRONE DES MÉTRIQUES
+// =============================================================================
+
+function calculateMetricsInWorker(companyData) {
+    return new Promise((resolve) => {
+        // Utiliser setTimeout pour libérer le thread principal
+        setTimeout(() => {
+            try {
+                const metrics = calculateCompanyMetricsSafe(companyData);
+                resolve(metrics);
+            } catch (error) {
+                console.error('Erreur calcul métriques:', error);
+                resolve({});
+            }
+        }, 0);
+    });
+}
+    
+// =============================================================================
 // FONCTIONS DE CALCUL COMPLÈTES
 // =============================================================================
 
@@ -286,6 +543,16 @@ function calculateSpecificRatios(companyData) {
 /**
  * Fonction principale de calcul des métriques avec gestion d'erreurs
  */
+    function filterCompaniesBeforeAnalysis(companies) {
+    return companies.filter(company => {
+        if (!company.symbol || company.symbol.length === 0) return false;
+        if (/^[0-9]/.test(company.symbol)) return false;
+        if (company.symbol.length < 2 || company.symbol.length > 6) return false;
+        if (!/^[A-Z]+$/.test(company.symbol)) return false;
+        return true;
+    });
+}
+    
 function calculateCompanyMetricsSafe(companyData) {
     try {
         const allRatios = calculateAllFinancialRatios(companyData);
@@ -328,51 +595,7 @@ function calculateCompanyMetricsSafe(companyData) {
 }
 }
 
-// =============================================================================
-// FONCTIONS PRINCIPALES
-// =============================================================================
 
-async function startAutoAnalysis() {
-    console.log('🎯 Démarrage de l analyse automatique...');
-    
-    if (typeof allCompaniesData === 'undefined' || allCompaniesData.length === 0) {
-        alert('Veuillez d\'abord charger les entreprises en cliquant sur "📋 Rechercher entreprise"');
-        return;
-    }
-
-    // Filtrer les entreprises avant analyse
-    const filteredCompanies = filterCompaniesBeforeAnalysis(allCompaniesData);
-    
-    if (filteredCompanies.length === 0) {
-        alert('Aucune entreprise valide à analyser');
-        return;
-    }
-
-    const originalCount = allCompaniesData.length;
-    const filteredCount = filteredCompanies.length;
-    
-    if (filteredCount < originalCount) {
-        if (!confirm(`${originalCount - filteredCount} entreprises exclues (symboles invalides).\nAnalyser les ${filteredCount} entreprises restantes ?`)) {
-            return;
-        }
-    } else {
-        if (!confirm(`Voulez-vous analyser ${filteredCount} entreprises ?\nCela peut prendre plusieurs minutes.`)) {
-            return;
-        }
-    }
-
-    // Préparer l'analyse
-    analysisQueue = filteredCompanies;
-    currentAnalysisIndex = 0;
-    analysisResults = [];
-    isAnalyzing = true;
-
-    // Créer l'interface de progression
-    createAnalysisProgressUI();
-
-    // Démarrer l'analyse
-    await processNextCompany();
-}
 
 async function processNextCompany() {
     if (!isAnalyzing || currentAnalysisIndex >= analysisQueue.length) {
@@ -433,16 +656,31 @@ async function processNextCompany() {
     await processNextCompany();
 }
 
+// DÉLÉGUER LES CALCULS LOURDS
+function calculateMetricsInWorker(companyData) {
+    return new Promise((resolve) => {
+        // Utiliser setTimeout pour libérer le thread principal
+        setTimeout(() => {
+            try {
+                const metrics = calculateCompanyMetricsSafe(companyData);
+                resolve(metrics);
+            } catch (error) {
+                resolve(null);
+            }
+        }, 0);
+    });
+}
+
 async function analyzeSingleCompany(symbol, companyName) {
     addToAnalysisLog(symbol, `🔍 Analyse en cours...`, 'info');
 
     try {
-        // Timeout global de 30 secondes
+        // Timeout global de 20 secondes au lieu de 30
         const timeoutPromise = new Promise((_, reject) => {
-            setTimeout(() => reject(new Error('Timeout - Analyse trop longue')), 30000);
+            setTimeout(() => reject(new Error('Timeout - Analyse trop longue')), 20000);
         });
 
-        // Récupérer les données
+        // OPTIMISATION: Toutes les requêtes en parallèle
         const fetchPromise = Promise.all([
             fetchWithErrorHandling(`/profile?symbol=${symbol}`, 'profil'),
             fetchWithErrorHandling(`/quote?symbol=${symbol}`, 'cotation'),
@@ -454,6 +692,11 @@ async function analyzeSingleCompany(symbol, companyName) {
         const [profile, quote, cashFlow, incomeStatement, balanceSheet] = 
             await Promise.race([fetchPromise, timeoutPromise]);
 
+         const companyData = { profile, quote, cashFlow, incomeStatement, balanceSheet };
+        
+        // OPTIMISATION: Calcul asynchrone des métriques
+        const metrics = await calculateMetricsInWorker(companyData);
+        
         // Vérifier si les données sont valides
         if (!profile || profile.length === 0 || !profile[0]) {
             throw new Error('Profil introuvable');
@@ -527,6 +770,39 @@ async function analyzeSingleCompany(symbol, companyName) {
     } catch (error) {
         throw error;
     }
+}
+
+// NOUVELLE FONCTION POUR TRAITEMENT PAR LOTS
+async function processBatch(batchCompanies, batchSize = 10) {
+    const results = [];
+    
+    for (let i = 0; i < batchCompanies.length; i += batchSize) {
+        const batch = batchCompanies.slice(i, i + batchSize);
+        
+        // Traiter le lot en parallèle
+        const batchPromises = batch.map(company => 
+            analyzeSingleCompany(company.symbol, company.companyName || company.name)
+                .catch(error => ({
+                    symbol: company.symbol,
+                    error: true,
+                    errorMessage: error.message
+                }))
+        );
+        
+        const batchResults = await Promise.allSettled(batchPromises);
+        results.push(...batchResults);
+        
+        // Mettre à jour l'UI après chaque lot
+        currentAnalysisIndex += batch.length;
+        updateProgressUI(batch[0], (currentAnalysisIndex / analysisQueue.length) * 100);
+        
+        // Petit délai entre les lots pour éviter le rate limiting
+        if (i + batchSize < batchCompanies.length) {
+            await new Promise(resolve => setTimeout(resolve, 200));
+        }
+    }
+    
+    return results;
 }
 
 // =============================================================================
@@ -992,15 +1268,7 @@ function calculateScoresAuto(metrics) {
     return scores;
 }
 
-function filterCompaniesBeforeAnalysis(companies) {
-    return companies.filter(company => {
-        if (!company.symbol || company.symbol.length === 0) return false;
-        if (/^[0-9]/.test(company.symbol)) return false;
-        if (company.symbol.length < 2 || company.symbol.length > 6) return false;
-        if (!/^[A-Z]+$/.test(company.symbol)) return false;
-        return true;
-    });
-}
+
 
 // =============================================================================
 // INTERFACE UTILISATEUR
@@ -1416,4 +1684,71 @@ function injectAutoAnalyzerStyles() {
     const styleElement = document.createElement('style');
     styleElement.textContent = styles;
     document.head.appendChild(styleElement);
+}
+
+// CONFIGURATION DES PERFORMANCES
+const PERFORMANCE_CONFIG = {
+    BATCH_SIZE: 10,              // Nombre de requêtes parallèles
+    DELAY_BETWEEN_BATCHES: 200,  // Délai entre les lots (ms)
+    REQUEST_TIMEOUT: 15000,      // Timeout par requête (15s)
+    BATCH_TIMEOUT: 30000,        // Timeout par lot (30s)
+    MAX_CONCURRENT_REQUESTS: 15  // Requêtes simultanées max
+};
+
+// FONCTION OPTIMISÉE POUR LES REQUÊTES
+async function fetchWithErrorHandlingOptimized(endpoint, dataType) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), PERFORMANCE_CONFIG.REQUEST_TIMEOUT);
+
+    try {
+        const separator = endpoint.includes('?') ? '&' : '?';
+        const url = `${BASE_URL}${endpoint}${separator}apikey=${API_KEY}`;
+        
+        const response = await fetch(url, { 
+            signal: controller.signal 
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        if (Array.isArray(data) && data.length === 0) {
+            throw new Error('Aucune donnée disponible');
+        }
+        
+        return data;
+    } catch (error) {
+        clearTimeout(timeoutId);
+        
+        if (error.name === 'AbortError') {
+            throw new Error(`Timeout ${dataType}`);
+        }
+        throw error;
+    }
+}
+
+// CACHE MEMORY SIMPLE
+const apiCache = new Map();
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+async function fetchWithCache(endpoint, dataType) {
+    const cacheKey = endpoint;
+    const cached = apiCache.get(cacheKey);
+    
+    if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+        return cached.data;
+    }
+    
+    const data = await fetchWithErrorHandlingOptimized(endpoint, dataType);
+    
+    apiCache.set(cacheKey, {
+        data,
+        timestamp: Date.now()
+    });
+    
+    return data;
 }
