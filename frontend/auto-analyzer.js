@@ -353,12 +353,9 @@ async function analyzeSingleCompanyOptimized(symbol, companyName) {
         const logClass = getRecommendationClass(recommendation);
         
         // CORRECTION: Calculer validMetricsCount correctement
-        const validMetricsCount = Object.values(metrics).filter(val => 
-            val !== null && val !== undefined
-        ).length;
-        
-        addToAnalysisLog(symbol, `${recommendation} (${percentage.toFixed(0)}%) - ${validMetricsCount} métriques`, logClass);
+        const validMetricsCount = Object.values(metrics).filter(val => val !== null && val !== undefined).length;
 
+        addToAnalysisLog(symbol, `${recommendation} (${percentage.toFixed(0)}%) - ${validMetricsCount} métriques`, logClass);
         return result;
 
     } catch (error) {
@@ -391,7 +388,7 @@ function togglePauseAnalysis() {
 // =============================================================================
 
 async function fetchWithErrorHandlingOptimized(endpoint, dataType) {
-    const controller = new AbortController();f
+    const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), PERFORMANCE_CONFIG.REQUEST_TIMEOUT);
 
     try {
@@ -1222,7 +1219,7 @@ async function getCompanyDataForSaving(symbol) {
         }
 
         return {
-            profile: profile[0],
+            profile: validation.profile,
             quote: quote[0],
             cashFlow: cashFlow?.[0],
             incomeStatement: incomeStatement?.[0],
