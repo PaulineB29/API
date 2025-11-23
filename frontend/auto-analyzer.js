@@ -130,10 +130,8 @@ function initAutoAnalyzer() {
 async function startAutoAnalysis(startLetters = '') {
     console.log('🎯 Démarrage de l analyse automatique...');
     
-      if (!window.allCompaniesData || !Array.isArray(window.allCompaniesData) || window.allCompaniesData.length === 0) {
+    if (!window.allCompaniesData || !Array.isArray(window.allCompaniesData) || window.allCompaniesData.length === 0) {
         alert('Veuillez d\'abord charger les entreprises en cliquant sur "📋 Rechercher entreprise"');
-        return;
-    }
         
         // Afficher plus d'info en console
         console.log('❌ allCompaniesData status:', {
