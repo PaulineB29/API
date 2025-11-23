@@ -185,7 +185,7 @@ async function startAutoAnalysis() {
 // FONCTIONS PRINCIPALES - MODIFICATION POUR REPRISE PAR LETTRES
 // =============================================================================
 
-function startAutoAnalysis(startLetters = '') {
+async function startAutoAnalysis(startLetters = '') {
     console.log('🎯 Démarrage de l analyse automatique...');
     
     if (typeof allCompaniesData === 'undefined' || allCompaniesData.length === 0) {
