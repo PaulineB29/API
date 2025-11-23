@@ -151,7 +151,8 @@ router.post('/', async (req, res) => {
       recommandation,
       points_forts,
       points_faibles,
-      freeCashFlow
+      freeCashFlow,
+      trading_metrics
     } = req.body;
 
     console.log('🔍 Symbole utilisateur reçu:', symbol);
@@ -222,11 +223,54 @@ router.post('/', async (req, res) => {
       );
 
     const newId = analyseResult.rows[0].id;
-    console.log('🎉 SAUVEGARDE RÉUSSIE - ID:', newId, 'Symbol utilisateur:', symbolUtilisateur);
+
+    // ⚠️ 2. SAUVEGARDE TRADING METRICS SI PRÉSENTES
+    if (trading_metrics && Object.keys(trading_metrics).length > 0) {
+      console.log('💫 Sauvegarde métriques de trading...');
+      
+      try {
+        await query(
+          `INSERT INTO trading_metrics_avancees (
+            entreprise_id, date_analyse,
+            normalized_fcf, dynamic_peg, earnings_quality,
+            price_momentum_63d, volatility_30d, quality_score,
+            momentum_score, risk_adjusted_score
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+          ON CONFLICT (entreprise_id, date_analyse) 
+          DO UPDATE SET
+            normalized_fcf = EXCLUDED.normalized_fcf,
+            dynamic_peg = EXCLUDED.dynamic_peg,
+            earnings_quality = EXCLUDED.earnings_quality,
+            price_momentum_63d = EXCLUDED.price_momentum_63d,
+            volatility_30d = EXCLUDED.volatility_30d,
+            quality_score = EXCLUDED.quality_score,
+            momentum_score = EXCLUDED.momentum_score,
+            risk_adjusted_score = EXCLUDED.risk_adjusted_score`,
+          [
+            entrepriseId,
+            date_analyse || new Date().toISOString().split('T')[0],
+            parseFloat(trading_metrics.normalized_fcf) || null,
+            parseFloat(trading_metrics.dynamic_peg) || null,
+            parseFloat(trading_metrics.earnings_quality) || null,
+            parseFloat(trading_metrics.price_momentum_63d) || null,
+            parseFloat(trading_metrics.volatility_30d) || null,
+            parseInt(trading_metrics.quality_score) || null,
+            parseInt(trading_metrics.momentum_score) || null,
+            parseInt(trading_metrics.risk_adjusted_score) || null
+          ]
+        );
+        console.log('✅ Métriques de trading sauvegardées');
+      } catch (tradingError) {
+        console.error('⚠️ Erreur sauvegarde trading metrics (non bloquant):', tradingError);
+        // Ne pas bloquer la sauvegarde principale
+      }
+    }
+
+    console.log('🎉 SAUVEGARDE COMPLÈTE RÉUSSIE - ID:', newId);
 
     res.status(201).json({
       success: true,
-      message: 'Analyse sauvegardée avec succès',
+      message: 'Analyse et métriques de trading sauvegardées avec succès',
       id: newId,
       symbol: symbolUtilisateur
     });
@@ -426,6 +470,257 @@ router.get('/', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la récupération',
+      error: error.message
+    });
+  }
+});
+
+// =============================================================================
+// ROUTES TRADING METRICS AVANCÉES
+// =============================================================================
+
+// POST /api/analyses/trading-metrics - Sauvegarder les métriques de trading
+router.post('/trading-metrics', async (req, res) => {
+  try {
+    console.log('🚀 REQUÊTE TRADING METRICS REÇUE');
+    
+    const {
+      symbol, // ⚠️ SYMBOLE TAPÉ PAR L'UTILISATEUR
+      date_analyse,
+      // Valorisation dynamique
+      normalized_fcf,
+      dynamic_peg,
+      fcf_yield_3y_avg,
+      // Qualité des bénéfices
+      earnings_quality,
+      accruals_ratio,
+      operating_cf_ratio,
+      // Momentum intelligent
+      price_momentum_63d,
+      relative_strength_126d,
+      volume_trend,
+      // Risque ajusté
+      volatility_30d,
+      beta_sector,
+      short_interest_ratio,
+      squeeze_potential,
+      // Scores composites
+      quality_score,
+      momentum_score,
+      value_score,
+      risk_adjusted_score
+    } = req.body;
+
+    console.log('📊 Trading metrics reçues pour:', symbol);
+
+    // ⚠️ VALIDATION CRITIQUE
+    if (!symbol || symbol.trim() === '') {
+      console.error('❌ SYMBOLE MANQUANT pour trading metrics');
+      return res.status(400).json({
+        success: false,
+        message: 'Le symbole est obligatoire',
+        error: 'Symbol is required'
+      });
+    }
+
+    const symbolUtilisateur = symbol.trim().toUpperCase();
+
+    // 1. Trouver ou créer l'entreprise avec le SYMBOLE UTILISATEUR
+    const entrepriseId = await trouverOuCreerEntreprise(symbolUtilisateur);
+
+    // 2. SAUVEGARDE DANS LA NOUVELLE TABLE
+    console.log('💾 Insertion trading metrics...');
+    
+    const valeurs = [
+      entrepriseId,
+      date_analyse || new Date().toISOString().split('T')[0],
+      // Valorisation dynamique
+      parseFloat(normalized_fcf) || null,
+      parseFloat(dynamic_peg) || null,
+      parseFloat(fcf_yield_3y_avg) || null,
+      // Qualité des bénéfices
+      parseFloat(earnings_quality) || null,
+      parseFloat(accruals_ratio) || null,
+      parseFloat(operating_cf_ratio) || null,
+      // Momentum intelligent
+      parseFloat(price_momentum_63d) || null,
+      parseFloat(relative_strength_126d) || null,
+      parseFloat(volume_trend) || null,
+      // Risque ajusté
+      parseFloat(volatility_30d) || null,
+      parseFloat(beta_sector) || null,
+      parseFloat(short_interest_ratio) || null,
+      squeeze_potential || 'LOW',
+      // Scores composites
+      parseInt(quality_score) || null,
+      parseInt(momentum_score) || null,
+      parseInt(value_score) || null,
+      parseInt(risk_adjusted_score) || null
+    ];
+
+    const tradingMetricsResult = await query(
+      `INSERT INTO trading_metrics_avancees (
+        entreprise_id, date_analyse,
+        normalized_fcf, dynamic_peg, fcf_yield_3y_avg,
+        earnings_quality, accruals_ratio, operating_cf_ratio,
+        price_momentum_63d, relative_strength_126d, volume_trend,
+        volatility_30d, beta_sector, short_interest_ratio, squeeze_potential,
+        quality_score, momentum_score, value_score, risk_adjusted_score
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
+      ON CONFLICT (entreprise_id, date_analyse) 
+      DO UPDATE SET
+        normalized_fcf = EXCLUDED.normalized_fcf,
+        dynamic_peg = EXCLUDED.dynamic_peg,
+        fcf_yield_3y_avg = EXCLUDED.fcf_yield_3y_avg,
+        earnings_quality = EXCLUDED.earnings_quality,
+        accruals_ratio = EXCLUDED.accruals_ratio,
+        operating_cf_ratio = EXCLUDED.operating_cf_ratio,
+        price_momentum_63d = EXCLUDED.price_momentum_63d,
+        relative_strength_126d = EXCLUDED.relative_strength_126d,
+        volume_trend = EXCLUDED.volume_trend,
+        volatility_30d = EXCLUDED.volatility_30d,
+        beta_sector = EXCLUDED.beta_sector,
+        short_interest_ratio = EXCLUDED.short_interest_ratio,
+        squeeze_potential = EXCLUDED.squeeze_potential,
+        quality_score = EXCLUDED.quality_score,
+        momentum_score = EXCLUDED.momentum_score,
+        value_score = EXCLUDED.value_score,
+        risk_adjusted_score = EXCLUDED.risk_adjusted_score,
+        created_at = NOW()
+      RETURNING id`,
+      valeurs
+    );
+
+    const newId = tradingMetricsResult.rows[0].id;
+    console.log('🎉 TRADING METRICS SAUVEGARDÉES - ID:', newId, 'Symbol:', symbolUtilisateur);
+
+    res.status(201).json({
+      success: true,
+      message: 'Métriques de trading sauvegardées avec succès',
+      id: newId,
+      symbol: symbolUtilisateur
+    });
+
+  } catch (error) {
+    console.error('❌ Erreur sauvegarde trading metrics:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la sauvegarde des métriques de trading',
+      error: error.message
+    });
+  }
+});
+
+// GET /api/analyses/trading-metrics/:symbol - Récupérer les métriques de trading
+router.get('/trading-metrics/:symbol', async (req, res) => {
+  try {
+    const { symbol } = req.params;
+    
+    const symbolRecherche = symbol.toUpperCase();
+
+    const result = await query(
+      `SELECT 
+        tm.date_analyse,
+        tm.normalized_fcf,
+        tm.dynamic_peg,
+        tm.earnings_quality,
+        tm.accruals_ratio,
+        tm.price_momentum_63d,
+        tm.relative_strength_126d,
+        tm.volatility_30d,
+        tm.beta_sector,
+        tm.short_interest_ratio,
+        tm.squeeze_potential,
+        tm.quality_score,
+        tm.momentum_score,
+        tm.value_score,
+        tm.risk_adjusted_score,
+        e.symbole,
+        e.nom,
+        e.secteur
+       FROM trading_metrics_avancees tm
+       JOIN entreprises e ON tm.entreprise_id = e.id
+       WHERE e.symbole = $1
+       ORDER BY tm.date_analyse DESC
+       LIMIT 10`,
+      [symbolRecherche]
+    );
+
+    res.json({
+      success: true,
+      symbol: symbolRecherche,
+      trading_metrics: result.rows
+    });
+
+  } catch (error) {
+    console.error('Erreur récupération trading metrics:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la récupération des métriques de trading',
+      error: error.message
+    });
+  }
+});
+
+// GET /api/analyses/dashboard/trading - Dashboard trading avancé
+router.get('/dashboard/trading', async (req, res) => {
+  try {
+    const { 
+      min_quality = 70, 
+      min_momentum = 60,
+      squeeze_only = false 
+    } = req.query;
+
+    let querySql = `
+      SELECT 
+        e.symbole,
+        e.nom,
+        e.secteur,
+        tm.quality_score,
+        tm.momentum_score,
+        tm.risk_adjusted_score,
+        tm.squeeze_potential,
+        tm.short_interest_ratio,
+        tm.price_momentum_63d,
+        tm.volatility_30d,
+        CASE 
+          WHEN tm.quality_score >= 80 AND tm.momentum_score >= 70 THEN '🚀 BUY_STRONG'
+          WHEN tm.squeeze_potential = 'HIGH' AND tm.momentum_score >= 60 THEN '🔥 SQUEEZE_CANDIDATE'
+          WHEN tm.quality_score >= 70 AND tm.momentum_score >= 50 THEN '✅ BUY'
+          WHEN tm.quality_score < 30 OR tm.risk_adjusted_score < 40 THEN '🚨 AVOID'
+          WHEN tm.momentum_score < 30 THEN '📉 WEAK_MOMENTUM'
+          ELSE '📊 MONITOR'
+        END as signal_trading,
+        ROUND(tm.quality_score * 0.4 + tm.momentum_score * 0.4 + tm.risk_adjusted_score * 0.2) as overall_score
+      FROM trading_metrics_avancees tm
+      JOIN entreprises e ON tm.entreprise_id = e.id
+      WHERE tm.date_analyse = CURRENT_DATE
+    `;
+
+    const params = [];
+    
+    if (squeeze_only === 'true') {
+      querySql += ` AND tm.squeeze_potential IN ('HIGH', 'VERY_HIGH')`;
+    } else {
+      querySql += ` AND tm.quality_score >= $1 AND tm.momentum_score >= $2`;
+      params.push(parseInt(min_quality), parseInt(min_momentum));
+    }
+
+    querySql += ` ORDER BY overall_score DESC LIMIT 50`;
+
+    const result = await query(querySql, params);
+
+    res.json({
+      success: true,
+      dashboard: result.rows,
+      total: result.rows.length
+    });
+
+  } catch (error) {
+    console.error('Erreur dashboard trading:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la génération du dashboard',
       error: error.message
     });
   }
