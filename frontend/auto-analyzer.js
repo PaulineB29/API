@@ -20,6 +20,7 @@ const PERFORMANCE_CONFIG = {
 };
 
 console.log('📊 AutoAnalyzer chargé - Prêt pour l analyse automatique');
+
 // =============================================================================
 // GESTION DU RATE LIMITING
 // =============================================================================
@@ -181,6 +182,106 @@ async function startAutoAnalysis() {
 }
 
 // =============================================================================
+// FONCTIONS PRINCIPALES - MODIFICATION POUR REPRISE PAR LETTRES
+// =============================================================================
+
+function startAutoAnalysis(startLetters = '') {
+    console.log('🎯 Démarrage de l analyse automatique...');
+    
+    if (typeof allCompaniesData === 'undefined' || allCompaniesData.length === 0) {
+        alert('Veuillez d\'abord charger les entreprises en cliquant sur "📋 Rechercher entreprise"');
+        return;
+    }
+
+    let filteredCompanies = filterCompaniesBeforeAnalysis(allCompaniesData);
+    
+    // FILTRE PAR LETTRES - NOUVELLE FONCTIONNALITÉ
+    if (startLetters && startLetters.trim() !== '') {
+        const letters = startLetters.trim().toUpperCase().split(',').map(letter => letter.trim());
+        filteredCompanies = filteredCompanies.filter(company => {
+            return letters.some(letter => company.symbol.toUpperCase().startsWith(letter));
+        });
+        console.log(`🔤 Filtrage par lettres: ${letters.join(', ')} - ${filteredCompanies.length} entreprises`);
+    }
+    
+    if (filteredCompanies.length === 0) {
+        alert('Aucune entreprise valide à analyser');
+        return;
+    }
+
+    const originalCount = allCompaniesData.length;
+    const filteredCount = filteredCompanies.length;
+    
+    let confirmMessage = `Voulez-vous analyser ${filteredCount} entreprises ?\nCela peut prendre plusieurs minutes.`;
+    if (startLetters) {
+        confirmMessage = `Voulez-vous analyser ${filteredCount} entreprises commençant par ${startLetters} ?\nCela peut prendre plusieurs minutes.`;
+    }
+    
+    if (!confirm(confirmMessage)) {
+        return;
+    }
+
+    analysisQueue = filteredCompanies;
+    currentAnalysisIndex = 0;
+    analysisResults = [];
+    isAnalyzing = true;
+
+    createAnalysisProgressUI();
+    await processBatchOptimized(analysisQueue, PERFORMANCE_CONFIG.BATCH_SIZE);
+    finishAutoAnalysis();
+}
+
+// =============================================================================
+// BOUTON AVEC CHOIX DES LETTRES - SEULE MODIFICATION INTERFACE
+// =============================================================================
+
+function addAutoAnalysisButton() {
+    const modalHeader = document.querySelector('.modal-header');
+    
+    if (modalHeader && !document.getElementById('autoAnalyzeBtn')) {
+        const buttonContainer = document.createElement('div');
+        buttonContainer.className = 'auto-analyzer-buttons';
+        buttonContainer.style.display = 'flex';
+        buttonContainer.style.gap = '10px';
+        buttonContainer.style.alignItems = 'center';
+        
+        // Bouton d'analyse normale
+        const autoAnalyzeBtn = document.createElement('button');
+        autoAnalyzeBtn.id = 'autoAnalyzeBtn';
+        autoAnalyzeBtn.className = 'btn-primary';
+        autoAnalyzeBtn.innerHTML = '🚀 Analyser toutes les entreprises';
+        autoAnalyzeBtn.addEventListener('click', () => startAutoAnalysisWithLetterChoice());
+        
+        buttonContainer.appendChild(autoAnalyzeBtn);
+        modalHeader.appendChild(buttonContainer);
+        
+        console.log('✅ Bouton d analyse automatique ajouté');
+    } else {
+        console.log('⏳ Modal non trouvé, réessai dans 2 secondes...');
+        setTimeout(addAutoAnalysisButton, 2000);
+    }
+}
+
+// NOUVELLE FONCTION POUR CHOISIR LES LETTRES
+function startAutoAnalysisWithLetterChoice() {
+    const startLetters = prompt(
+        '🔤 Analyser à partir de quelles lettres ?\n\n' +
+        'Laissez vide pour toutes les entreprises\n' +
+        'Exemples:\n' +
+        '- "DM" pour les symboles commençant par DM\n' +
+        '- "A,B,C" pour les symboles commençant par A, B ou C\n' +
+        '- "AA,AB" pour les symboles commençant par AA ou AB',
+        'DM' // Valeur par défaut
+    );
+    
+    if (startLetters === null) {
+        return; // L'utilisateur a annulé
+    }
+    
+    startAutoAnalysis(startLetters);
+}
+
+// =============================================================================
 // TRAITEMENT PAR LOTS OPTIMISÉ
 // =============================================================================
 
@@ -244,6 +345,7 @@ async function processBatchOptimized(companies, batchSize = PERFORMANCE_CONFIG.B
         }
     }
 }
+
 
 // =============================================================================
 // ANALYSE OPTIMISÉE D'UNE ENTREPRISE
