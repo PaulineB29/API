@@ -143,7 +143,7 @@ function addAutoAnalysisButton() {
 // FONCTIONS PRINCIPALES
 // =============================================================================
 
-async function ) {
+async function startAutoAnalysis() {
     console.log('🎯 Démarrage de l analyse automatique...');
     
     if (typeof allCompaniesData === 'undefined' || allCompaniesData.length === 0) {
