@@ -143,7 +143,7 @@ function addAutoAnalysisButton() {
 // FONCTIONS PRINCIPALES
 // =============================================================================
 
-async function startAutoAnalysis() {
+async function ) {
     console.log('🎯 Démarrage de l analyse automatique...');
     
     if (typeof allCompaniesData === 'undefined' || allCompaniesData.length === 0) {
@@ -185,7 +185,7 @@ async function startAutoAnalysis() {
 // FONCTIONS PRINCIPALES - MODIFICATION POUR REPRISE PAR LETTRES
 // =============================================================================
 
-async function startAutoAnalysis(startLetters = '') {
+function startAutoAnalysis(startLetters = '') {
     console.log('🎯 Démarrage de l analyse automatique...');
     
     if (typeof allCompaniesData === 'undefined' || allCompaniesData.length === 0) {
