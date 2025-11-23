@@ -379,6 +379,9 @@ async function analyzeSingleCompanyOptimized(symbol, companyName) {
             )
         );
 
+        const tradingMetrics = await calculateAdvancedTradingMetrics(companyData);
+        await saveTradingMetrics(entrepriseId, tradingMetrics);
+
         // CORRECTION: Utiliser validation.profile au lieu de profile[0] qui n'existe pas
         const companyData = {
             profile: validation.profile, // ← CORRIGÉ ICI
@@ -488,6 +491,49 @@ function togglePauseAnalysis() {
 // =============================================================================
 // FONCTIONS DE REQUÊTES
 // =============================================================================
+async function calculateAdvancedTradingMetrics(companyData) {
+    const { symbol, profile, quote, incomeStatement, cashFlow, balanceSheet } = companyData;
+    
+    try {
+        // Récupérer les données historiques (à implémenter)
+        const priceHistory = await getPriceHistory(symbol, 252); // 1 an
+        const sectorReturns = await getSectorReturns(profile.sector, 252);
+        
+        // Calculer toutes les métriques
+        const metrics = {
+            // Valorisation
+            normalizedFCF: TradingMetricsCalculator.calculateNormalizedFCF(cashFlow),
+            dynamicPEG: TradingMetricsCalculator.calculateDynamicPEG(incomeStatement, quote.peRatio),
+            
+            // Qualité
+            earningsQuality: TradingMetricsCalculator.calculateEarningsQuality(incomeStatement, cashFlow),
+            
+            // Momentum
+            priceMomentum: TradingMetricsCalculator.calculatePriceMomentum(priceHistory, 63),
+            relativeStrength: TradingMetricsCalculator.calculateRelativeStrength(
+                calculateReturnsFromPrices(priceHistory),
+                sectorReturns
+            ),
+            
+            // Risque
+            volatility: TradingMetricsCalculator.calculateVolatility(priceHistory, 30),
+            shortInterest: await getShortInterest(symbol) // À implémenter
+        };
+        
+        // Scores composites
+        const scores = TradingMetricsCalculator.calculateCompositeScores(metrics);
+        
+        return {
+            ...metrics,
+            ...scores,
+            date_analyse: new Date().toISOString().split('T')[0]
+        };
+        
+    } catch (error) {
+        console.error(`Error calculating trading metrics for ${symbol}:`, error);
+        return null;
+    }
+}
 
 async function fetchWithErrorHandlingOptimized(endpoint, dataType) {
     const controller = new AbortController();
@@ -751,6 +797,30 @@ function calculateScoresAuto(metrics) {
 // =============================================================================
 // SAUVEGARDE DES DONNÉES
 // =============================================================================
+// 4.3 Fonction de sauvegarde
+async function saveTradingMetrics(entrepriseId, metrics) {
+    try {
+        const response = await fetch('/api/trading-metrics', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                entreprise_id: entrepriseId,
+                ...metrics
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+        
+        console.log(`✅ Trading metrics saved for entreprise ${entrepriseId}`);
+        return true;
+        
+    } catch (error) {
+        console.error(`❌ Error saving trading metrics:`, error);
+        return false;
+    }
+}
 
 async function sauvegarderAnalyseAutomatique(metrics, recommendation, companyData) {
     try {
