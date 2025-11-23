@@ -130,8 +130,17 @@ function initAutoAnalyzer() {
 async function startAutoAnalysis(startLetters = '') {
     console.log('🎯 Démarrage de l analyse automatique...');
     
-    if (typeof allCompaniesData === 'undefined' || allCompaniesData.length === 0) {
+      if (!window.allCompaniesData || !Array.isArray(window.allCompaniesData) || window.allCompaniesData.length === 0) {
         alert('Veuillez d\'abord charger les entreprises en cliquant sur "📋 Rechercher entreprise"');
+        return;
+    }
+        
+        // Afficher plus d'info en console
+        console.log('❌ allCompaniesData status:', {
+            exists: !!window.allCompaniesData,
+            isArray: Array.isArray(window.allCompaniesData),
+            length: window.allCompaniesData?.length
+        });
         return;
     }
 
@@ -502,18 +511,11 @@ async function calculateAdvancedTradingMetrics(companyData) {
 }
 
 async function fetchWithErrorHandlingOptimized(endpoint, dataType) {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), PERFORMANCE_CONFIG.REQUEST_TIMEOUT);
-
     try {
         const separator = endpoint.includes('?') ? '&' : '?';
         const url = `${BASE_URL}${endpoint}${separator}apikey=${API_KEY}`;
         
-        const response = await fetch(url, { 
-            signal: controller.signal 
-        });
-        
-        clearTimeout(timeoutId);
+        const response = await fetch(url);
         
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}`);
@@ -527,11 +529,7 @@ async function fetchWithErrorHandlingOptimized(endpoint, dataType) {
         
         return data;
     } catch (error) {
-        clearTimeout(timeoutId);
-        
-        if (error.name === 'AbortError') {
-            throw new Error(`Timeout ${dataType}`);
-        }
+        console.error(`Erreur ${dataType}:`, error);
         throw error;
     }
 }
