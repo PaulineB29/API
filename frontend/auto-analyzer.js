@@ -121,23 +121,6 @@ function initAutoAnalyzer() {
     injectAutoAnalyzerStyles();
 }
 
-function addAutoAnalysisButton() {
-    const modalHeader = document.querySelector('.modal-header');
-    
-    if (modalHeader && !document.getElementById('autoAnalyzeBtn')) {
-        const autoAnalyzeBtn = document.createElement('button');
-        autoAnalyzeBtn.id = 'autoAnalyzeBtn';
-        autoAnalyzeBtn.className = 'btn-primary';
-        autoAnalyzeBtn.innerHTML = '🚀 Analyser toutes les entreprises';
-        autoAnalyzeBtn.addEventListener('click', startAutoAnalysis);
-        modalHeader.appendChild(autoAnalyzeBtn);
-        
-        console.log('✅ Bouton d analyse automatique ajouté');
-    } else {
-        console.log('⏳ Modal non trouvé, réessai dans 2 secondes...');
-        setTimeout(addAutoAnalysisButton, 2000);
-    }
-}
 
 // =============================================================================
 // FONCTIONS PRINCIPALES
@@ -192,55 +175,6 @@ async function startAutoAnalysis(startLetters = '') {
     finishAutoAnalysis();
 }
 
-// =============================================================================
-// FONCTIONS PRINCIPALES - MODIFICATION POUR REPRISE PAR LETTRES
-// =============================================================================
-
-function startAutoAnalysis(startLetters = '') {
-    console.log('🎯 Démarrage de l analyse automatique...');
-    
-    if (typeof allCompaniesData === 'undefined' || allCompaniesData.length === 0) {
-        alert('Veuillez d\'abord charger les entreprises en cliquant sur "📋 Rechercher entreprise"');
-        return;
-    }
-
-    let filteredCompanies = filterCompaniesBeforeAnalysis(allCompaniesData);
-    
-    // FILTRE PAR LETTRES - NOUVELLE FONCTIONNALITÉ
-    if (startLetters && startLetters.trim() !== '') {
-        const letters = startLetters.trim().toUpperCase().split(',').map(letter => letter.trim());
-        filteredCompanies = filteredCompanies.filter(company => {
-            return letters.some(letter => company.symbol.toUpperCase().startsWith(letter));
-        });
-        console.log(`🔤 Filtrage par lettres: ${letters.join(', ')} - ${filteredCompanies.length} entreprises`);
-    }
-    
-    if (filteredCompanies.length === 0) {
-        alert('Aucune entreprise valide à analyser');
-        return;
-    }
-
-    const originalCount = allCompaniesData.length;
-    const filteredCount = filteredCompanies.length;
-    
-    let confirmMessage = `Voulez-vous analyser ${filteredCount} entreprises ?\nCela peut prendre plusieurs minutes.`;
-    if (startLetters) {
-        confirmMessage = `Voulez-vous analyser ${filteredCount} entreprises commençant par ${startLetters} ?\nCela peut prendre plusieurs minutes.`;
-    }
-    
-    if (!confirm(confirmMessage)) {
-        return;
-    }
-
-    analysisQueue = filteredCompanies;
-    currentAnalysisIndex = 0;
-    analysisResults = [];
-    isAnalyzing = true;
-
-    createAnalysisProgressUI();
-    await processBatchOptimized(analysisQueue, PERFORMANCE_CONFIG.BATCH_SIZE);
-    finishAutoAnalysis();
-}
 
 // =============================================================================
 // BOUTON AVEC CHOIX DES LETTRES - SEULE MODIFICATION INTERFACE
@@ -363,6 +297,7 @@ async function processBatchOptimized(companies, batchSize = PERFORMANCE_CONFIG.B
 // =============================================================================
 
 async function analyzeSingleCompanyOptimized(symbol, companyName) {
+    const entrepriseId = null;
     addToAnalysisLog(symbol, `🔍 Début analyse...`, 'info');
 
     try {
@@ -390,8 +325,7 @@ async function analyzeSingleCompanyOptimized(symbol, companyName) {
             )
         );
 
-        const tradingMetrics = await calculateAdvancedTradingMetrics(companyData);
-        await saveTradingMetrics(entrepriseId, tradingMetrics);
+
 
         // CORRECTION: Utiliser validation.profile au lieu de profile[0] qui n'existe pas
         const companyData = {
@@ -402,6 +336,10 @@ async function analyzeSingleCompanyOptimized(symbol, companyName) {
             balanceSheet: balanceSheet?.[0]
         };
 
+        const tradingMetrics = await calculateAdvancedTradingMetrics(companyData);
+        await saveTradingMetrics(entrepriseId, tradingMetrics);
+
+        
         // Validation des données minimales
         if (!companyData.quote || !companyData.quote.price) {
             throw new Error('Données de prix manquantes');
@@ -419,6 +357,7 @@ async function analyzeSingleCompanyOptimized(symbol, companyName) {
             throw new Error('Données financières essentielles manquantes');
         }
 
+        
         // Étape 3: Calcul des métriques
         const metrics = await calculateMetricsInWorker(companyData);
         
@@ -502,6 +441,22 @@ function togglePauseAnalysis() {
 // =============================================================================
 // FONCTIONS DE REQUÊTES
 // =============================================================================
+function getPriceHistory(symbol, days) {
+    return Promise.resolve([]); // Implémentation temporaire
+}
+
+function getSectorReturns(sector, days) {
+    return Promise.resolve([]); // Implémentation temporaire
+}
+
+function calculateReturnsFromPrices(prices) {
+    return []; // Implémentation temporaire
+}
+
+function getShortInterest(symbol) {
+    return Promise.resolve(null); // Implémentation temporaire
+}
+
 async function calculateAdvancedTradingMetrics(companyData) {
     const { symbol, profile, quote, incomeStatement, cashFlow, balanceSheet } = companyData;
     
@@ -962,6 +917,25 @@ async function sauvegarderAnalyseAutomatique(metrics, recommendation, companyDat
 // =============================================================================
 // FONCTIONS UTILITAIRES
 // =============================================================================
+
+function calculateHistoricalGrowth(incomeStatement, years) {
+    return 0.15; // Valeur par défaut
+}
+
+const TradingMetricsCalculator = {
+    calculateNormalizedFCF: () => null,
+    calculateDynamicPEG: () => null,
+    calculateEarningsQuality: () => null,
+    calculatePriceMomentum: () => null,
+    calculateRelativeStrength: () => null,
+    calculateVolatility: () => null,
+    calculateCompositeScores: () => ({ 
+        qualityScore: 0, 
+        momentumScore: 0, 
+        valueScore: 0, 
+        riskAdjustedScore: 0 
+    })
+};
 
 function filterCompaniesBeforeAnalysis(companies) {
     return companies.filter(company => {
