@@ -143,7 +143,8 @@ function addAutoAnalysisButton() {
 // FONCTIONS PRINCIPALES
 // =============================================================================
 
-async function startAutoAnalysis() {
+// CORRECTION - La fonction doit être async pour utiliser await
+async function startAutoAnalysis(startLetters = '') {
     console.log('🎯 Démarrage de l analyse automatique...');
     
     if (typeof allCompaniesData === 'undefined' || allCompaniesData.length === 0) {
@@ -151,7 +152,15 @@ async function startAutoAnalysis() {
         return;
     }
 
-    const filteredCompanies = filterCompaniesBeforeAnalysis(allCompaniesData);
+    let filteredCompanies = filterCompaniesBeforeAnalysis(allCompaniesData);
+    
+    if (startLetters && startLetters.trim() !== '') {
+        const letters = startLetters.trim().toUpperCase().split(',').map(letter => letter.trim());
+        filteredCompanies = filteredCompanies.filter(company => {
+            return letters.some(letter => company.symbol.toUpperCase().startsWith(letter));
+        });
+        console.log(`🔤 Filtrage par lettres: ${letters.join(', ')} - ${filteredCompanies.length} entreprises`);
+    }
     
     if (filteredCompanies.length === 0) {
         alert('Aucune entreprise valide à analyser');
@@ -161,14 +170,13 @@ async function startAutoAnalysis() {
     const originalCount = allCompaniesData.length;
     const filteredCount = filteredCompanies.length;
     
-    if (filteredCount < originalCount) {
-        if (!confirm(`${originalCount - filteredCount} entreprises exclues (symboles invalides).\nAnalyser les ${filteredCount} entreprises restantes ?`)) {
-            return;
-        }
-    } else {
-        if (!confirm(`Voulez-vous analyser ${filteredCount} entreprises ?\nCela peut prendre plusieurs minutes.`)) {
-            return;
-        }
+    let confirmMessage = `Voulez-vous analyser ${filteredCount} entreprises ?\nCela peut prendre plusieurs minutes.`;
+    if (startLetters) {
+        confirmMessage = `Voulez-vous analyser ${filteredCount} entreprises commençant par ${startLetters} ?\nCela peut prendre plusieurs minutes.`;
+    }
+    
+    if (!confirm(confirmMessage)) {
+        return;
     }
 
     analysisQueue = filteredCompanies;
@@ -177,7 +185,10 @@ async function startAutoAnalysis() {
     isAnalyzing = true;
 
     createAnalysisProgressUI();
+    
+    // ✅ CORRECT - await est maintenant dans une fonction async
     await processBatchOptimized(analysisQueue, PERFORMANCE_CONFIG.BATCH_SIZE);
+    
     finishAutoAnalysis();
 }
 
