@@ -617,7 +617,7 @@ function calculateValuationRatios(profile, quote, incomeStatement, cashFlow, bal
     const priceAvg200 = quote.priceAvg200 || price;
     const revenue = incomeStatement.revenue || 1;
     const dividendPerShare = profile.lastDividend || 0;
-    const growthRate = 15;
+    const growthRate = calculateHistoricalGrowth(incomeStatement, 5); // 5 ans
     
     const peRatio = price / eps;
     const pbRatio = bookValuePerShare !== 0 ? price / bookValuePerShare : 0;
@@ -627,8 +627,8 @@ function calculateValuationRatios(profile, quote, incomeStatement, cashFlow, bal
     const evToEbitda = enterpriseValue / ebitda;
     const earningsYield = (eps / price) * 100;
     const dividendYield = (dividendPerShare / price) * 100;
-    const pegRatio = peRatio / growthRate;
-    const priceToMM200 = ((price - priceAvg200) / priceAvg200) * 100;
+    const pegRatio = growthRate > 0 ? peRatio / growthRate : null;
+    const priceToMM200 = (price / priceAvg200 - 1) * 100;
 
     return { peRatio, pbRatio, priceToSales, priceToFCF, evToEbitda, earningsYield, dividendYield, pegRatio, priceToMM200 };
 }
