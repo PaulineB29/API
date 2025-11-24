@@ -537,47 +537,97 @@ function getShortInterest(symbol) {
 }
 
 async function calculateAdvancedTradingMetrics(companyData) {
-    const { symbol, profile, quote, incomeStatement, cashFlow, balanceSheet } = companyData;
+    const { symbol } = companyData;
     
     try {
-        // Récupérer les données historiques (à implémenter)
-        const priceHistory = await getPriceHistory(symbol, 252); // 1 an
-        const sectorReturns = await getSectorReturns(profile.sector, 252);
+        console.log(`🧮 Calcul métriques trading avancées pour ${symbol}`);
         
-        // Calculer toutes les métriques
-        const metrics = {
-            // Valorisation
-            normalizedFCF: TradingMetricsCalculator.calculateNormalizedFCF(cashFlow),
-            dynamicPEG: TradingMetricsCalculator.calculateDynamicPEG(incomeStatement, quote.peRatio),
-            
-            // Qualité
-            earningsQuality: TradingMetricsCalculator.calculateEarningsQuality(incomeStatement, cashFlow),
-            
-            // Momentum
-            priceMomentum: TradingMetricsCalculator.calculatePriceMomentum(priceHistory, 63),
-            relativeStrength: TradingMetricsCalculator.calculateRelativeStrength(
-                calculateReturnsFromPrices(priceHistory),
-                sectorReturns
-            ),
-            
-            // Risque
-            volatility: TradingMetricsCalculator.calculateVolatility(priceHistory, 30),
-            shortInterest: await getShortInterest(symbol) // À implémenter
-        };
+        // Calculer les 3 métriques en parallèle
+        const [normalizedFCF, earningsQuality, dynamicPEG] = await Promise.all([
+            calculateNormalizedFCF(symbol),
+            calculateEarningsQuality(symbol),
+            calculateDynamicPEG(symbol)
+        ]);
         
-        // Scores composites
-        const scores = TradingMetricsCalculator.calculateCompositeScores(metrics);
+        // Calculer les scores basés sur ces métriques
+        const qualityScore = calculateQualityScoreFromMetrics({
+            normalizedFCF,
+            earningsQuality,
+            dynamicPEG
+        });
         
-        return {
-            ...metrics,
-            ...scores,
+        const result = {
+            normalizedFCF,
+            dynamicPEG, 
+            earningsQuality,
+            // Les autres métriques temporairement null
+            priceMomentum: null,
+            relativeStrength: null,
+            volatility: null,
+            shortInterest: null,
+            qualityScore,
+            momentumScore: 50, // Valeur par défaut
+            valueScore: 50,
+            riskAdjustedScore: 50,
             date_analyse: new Date().toISOString().split('T')[0]
         };
         
+        console.log(`✅ Métriques trading calculées pour ${symbol}:`, {
+            normalizedFCF: normalizedFCF !== null,
+            earningsQuality: earningsQuality !== null, 
+            dynamicPEG: dynamicPEG !== null,
+            qualityScore
+        });
+        
+        return result;
+        
     } catch (error) {
-        console.error(`Error calculating trading metrics for ${symbol}:`, error);
-        return null;
+        console.error(`❌ Erreur calcul métriques trading ${symbol}:`, error);
+        return getEmptyTradingMetrics();
     }
+}
+
+// Score de qualité basé sur les 3 métriques
+function calculateQualityScoreFromMetrics(metrics) {
+    let score = 0;
+    
+    // Normalized FCF positif = +30 points
+    if (metrics.normalizedFCF && metrics.normalizedFCF > 0) {
+        score += 30;
+    }
+    
+    // Earnings Quality > 0.8 = +40 points (bonne qualité)
+    if (metrics.earningsQuality && metrics.earningsQuality > 0.8) {
+        score += 40;
+    } else if (metrics.earningsQuality && metrics.earningsQuality > 0.5) {
+        score += 20; // Qualité moyenne
+    }
+    
+    // PEG ratio < 1 = +30 points (sous-évalué)
+    if (metrics.dynamicPEG && metrics.dynamicPEG < 1) {
+        score += 30;
+    } else if (metrics.dynamicPEG && metrics.dynamicPEG < 2) {
+        score += 15; // Évaluation raisonnable
+    }
+    
+    return Math.min(100, score);
+}
+
+function getEmptyTradingMetrics() {
+    return {
+        normalizedFCF: null,
+        dynamicPEG: null,
+        earningsQuality: null,
+        priceMomentum: null,
+        relativeStrength: null,
+        volatility: null,
+        shortInterest: null,
+        qualityScore: 50,
+        momentumScore: 50,
+        valueScore: 50,
+        riskAdjustedScore: 50,
+        date_analyse: new Date().toISOString().split('T')[0]
+    };
 }
 
 async function fetchWithErrorHandlingOptimized(endpoint, dataType) {
@@ -826,6 +876,144 @@ function calculateScoresAuto(metrics) {
     });
     
     return scores;
+}
+
+// =============================================================================
+// NOUVEAUX METRICS
+// =============================================================================
+async function calculateNormalizedFCF(symbol) {
+    try {
+        // Récupérer les cash flows sur 3 ans
+        const cashFlows = await fetchWithRateLimiting(
+            `/cash-flow-statement?symbol=${symbol}&period=annual`, 
+            'cash-flow-3ans'
+        );
+        
+        if (!cashFlows || cashFlows.length < 3) {
+            console.log(`⚠️ Données FCF insuffisantes pour ${symbol}`);
+            return null;
+        }
+        
+        // Prendre les 3 dernières années
+        const recentCashFlows = cashFlows.slice(0, 3);
+        const fcfValues = recentCashFlows
+            .map(item => item.freeCashFlow)
+            .filter(fcf => fcf !== null && fcf !== undefined && fcf > 0);
+        
+        if (fcfValues.length === 0) {
+            return null;
+        }
+        
+        // Calculer la moyenne normalisée
+        const sum = fcfValues.reduce((acc, val) => acc + val, 0);
+        const normalizedFCF = sum / fcfValues.length;
+        
+        console.log(`📊 Normalized FCF ${symbol}:`, { 
+            values: fcfValues, 
+            normalized: normalizedFCF 
+        });
+        
+        return normalizedFCF;
+        
+    } catch (error) {
+        console.error(`❌ Erreur calcul Normalized FCF ${symbol}:`, error);
+        return null;
+    }
+}
+
+async function calculateEarningsQuality(symbol) {
+    try {
+        // Récupérer income statement et cash flow de l'année en cours
+        const [incomeStatement, cashFlow] = await Promise.all([
+            fetchWithRateLimiting(`/income-statement?symbol=${symbol}&period=annual`, 'income-statement'),
+            fetchWithRateLimiting(`/cash-flow-statement?symbol=${symbol}&period=annual`, 'cash-flow')
+        ]);
+        
+        if (!incomeStatement?.[0] || !cashFlow?.[0]) {
+            console.log(`⚠️ Données qualité bénéfices insuffisantes pour ${symbol}`);
+            return null;
+        }
+        
+        const netIncome = incomeStatement[0].netIncome;
+        const operatingCashFlow = cashFlow[0].operatingCashFlow;
+        
+        // Validation des données
+        if (!netIncome || !operatingCashFlow || netIncome <= 0) {
+            return null;
+        }
+        
+        // Calcul du ratio de qualité
+        const earningsQualityRatio = operatingCashFlow / netIncome;
+        
+        console.log(`📊 Earnings Quality ${symbol}:`, {
+            netIncome,
+            operatingCashFlow, 
+            ratio: earningsQualityRatio
+        });
+        
+        return earningsQualityRatio;
+        
+    } catch (error) {
+        console.error(`❌ Erreur calcul Earnings Quality ${symbol}:`, error);
+        return null;
+    }
+}
+
+async function calculateDynamicPEG(symbol) {
+    try {
+        // Récupérer données actuelles + historique pour croissance
+        const [quote, incomeStatements] = await Promise.all([
+            fetchWithRateLimiting(`/quote?symbol=${symbol}`, 'quote'),
+            fetchWithRateLimiting(`/income-statement?symbol=${symbol}&period=annual`, 'income-statement-hist')
+        ]);
+        
+        if (!quote?.[0] || !incomeStatements || incomeStatements.length < 2) {
+            console.log(`⚠️ Données PEG insuffisantes pour ${symbol}`);
+            return null;
+        }
+        
+        const currentPE = quote[0].peRatio;
+        if (!currentPE || currentPE <= 0) {
+            return null;
+        }
+        
+        // Calculer la croissance historique des bénéfices sur 3 ans
+        const recentEPS = incomeStatements
+            .slice(0, 3)
+            .map(item => item.eps || item.epsDiluted)
+            .filter(eps => eps !== null && eps !== undefined && eps > 0);
+        
+        if (recentEPS.length < 2) {
+            return null;
+        }
+        
+        // Calcul croissance CAGR sur la période disponible
+        const latestEPS = recentEPS[0];
+        const oldestEPS = recentEPS[recentEPS.length - 1];
+        const years = recentEPS.length - 1;
+        
+        const growthRate = (Math.pow(latestEPS / oldestEPS, 1 / years) - 1) * 100;
+        
+        if (growthRate <= 0) {
+            return null; // Croissance négative = PEG non significatif
+        }
+        
+        // Calcul PEG ratio
+        const pegRatio = currentPE / growthRate;
+        
+        console.log(`📊 Dynamic PEG ${symbol}:`, {
+            peRatio: currentPE,
+            growthRate: growthRate.toFixed(2) + '%',
+            pegRatio: pegRatio.toFixed(2),
+            epsHistory: recentEPS
+        });
+        
+        return pegRatio;
+        
+    } catch (error) {
+        console.error(`❌ Erreur calcul Dynamic PEG ${symbol}:`, error);
+        return null;
+    }
 }
 
 // =============================================================================
