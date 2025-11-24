@@ -864,7 +864,7 @@ async function saveTradingMetrics(entrepriseId, metrics, symbol) {
         console.log('📤 Données envoyées trading metrics:', payload);
         
         // Envoi à l'API avec gestion d'erreur améliorée
-        const response = await fetch('https://api-u54u.onrender.com/api/analyses/trading-metrics-avancees', {
+        const apiResponse = await fetch('https://api-u54u.onrender.com/api/analyses/trading-metrics-avancees', {
             method: 'POST',
             headers: { 
                 'Content-Type': 'application/json',
@@ -874,18 +874,18 @@ async function saveTradingMetrics(entrepriseId, metrics, symbol) {
         });
         
         // Gestion détaillée des erreurs
-        if (!response.ok) {
+        if (!apiResponse.ok) {
             let errorText;
             try {
-                errorText = await response.text();
+                errorText = await apiResponse.text();
             } catch {
                 errorText = 'Impossible de lire la réponse d\'erreur';
             }
             
-            console.error(`❌ Erreur serveur (${response.status}):`, errorText);
+            console.error(`❌ Erreur serveur (${apiResponse.status}):`, errorText);
             
             // Gestion spécifique de l'erreur 500
-            if (response.status === 500) {
+            if (apiResponse.status === 500) {
                 if (errorText.includes('ON CONFLICT')) {
                     console.warn(`⚠️ Problème de contrainte UNIQUE pour ${symbol} - tentative alternative`);
                     // Tentative avec une méthode alternative si disponible
@@ -893,10 +893,10 @@ async function saveTradingMetrics(entrepriseId, metrics, symbol) {
                 }
             }
             
-            throw new Error(`HTTP ${response.status}: ${errorText}`);
+            throw new Error(`HTTP ${apiResponse.status}: ${errorText}`);
         }
         
-        const result = await response.json();
+        const result = await apiResponse.json();
         console.log(`✅ Trading metrics sauvegardées pour ${symbol}`, result);
         return true;
         
