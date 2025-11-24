@@ -480,7 +480,7 @@ router.get('/', async (req, res) => {
 // =============================================================================
 
 // POST /api/analyses/trading-metrics - Sauvegarder les métriques de trading
-router.post('/trading-metrics', async (req, res) => {
+router.post('/trading-metrics-avancees', async (req, res) => {
   try {
     console.log('🚀 REQUÊTE TRADING METRICS REÇUE');
     
