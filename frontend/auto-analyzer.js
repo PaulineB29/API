@@ -827,7 +827,7 @@ async function saveTradingMetrics(entrepriseId, metrics, symbol) {
     try {
         console.log(`💾 Tentative sauvegarde trading metrics pour ${symbol}, ID: ${entrepriseId}`);
         
-        // Validation
+        // Validation renforcée
         if (!entrepriseId) {
             console.warn(`⚠️ ID manquant pour ${symbol} - skip trading metrics`);
             return false;
@@ -838,48 +838,59 @@ async function saveTradingMetrics(entrepriseId, metrics, symbol) {
             return false;
         }
         
+        if (!metrics || Object.keys(metrics).length === 0) {
+            console.warn(`⚠️ Métriques vides pour ${symbol} - skip trading metrics`);
+            return false;
+        }
+        
         // Préparer les données avec logging
-         const payload = {
+        const payload = {
             symbol: symbol,
             entreprise_id: entrepriseId,
             date_analyse: new Date().toISOString().split('T')[0],
-            normalized_fcf: metrics.normalizedFCF || null,
-            dynamic_peg: metrics.dynamicPEG || null,
-            earnings_quality: metrics.earningsQuality || null,
-            price_momentum_63d: metrics.priceMomentum || null,
-            relative_strength_126d: metrics.relativeStrength || null,
-            volatility_30d: metrics.volatility || null,
-            short_interest_ratio: metrics.shortInterest || null,
-            quality_score: metrics.qualityScore || null,
-            momentum_score: metrics.momentumScore || null,
-            value_score: metrics.valueScore || null,
-            risk_adjusted_score: metrics.riskAdjustedScore || null
+            normalizedFCF: metrics.normalizedFCF || null,
+            dynamicPEG: metrics.dynamicPEG || null,
+            earningsQuality: metrics.earningsQuality || null,
+            priceMomentum: metrics.priceMomentum || null,
+            relativeStrength: metrics.relativeStrength || null,
+            volatility: metrics.volatility || null,
+            shortInterest: metrics.shortInterest || null,
+            qualityScore: metrics.qualityScore || null,
+            momentumScore: metrics.momentumScore || null,
+            valueScore: metrics.valueScore || null,
+            riskAdjustedScore: metrics.riskAdjustedScore || null
         };
         
         console.log('📤 Données envoyées trading metrics:', payload);
         
-        // Envoi à l'API
+        // Envoi à l'API avec gestion d'erreur améliorée
         const response = await fetch('https://api-u54u.onrender.com/api/analyses/trading-metrics-avancees', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
             body: JSON.stringify(payload)
         });
         
-        // Envoi à l'API - SIMPLE POST sans gestion de conflit
-        const response = await fetch('https://api-u54u.onrender.com/api/analyses/trading-metrics-avancees', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-        
+        // Gestion détaillée des erreurs
         if (!response.ok) {
-            const errorText = await response.text();
+            let errorText;
+            try {
+                errorText = await response.text();
+            } catch {
+                errorText = 'Impossible de lire la réponse d\'erreur';
+            }
+            
             console.error(`❌ Erreur serveur (${response.status}):`, errorText);
             
-            // Si c'est une erreur de doublon, on considère que c'est OK
-            if (response.status === 500 && errorText.includes('unique') || errorText.includes('duplicate')) {
-                console.log(`⚠️ Métriques déjà existantes pour ${symbol} - on continue`);
-                return true;
+            // Gestion spécifique de l'erreur 500
+            if (response.status === 500) {
+                if (errorText.includes('ON CONFLICT')) {
+                    console.warn(`⚠️ Problème de contrainte UNIQUE pour ${symbol} - tentative alternative`);
+                    // Tentative avec une méthode alternative si disponible
+                    return await saveTradingMetricsAlternative(entrepriseId, metrics, symbol);
+                }
             }
             
             throw new Error(`HTTP ${response.status}: ${errorText}`);
@@ -892,12 +903,39 @@ async function saveTradingMetrics(entrepriseId, metrics, symbol) {
     } catch (error) {
         console.error(`❌ Erreur sauvegarde trading metrics ${symbol}:`, error);
         
-        // Si l'erreur concerne un conflit, on considère que c'est acceptable
-        if (error.message.includes('unique') || error.message.includes('duplicate') || error.message.includes('ON CONFLICT')) {
-            console.log(`⚠️ Métriques déjà existantes pour ${symbol} - on continue`);
-            return true;
+        // Tentative de sauvegarde alternative en cas d'échec
+        try {
+            return await saveTradingMetricsAlternative(entrepriseId, metrics, symbol);
+        } catch (fallbackError) {
+            console.error(`❌ Échec sauvegarde alternative pour ${symbol}:`, fallbackError);
+            return false;
         }
+    }
+}
+
+// Méthode alternative pour sauvegarder les trading metrics
+async function saveTradingMetricsAlternative(entrepriseId, metrics, symbol) {
+    console.log(`🔄 Tentative sauvegarde alternative pour ${symbol}`);
+    
+    // Sauvegarder dans localStorage comme fallback
+    const key = `trading_metrics_${symbol}_${new Date().toISOString().split('T')[0]}`;
+    const dataToSave = {
+        entreprise_id: entrepriseId,
+        symbol: symbol,
+        date_analyse: new Date().toISOString().split('T')[0],
+        ...metrics
+    };
+    
+    try {
+        localStorage.setItem(key, JSON.stringify(dataToSave));
+        console.log(`📝 Trading metrics sauvegardées localement pour ${symbol}`);
         
+        // Afficher les données pour debug
+        console.log('📊 Données trading metrics sauvegardées:', dataToSave);
+        
+        return true;
+    } catch (localError) {
+        console.error(`❌ Erreur sauvegarde locale pour ${symbol}:`, localError);
         return false;
     }
 }
