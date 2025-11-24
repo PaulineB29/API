@@ -304,11 +304,17 @@ async function processBatchOptimized(companies, batchSize = PERFORMANCE_CONFIG.B
             }
         });
         
-        currentAnalysisIndex += batch.length;
-        updateProgressUI(batch[0], (currentAnalysisIndex / companies.length) * 100);
+        // CORRECTION: Utiliser la variable globale correctement
+        currentAnalysisIndex = i + batch.length;
+        
+        // CORRECTION: Vérifier que batch[0] existe
+        if (batch.length > 0) {
+            updateProgressUI(batch[0], (currentAnalysisIndex / companies.length) * 100);
+        }
+        
         updateResultsCounters();
         
-        // Délai plus long entre les batches
+        // Délai entre les batches
         if (i + batchSize < companies.length && isAnalyzing) {
             const delay = PERFORMANCE_CONFIG.DELAY_BETWEEN_BATCHES;
             addToAnalysisLog('SYSTEM', `⏳ Pause de ${delay/1000}s avant le prochain lot...`, 'info');
@@ -323,7 +329,7 @@ async function processBatchOptimized(companies, batchSize = PERFORMANCE_CONFIG.B
 // =============================================================================
 
 async function analyzeSingleCompanyOptimized(symbol, companyName) {
-    const entrepriseId = null;
+    let entrepriseId = null;
     addToAnalysisLog(symbol, `🔍 Début analyse...`, 'info');
 
     try {
@@ -332,6 +338,9 @@ async function analyzeSingleCompanyOptimized(symbol, companyName) {
         if (!validation.isValid) {
             throw new Error(`Données insuffisantes: ${validation.reason}`);
         }
+
+        // Récupérer l'ID entreprise AVANT
+        entrepriseId = await getOrCreateEnterpriseId(symbol, validation.profile);
         
         // Récupérer les autres données
         const endpoints = [
@@ -439,6 +448,39 @@ async function analyzeSingleCompanyOptimized(symbol, companyName) {
     } catch (error) {
         addToAnalysisLog(symbol, `❌ ${error.message}`, 'error');
         throw error;
+    }
+}
+
+// =============================================================================
+// CRÉATION/RÉCUPÉRATION ENTREPRISE
+// =============================================================================
+
+async function getOrCreateEnterpriseId(symbol, profile) {
+    try {
+        console.log(`🏢 Tentative création/récupération entreprise pour ${symbol}`);
+        
+        const response = await fetch('https://api-u54u.onrender.com/api/analyses/entreprise', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                symbol: symbol,
+                nom: profile.companyName,
+                secteur: profile.sector || 'Non spécifié',
+                industrie: profile.industry || 'Non spécifié'
+            })
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            console.log(`✅ ID entreprise récupéré: ${data.entreprise.id} pour ${symbol}`);
+            return data.entreprise.id;
+        } else {
+            console.warn(`⚠️ Impossible de récupérer l'ID entreprise pour ${symbol}`);
+            return null;
+        }
+    } catch (error) {
+        console.error(`❌ Erreur récupération ID entreprise pour ${symbol}:`, error);
+        return null;
     }
 }
 
