@@ -350,8 +350,6 @@ async function analyzeSingleCompanyOptimized(symbol, companyName) {
             )
         );
 
-
-
         // CORRECTION: Utiliser validation.profile au lieu de profile[0] qui n'existe pas
         const companyData = {
             profile: validation.profile, // ← CORRIGÉ ICI
@@ -361,10 +359,7 @@ async function analyzeSingleCompanyOptimized(symbol, companyName) {
             balanceSheet: balanceSheet?.[0]
         };
 
-        const tradingMetrics = await calculateAdvancedTradingMetrics(companyData);
-        await saveTradingMetrics(entrepriseId, tradingMetrics);
-
-        
+                
         // Validation des données minimales
         if (!companyData.quote || !companyData.quote.price) {
             throw new Error('Données de prix manquantes');
