@@ -10,13 +10,13 @@ let isAnalyzing = false;
 
 // Configuration haute performance
 const PERFORMANCE_CONFIG = {
-    BATCH_SIZE: 6, // Réduit de 12 à 6
-    DELAY_BETWEEN_BATCHES: 3000, // Augmenté à 3 secondes
+    BATCH_SIZE: 8, // Réduit de 12 à 6
+    DELAY_BETWEEN_BATCHES: 2000, // Augmenté à 3 secondes
     REQUEST_TIMEOUT: 15000,
-    MAX_CONCURRENT_REQUESTS: 4, // Réduit de 8 à 4
-    DELAY_BETWEEN_REQUESTS: 200, // Délai entre chaque requête dans un batch
+    MAX_CONCURRENT_REQUESTS: 6, // Réduit de 8 à 4
+    DELAY_BETWEEN_REQUESTS: 150, // Délai entre chaque requête dans un batch
     MAX_RETRIES: 3, // Nombre de tentatives en cas d'échec
-    RETRY_DELAY: 1000 // Délai avant retry
+    RETRY_DELAY: 800 // Délai avant retry
 };
 
 console.log('📊 AutoAnalyzer chargé - Prêt pour l analyse automatique');
