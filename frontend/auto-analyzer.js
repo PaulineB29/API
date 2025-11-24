@@ -462,7 +462,7 @@ async function getOrCreateEnterpriseId(symbol, profile) {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                symbole: symbol,
+                symbol: symbol,
                 nom: profile.companyName,
                 secteur: profile.sector || 'Non spécifié',
                 industrie: profile.industry || 'Non spécifié'
@@ -921,7 +921,7 @@ async function sauvegarderAnalyseAutomatique(metrics, recommendation, companyDat
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    symbole: symbol,
+                    symbol: symbol,
                     nom: companyData.profile.companyName,
                     secteur: companyData.profile.sector || 'Non spécifié',
                     industrie: companyData.profile.industry || 'Non spécifié'
