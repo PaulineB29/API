@@ -471,14 +471,27 @@ async function getOrCreateEnterpriseId(symbol, profile) {
         
         if (response.ok) {
             const data = await response.json();
-            // Votre API retourne probablement l'objet entreprise directement
-            if (data.id) {
+            console.log('📋 Réponse API entreprise:', data);
+            
+            // Votre API retourne { entreprise: { id: ... } }
+            if (data.entreprise && data.entreprise.id) {
+                console.log(`✅ ID entreprise récupéré: ${data.entreprise.id} pour ${symbol}`);
+                return data.entreprise.id;
+            }
+            // Si votre API retourne { id: ... } directement  
+            else if (data.id) {
                 console.log(`✅ ID entreprise récupéré: ${data.id} pour ${symbol}`);
                 return data.id;
+            } else {
+                console.warn('⚠️ Structure de réponse inattendue:', data);
+                return null;
             }
+        } else {
+            const errorText = await response.text();
+            console.error(`❌ Erreur HTTP ${response.status}:`, errorText);
+            return null;
         }
-        console.warn(`⚠️ Impossible de récupérer l'ID entreprise pour ${symbol}`);
-        return null;
+        
     } catch (error) {
         console.error(`❌ Erreur récupération ID entreprise pour ${symbol}:`, error);
         return null;
@@ -929,10 +942,21 @@ async function sauvegarderAnalyseAutomatique(metrics, recommendation, companyDat
             });
             
             if (entrepriseResponse.ok) {
-                const entrepriseData = await entrepriseResponse.json();
-                entrepriseId = entrepriseData.id; // ← L'API retourne directement {id: ...}
+            const entrepriseData = await entrepriseResponse.json();
+            console.log('📋 Réponse création entreprise:', entrepriseData);
+            
+            // Correction : l'API retourne { entreprise: { id: ... } }
+            if (entrepriseData.entreprise && entrepriseData.entreprise.id) {
+                entrepriseId = entrepriseData.entreprise.id;
                 console.log(`✅ Entreprise créée avec ID: ${entrepriseId}`);
+            } else if (entrepriseData.id) {
+                entrepriseId = entrepriseData.id;
+                console.log(`✅ Entreprise créée avec ID: ${entrepriseId}`);
+            } else {
+                console.warn('⚠️ Structure de réponse inattendue:', entrepriseData);
+                entrepriseId = null;
             }
+        }
         } catch (error) {
             console.log('⚠️ Endpoint entreprise non disponible:', error.message);
         }
