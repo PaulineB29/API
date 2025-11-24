@@ -262,8 +262,7 @@ async function processBatchOptimized(companies, batchSize = PERFORMANCE_CONFIG.B
         const batch = companies.slice(i, i + batchSize);
         const batchNumber = Math.floor(i / batchSize) + 1;
         const totalBatches = Math.ceil(companies.length / batchSize);
-        const currentAnalysisIndex = analysisQueue.indexOf(companies[0]); 
-        
+                
         console.log(`📦 Lot ${batchNumber}/${totalBatches} (${batch.length} entreprises)`);
         addToAnalysisLog('SYSTEM', `📦 Lot ${batchNumber}/${totalBatches} (${batch.length} entreprises)`, 'info');
         
@@ -472,12 +471,19 @@ async function getOrCreateEnterpriseId(symbol, profile) {
         
         if (response.ok) {
             const data = await response.json();
-            console.log(`✅ ID entreprise récupéré: ${data.entreprise.id} pour ${symbol}`);
-            return data.entreprise.id;
-        } else {
-            console.warn(`⚠️ Impossible de récupérer l'ID entreprise pour ${symbol}`);
-            return null;
+            // SI votre API retourne { entreprise: { id: ... } }
+            if (data.entreprise && data.entreprise.id) {
+                console.log(`✅ ID entreprise récupéré: ${data.entreprise.id} pour ${symbol}`);
+                return data.entreprise.id;
+            }
+            // SI votre API retourne { id: ... } directement  
+            else if (data.id) {
+                console.log(`✅ ID entreprise récupéré: ${data.id} pour ${symbol}`);
+                return data.id;
+            }
         }
+        console.warn(`⚠️ Impossible de récupérer l'ID entreprise pour ${symbol}`);
+        return null;
     } catch (error) {
         console.error(`❌ Erreur récupération ID entreprise pour ${symbol}:`, error);
         return null;
