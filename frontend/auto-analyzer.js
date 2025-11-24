@@ -821,9 +821,8 @@ function calculateScoresAuto(metrics) {
 }
 
 // =============================================================================
-// SAUVEGARDE DES DONNÉES
+// SAUVEGARDE DES DONNÉES - VERSION CORRIGÉE
 // =============================================================================
-// 4.3 Fonction de sauvegarde
 async function saveTradingMetrics(entrepriseId, metrics, symbol) {
     try {
         console.log(`💾 Tentative sauvegarde trading metrics pour ${symbol}, ID: ${entrepriseId}`);
@@ -839,25 +838,36 @@ async function saveTradingMetrics(entrepriseId, metrics, symbol) {
             return false;
         }
         
+        // Préparer les données avec logging
+        const payload = {
+            symbol: symbol,
+            entreprise_id: entrepriseId,
+            date_analyse: new Date().toISOString().split('T')[0],
+            ...metrics
+        };
+        
+        console.log('📤 Données envoyées trading metrics:', payload);
+        
+        // Envoi à l'API
         const response = await fetch('https://api-u54u.onrender.com/api/analyses/trading-metrics-avancees', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                symbol: symbol,
-                entreprise_id: entrepriseId,
-                ...metrics
-            })
+            body: JSON.stringify(payload)
         });
         
+        // Gestion détaillée des erreurs
         if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
+            const errorText = await response.text();
+            console.error(`❌ Erreur serveur (${response.status}):`, errorText);
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
         }
         
-        console.log(`✅ Trading metrics saved in trading_metrics_avancees for entreprise ${entrepriseId}`);
+        const result = await response.json();
+        console.log(`✅ Trading metrics sauvegardées pour ${symbol}`, result);
         return true;
         
     } catch (error) {
-        console.error(`❌ Error saving trading metrics:`, error);
+        console.error(`❌ Erreur sauvegarde trading metrics ${symbol}:`, error);
         return false;
     }
 }
