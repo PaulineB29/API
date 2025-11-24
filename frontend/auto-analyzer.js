@@ -839,11 +839,21 @@ async function saveTradingMetrics(entrepriseId, metrics, symbol) {
         }
         
         // Préparer les données avec logging
-        const payload = {
+         const payload = {
             symbol: symbol,
             entreprise_id: entrepriseId,
             date_analyse: new Date().toISOString().split('T')[0],
-            ...metrics
+            normalized_fcf: metrics.normalizedFCF || null,
+            dynamic_peg: metrics.dynamicPEG || null,
+            earnings_quality: metrics.earningsQuality || null,
+            price_momentum_63d: metrics.priceMomentum || null,
+            relative_strength_126d: metrics.relativeStrength || null,
+            volatility_30d: metrics.volatility || null,
+            short_interest_ratio: metrics.shortInterest || null,
+            quality_score: metrics.qualityScore || null,
+            momentum_score: metrics.momentumScore || null,
+            value_score: metrics.valueScore || null,
+            risk_adjusted_score: metrics.riskAdjustedScore || null
         };
         
         console.log('📤 Données envoyées trading metrics:', payload);
@@ -855,10 +865,23 @@ async function saveTradingMetrics(entrepriseId, metrics, symbol) {
             body: JSON.stringify(payload)
         });
         
-        // Gestion détaillée des erreurs
+// Envoi à l'API - SIMPLE POST sans gestion de conflit
+        const response = await fetch('https://api-u54u.onrender.com/api/analyses/trading-metrics-avancees', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        
         if (!response.ok) {
             const errorText = await response.text();
             console.error(`❌ Erreur serveur (${response.status}):`, errorText);
+            
+            // Si c'est une erreur de doublon, on considère que c'est OK
+            if (response.status === 500 && errorText.includes('unique') || errorText.includes('duplicate')) {
+                console.log(`⚠️ Métriques déjà existantes pour ${symbol} - on continue`);
+                return true;
+            }
+            
             throw new Error(`HTTP ${response.status}: ${errorText}`);
         }
         
@@ -868,6 +891,13 @@ async function saveTradingMetrics(entrepriseId, metrics, symbol) {
         
     } catch (error) {
         console.error(`❌ Erreur sauvegarde trading metrics ${symbol}:`, error);
+        
+        // Si l'erreur concerne un conflit, on considère que c'est acceptable
+        if (error.message.includes('unique') || error.message.includes('duplicate') || error.message.includes('ON CONFLICT')) {
+            console.log(`⚠️ Métriques déjà existantes pour ${symbol} - on continue`);
+            return true;
+        }
+        
         return false;
     }
 }
