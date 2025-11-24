@@ -865,7 +865,7 @@ async function saveTradingMetrics(entrepriseId, metrics, symbol) {
             body: JSON.stringify(payload)
         });
         
-// Envoi à l'API - SIMPLE POST sans gestion de conflit
+        // Envoi à l'API - SIMPLE POST sans gestion de conflit
         const response = await fetch('https://api-u54u.onrender.com/api/analyses/trading-metrics-avancees', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
