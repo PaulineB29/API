@@ -125,24 +125,42 @@ function initAutoAnalyzer() {
 // =============================================================================
 // FONCTIONS PRINCIPALES
 // =============================================================================
+async function getCompaniesData() {
+    try {
+        // Essayez différentes sources possibles
+        if (typeof allCompaniesData !== 'undefined' && Array.isArray(allCompaniesData)) {
+            return allCompaniesData;
+        }
+        
+        if (window.allCompaniesData && Array.isArray(window.allCompaniesData)) {
+            return window.allCompaniesData;
+        }
+        
+        // Si vous avez une autre fonction qui charge les données
+        if (typeof loadCompanies === 'function') {
+            return await loadCompanies();
+        }
+        
+        return null;
+    } catch (error) {
+        console.error('Erreur récupération données entreprises:', error);
+        return null;
+    }
+}
 
 // CORRECTION - La fonction doit être async pour utiliser await
 async function startAutoAnalysis(startLetters = '') {
     console.log('🎯 Démarrage de l analyse automatique...');
     
-    if (!window.allCompaniesData || !Array.isArray(window.allCompaniesData) || window.allCompaniesData.length === 0) {
+    // Récupérer les données directement depuis votre système
+    const companies = await getCompaniesData();
+    
+    if (!companies || !Array.isArray(companies) || companies.length === 0) {
         alert('Veuillez d\'abord charger les entreprises en cliquant sur "📋 Rechercher entreprise"');
-        
-        // Afficher plus d'info en console
-        console.log('❌ allCompaniesData status:', {
-            exists: !!window.allCompaniesData,
-            isArray: Array.isArray(window.allCompaniesData),
-            length: window.allCompaniesData?.length
-        });
         return;
     }
 
-    let filteredCompanies = filterCompaniesBeforeAnalysis(allCompaniesData);
+    let filteredCompanies = filterCompaniesBeforeAnalysis(companies);
     
     if (startLetters && startLetters.trim() !== '') {
         const letters = startLetters.trim().toUpperCase().split(',').map(letter => letter.trim());
@@ -157,7 +175,8 @@ async function startAutoAnalysis(startLetters = '') {
         return;
     }
 
-    const originalCount = allCompaniesData.length;
+    // CORRECTION : Utiliser 'companies' au lieu de 'allCompaniesData'
+    const originalCount = companies.length;  // ← CORRIGÉ ICI
     const filteredCount = filteredCompanies.length;
     
     let confirmMessage = `Voulez-vous analyser ${filteredCount} entreprises ?\nCela peut prendre plusieurs minutes.`;
@@ -176,7 +195,6 @@ async function startAutoAnalysis(startLetters = '') {
 
     createAnalysisProgressUI();
     
-    // ✅ CORRECT - await est maintenant dans une fonction async
     await processBatchOptimized(analysisQueue, PERFORMANCE_CONFIG.BATCH_SIZE);
     
     finishAutoAnalysis();
