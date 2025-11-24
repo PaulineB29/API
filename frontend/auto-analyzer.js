@@ -262,6 +262,7 @@ async function processBatchOptimized(companies, batchSize = PERFORMANCE_CONFIG.B
         const batch = companies.slice(i, i + batchSize);
         const batchNumber = Math.floor(i / batchSize) + 1;
         const totalBatches = Math.ceil(companies.length / batchSize);
+        const currentAnalysisIndex = analysisQueue.indexOf(companies[0]); 
         
         console.log(`📦 Lot ${batchNumber}/${totalBatches} (${batch.length} entreprises)`);
         addToAnalysisLog('SYSTEM', `📦 Lot ${batchNumber}/${totalBatches} (${batch.length} entreprises)`, 'info');
@@ -360,7 +361,7 @@ async function analyzeSingleCompanyOptimized(symbol, companyName) {
         };
 
         const tradingMetrics = await calculateAdvancedTradingMetrics(companyData);
-        await saveTradingMetrics(entrepriseId, tradingMetrics);
+        await saveTradingMetrics(entrepriseId, tradingMetrics, symbol);
                 
         // Validation des données minimales
         if (!companyData.quote || !companyData.quote.price) {
@@ -775,7 +776,7 @@ function calculateScoresAuto(metrics) {
 // SAUVEGARDE DES DONNÉES
 // =============================================================================
 // 4.3 Fonction de sauvegarde
-async function saveTradingMetrics(entrepriseId, metrics) {
+async function saveTradingMetrics(entrepriseId, metrics, symbol) {
     try {
         console.log(`💾 Tentative sauvegarde trading metrics pour ${symbol}, ID: ${entrepriseId}`);
         
