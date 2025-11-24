@@ -462,7 +462,7 @@ async function getOrCreateEnterpriseId(symbol, profile) {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                symbol: symbol,
+                symbole: symbol,
                 nom: profile.companyName,
                 secteur: profile.sector || 'Non spécifié',
                 industrie: profile.industry || 'Non spécifié'
@@ -471,13 +471,8 @@ async function getOrCreateEnterpriseId(symbol, profile) {
         
         if (response.ok) {
             const data = await response.json();
-            // SI votre API retourne { entreprise: { id: ... } }
-            if (data.entreprise && data.entreprise.id) {
-                console.log(`✅ ID entreprise récupéré: ${data.entreprise.id} pour ${symbol}`);
-                return data.entreprise.id;
-            }
-            // SI votre API retourne { id: ... } directement  
-            else if (data.id) {
+            // Votre API retourne probablement l'objet entreprise directement
+            if (data.id) {
                 console.log(`✅ ID entreprise récupéré: ${data.id} pour ${symbol}`);
                 return data.id;
             }
@@ -827,7 +822,7 @@ async function saveTradingMetrics(entrepriseId, metrics, symbol) {
     try {
         console.log(`💾 Tentative sauvegarde trading metrics pour ${symbol}, ID: ${entrepriseId}`);
         
-        // Validation renforcée
+        // Validation
         if (!entrepriseId) {
             console.warn(`⚠️ ID manquant pour ${symbol} - skip trading metrics`);
             return false;
@@ -844,53 +839,46 @@ async function saveTradingMetrics(entrepriseId, metrics, symbol) {
         }
         
         // Préparer les données avec logging
-        const payload = {
-            symbol: symbol,
-            entreprise_id: entrepriseId,
+         const payload = {
+            entreprise_id: entrepriseId, 
             date_analyse: new Date().toISOString().split('T')[0],
-            normalizedFCF: metrics.normalizedFCF || null,
-            dynamicPEG: metrics.dynamicPEG || null,
-            earningsQuality: metrics.earningsQuality || null,
-            priceMomentum: metrics.priceMomentum || null,
-            relativeStrength: metrics.relativeStrength || null,
-            volatility: metrics.volatility || null,
-            shortInterest: metrics.shortInterest || null,
-            qualityScore: metrics.qualityScore || null,
-            momentumScore: metrics.momentumScore || null,
-            valueScore: metrics.valueScore || null,
-            riskAdjustedScore: metrics.riskAdjustedScore || null
+            normalized_fcf: null,
+            dynamic_peg: null,
+            fcf_yield_3y_avg: null,
+            earnings_quality: null,
+            accruals_ratio: null,
+            operating_cf_ratio: null,
+            price_momentum_63d: null,
+            relative_strength_126d: null,
+            volume_trend: null,
+            volatility_30d: null,
+            beta_sector: null,
+            short_interest_ratio: null,
+            squeeze_potential: null,
+            quality_score: null,
+            momentum_score: null,
+            value_score: null,
+            risk_adjusted_score: null
         };
         
         console.log('📤 Données envoyées trading metrics:', payload);
         
         // Envoi à l'API avec gestion d'erreur améliorée
         const apiResponse = await fetch('https://api-u54u.onrender.com/api/analyses/trading-metrics-avancees', {
-            method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-            },
+             method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
         
         // Gestion détaillée des erreurs
         if (!apiResponse.ok) {
-            let errorText;
-            try {
-                errorText = await apiResponse.text();
-            } catch {
-                errorText = 'Impossible de lire la réponse d\'erreur';
-            }
-            
+            const errorText = await apiResponse.text();
             console.error(`❌ Erreur serveur (${apiResponse.status}):`, errorText);
             
-            // Gestion spécifique de l'erreur 500
+            // Si erreur 500 due à ON CONFLICT, on ignore et continue
             if (apiResponse.status === 500) {
-                if (errorText.includes('ON CONFLICT')) {
-                    console.warn(`⚠️ Problème de contrainte UNIQUE pour ${symbol} - tentative alternative`);
-                    // Tentative avec une méthode alternative si disponible
-                    return await saveTradingMetricsAlternative(entrepriseId, metrics, symbol);
-                }
+                console.log(`⚠️ Erreur serveur pour ${symbol} - on continue sans trading metrics`);
+                return false;
             }
             
             throw new Error(`HTTP ${apiResponse.status}: ${errorText}`);
@@ -902,43 +890,10 @@ async function saveTradingMetrics(entrepriseId, metrics, symbol) {
         
     } catch (error) {
         console.error(`❌ Erreur sauvegarde trading metrics ${symbol}:`, error);
-        
-        // Tentative de sauvegarde alternative en cas d'échec
-        try {
-            return await saveTradingMetricsAlternative(entrepriseId, metrics, symbol);
-        } catch (fallbackError) {
-            console.error(`❌ Échec sauvegarde alternative pour ${symbol}:`, fallbackError);
-            return false;
-        }
-    }
-}
-
-// Méthode alternative pour sauvegarder les trading metrics
-async function saveTradingMetricsAlternative(entrepriseId, metrics, symbol) {
-    console.log(`🔄 Tentative sauvegarde alternative pour ${symbol}`);
-    
-    // Sauvegarder dans localStorage comme fallback
-    const key = `trading_metrics_${symbol}_${new Date().toISOString().split('T')[0]}`;
-    const dataToSave = {
-        entreprise_id: entrepriseId,
-        symbol: symbol,
-        date_analyse: new Date().toISOString().split('T')[0],
-        ...metrics
-    };
-    
-    try {
-        localStorage.setItem(key, JSON.stringify(dataToSave));
-        console.log(`📝 Trading metrics sauvegardées localement pour ${symbol}`);
-        
-        // Afficher les données pour debug
-        console.log('📊 Données trading metrics sauvegardées:', dataToSave);
-        
-        return true;
-    } catch (localError) {
-        console.error(`❌ Erreur sauvegarde locale pour ${symbol}:`, localError);
         return false;
     }
 }
+
 
 async function sauvegarderAnalyseAutomatique(metrics, recommendation, companyData) {
     try {
@@ -966,7 +921,7 @@ async function sauvegarderAnalyseAutomatique(metrics, recommendation, companyDat
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    symbol: symbol,
+                    symbole: symbol,
                     nom: companyData.profile.companyName,
                     secteur: companyData.profile.sector || 'Non spécifié',
                     industrie: companyData.profile.industry || 'Non spécifié'
@@ -975,7 +930,7 @@ async function sauvegarderAnalyseAutomatique(metrics, recommendation, companyDat
             
             if (entrepriseResponse.ok) {
                 const entrepriseData = await entrepriseResponse.json();
-                entrepriseId = entrepriseData.id; // ← ID RÉCUPÉRÉ
+                entrepriseId = entrepriseData.id; // ← L'API retourne directement {id: ...}
                 console.log(`✅ Entreprise créée avec ID: ${entrepriseId}`);
             }
         } catch (error) {
