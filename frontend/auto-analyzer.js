@@ -777,10 +777,12 @@ function calculateScoresAuto(metrics) {
 // 4.3 Fonction de sauvegarde
 async function saveTradingMetrics(entrepriseId, metrics) {
     try {
+        const symbol = "SYMBOLE_ICI";
         const response = await fetch('https://api-u54u.onrender.com/api/trading-metrics-avancees', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
+                symbol: symbol,
                 entreprise_id: entrepriseId,
                 ...metrics
             })
