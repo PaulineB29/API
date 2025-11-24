@@ -331,7 +331,7 @@ async function analyzeSingleCompanyOptimized(symbol, companyName) {
         if (!validation.isValid) {
             throw new Error(`Données insuffisantes: ${validation.reason}`);
         }
-
+        
         // Récupérer les autres données
         const endpoints = [
             `/quote?symbol=${symbol}`, 
@@ -359,6 +359,8 @@ async function analyzeSingleCompanyOptimized(symbol, companyName) {
             balanceSheet: balanceSheet?.[0]
         };
 
+        const tradingMetrics = await calculateAdvancedTradingMetrics(companyData);
+        await saveTradingMetrics(entrepriseId, tradingMetrics);
                 
         // Validation des données minimales
         if (!companyData.quote || !companyData.quote.price) {
@@ -775,7 +777,7 @@ function calculateScoresAuto(metrics) {
 // 4.3 Fonction de sauvegarde
 async function saveTradingMetrics(entrepriseId, metrics) {
     try {
-        const response = await fetch('/api/trading-metrics', {
+        const response = await fetch('https://api-u54u.onrender.com/api/trading-metrics-avancees', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -788,7 +790,7 @@ async function saveTradingMetrics(entrepriseId, metrics) {
             throw new Error(`HTTP ${response.status}`);
         }
         
-        console.log(`✅ Trading metrics saved for entreprise ${entrepriseId}`);
+        console.log(`✅ Trading metrics saved in trading_metrics_avancees for entreprise ${entrepriseId}`);
         return true;
         
     } catch (error) {
@@ -816,9 +818,10 @@ async function sauvegarderAnalyseAutomatique(metrics, recommendation, companyDat
         const scoreGlobal = maxScore > 0 ? (totalScore / maxScore) * 100 : 0;
         const netCash = (companyData.balanceSheet?.cashAndCashEquivalents || 0) - (companyData.balanceSheet?.totalDebt || 0);
 
-        // Création entreprise
+        // 1. CRÉATION ENTREPRISE ET RÉCUPÉRATION ID
+        let entrepriseId = null;
         try {
-            await fetch('https://api-u54u.onrender.com/api/analyses/entreprise', {
+            const entrepriseResponse = await fetch('https://api-u54u.onrender.com/api/analyses/entreprise', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -828,11 +831,27 @@ async function sauvegarderAnalyseAutomatique(metrics, recommendation, companyDat
                     industrie: companyData.profile.industry || 'Non spécifié'
                 })
             });
+            
+            if (entrepriseResponse.ok) {
+                const entrepriseData = await entrepriseResponse.json();
+                entrepriseId = entrepriseData.id; // ← ID RÉCUPÉRÉ
+                console.log(`✅ Entreprise créée avec ID: ${entrepriseId}`);
+            }
         } catch (error) {
             console.log('⚠️ Endpoint entreprise non disponible:', error.message);
         }
 
-        // Données analyse Buffett
+        // 2. CALCUL DES MÉTRIQUES TRADING
+        const tradingMetrics = await calculateAdvancedTradingMetrics(companyData);
+
+        // 3. SAUVEGARDE MÉTRIQUES TRADING (si ID disponible)
+        if (tradingMetrics && entrepriseId) {
+            await saveTradingMetrics(entrepriseId, tradingMetrics);
+        } else {
+            console.log('⚠️ Impossible de sauvegarder trading metrics - ID manquant');
+        }
+
+        // 4. DONNÉES ANALYSE BUFFETT
         const analyseData = {
             symbol: symbol,
             date_analyse: new Date().toISOString().split('T')[0],
@@ -866,12 +885,12 @@ async function sauvegarderAnalyseAutomatique(metrics, recommendation, companyDat
             inventoryTurnover: metrics.inventoryTurnover,
             receivablesTurnover: metrics.receivablesTurnover,
             freeCashFlow: metrics.freeCashFlow,
-            netCash: metrics.netCash,
+            netCash: metrics.netCash,            
             points_forts: getStrengthsAuto(metrics).join('; '),
             points_faibles: getWeaknessesAuto(metrics).join('; ')
         };
 
-        // Données financières
+        // 5. DONNÉES FINANCIÈRES
         const donneesData = {
             symbol: symbol,
             date_import: new Date().toISOString().split('T')[0],
@@ -895,7 +914,7 @@ async function sauvegarderAnalyseAutomatique(metrics, recommendation, companyDat
             freeCashFlow: companyData.cashFlow?.freeCashFlow
         };
 
-        // Sauvegarde analyse
+        // 6. SAUVEGARDE ANALYSE BUFFETT
         const responseAnalyse = await fetch('https://api-u54u.onrender.com/api/analyses', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -904,7 +923,7 @@ async function sauvegarderAnalyseAutomatique(metrics, recommendation, companyDat
 
         if (!responseAnalyse.ok) throw new Error(`Erreur analyse: HTTP ${responseAnalyse.status}`);
 
-        // Sauvegarde données financières
+        // 7. SAUVEGARDE DONNÉES FINANCIÈRES
         const responseDonnees = await fetch('https://api-u54u.onrender.com/api/analyses/donnees-financieres', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
