@@ -853,6 +853,7 @@ async function saveTradingMetrics(entrepriseId, metrics, symbol) {
         
         // Préparer les données avec logging
          const payload = {
+            symbol: symbol,
             entreprise_id: entrepriseId, 
             date_analyse: new Date().toISOString().split('T')[0],
             normalized_fcf: null,
