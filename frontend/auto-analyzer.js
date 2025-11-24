@@ -777,8 +777,20 @@ function calculateScoresAuto(metrics) {
 // 4.3 Fonction de sauvegarde
 async function saveTradingMetrics(entrepriseId, metrics) {
     try {
-        const symbol = "SYMBOLE_ICI";
-        const response = await fetch('https://api-u54u.onrender.com/api/trading-metrics-avancees', {
+        console.log(`💾 Tentative sauvegarde trading metrics pour ${symbol}, ID: ${entrepriseId}`);
+        
+        // Validation
+        if (!entrepriseId) {
+            console.warn(`⚠️ ID manquant pour ${symbol} - skip trading metrics`);
+            return false;
+        }
+
+        if (!symbol) {
+            console.warn(`⚠️ Symbol manquant - skip trading metrics`);
+            return false;
+        }
+        
+        const response = await fetch('https://api-u54u.onrender.com/api/analyses/trading-metrics-avancees', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -848,9 +860,9 @@ async function sauvegarderAnalyseAutomatique(metrics, recommendation, companyDat
 
         // 3. SAUVEGARDE MÉTRIQUES TRADING (si ID disponible)
         if (tradingMetrics && entrepriseId) {
-            await saveTradingMetrics(entrepriseId, tradingMetrics);
+            await saveTradingMetrics(entrepriseId, tradingMetrics, symbol);
         } else {
-            console.log('⚠️ Impossible de sauvegarder trading metrics - ID manquant');
+            console.log('⚠️ Impossible de sauvegarder trading metrics - données manquantes');
         }
 
         // 4. DONNÉES ANALYSE BUFFETT
