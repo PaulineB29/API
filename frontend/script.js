@@ -29,6 +29,7 @@ const companiesCount = document.getElementById('companiesCount');
 
 // Données stockées
 let currentData = {};
+let datePublication = new Date().toISOString().split('T')[0];
 
 // Dictionnaire des définitions des ratios
 const ratioDefinitions = {
@@ -514,17 +515,17 @@ function performAnalysis() {
     document.getElementById('companyName').textContent = profile.companyName;
     
     const metrics = calculateMetrics();
-    const scores = calculateScores(metrics);
-    const totalScore = scores.excellent * 3 + scores.good * 2 + scores.medium;
-    const maxScore = (scores.excellent + scores.good + scores.medium + scores.bad) * 3;
-    const percentage = (totalScore / maxScore) * 100;
+    
+    // ⭐ UTILISER LE NOUVEAU SYSTÈME
+    const advancedScores = calculateAdvancedScores(metrics);
+    const percentage = advancedScores.total;
     
     let recommendation;
-    if (percentage >= 75) {
+    if (percentage >= 80) {
         recommendation = 'EXCELLENT';
-    } else if (percentage >= 60) {
+    } else if (percentage >= 65) {
         recommendation = 'BON';
-    } else if (percentage >= 45) {
+    } else if (percentage >= 50) {
         recommendation = 'MOYEN';
     } else {
         recommendation = 'FAIBLE';
@@ -537,70 +538,93 @@ function performAnalysis() {
     sauvegarderAnalyse(metrics, recommendation);
 }
 
+function safeDivision(numerator, denominator, fallback = 0) {
+    return denominator && denominator !== 0 ? numerator / denominator : fallback;
+}
 
 function calculateMetrics() {
     const { profile, quote, balanceSheet, incomeStatement, cashFlow } = currentData;
     
-    // Profitabilité
-    const roe = (incomeStatement.netIncome / balanceSheet.totalStockholdersEquity) * 100;
-    const netMargin = (incomeStatement.netIncome / incomeStatement.revenue) * 100;
-    const grossMargin = ((incomeStatement.revenue - incomeStatement.costOfRevenue) / incomeStatement.revenue) * 100;
-    const sgaMargin = (incomeStatement.sellingGeneralAndAdministrativeExpenses / incomeStatement.revenue) * 100;
+    // Protection contre les divisions par zéro
+    const revenue = incomeStatement.revenue || 1;
+    const equity = balanceSheet.totalStockholdersEquity || 1;
+    const currentLiabilities = balanceSheet.totalCurrentLiabilities || 1;
+    const interestExpense = Math.abs(incomeStatement.interestExpense) || 1;
+    const eps = incomeStatement.epsDiluted || 1;
+    const shares = incomeStatement.weightedAverageShsOut || 1;
     
-    // Sécurité
-    const debtToEquity = balanceSheet.totalLiabilities / balanceSheet.totalStockholdersEquity;
-    const currentRatio = balanceSheet.totalCurrentAssets / balanceSheet.totalCurrentLiabilities;
-    const interestCoverage = incomeStatement.operatingIncome / Math.abs(incomeStatement.interestExpense || 1);
+    // Profitabilité avec safe division
+    const roe = safeDivision(incomeStatement.netIncome, equity) * 100;
+    const netMargin = safeDivision(incomeStatement.netIncome, revenue) * 100;
+    const grossMargin = safeDivision(
+        revenue - (incomeStatement.costOfRevenue || 0), 
+        revenue
+    ) * 100;
+    
+    const sgaExpense = incomeStatement.sellingGeneralAndAdministrativeExpenses || 0;
+    const sgaMargin = safeDivision(sgaExpense, revenue) * 100;
+    
+    // Sécurité financière
+    const debtToEquity = safeDivision(balanceSheet.totalLiabilities, equity);
+    const currentRatio = safeDivision(balanceSheet.totalCurrentAssets, currentLiabilities);
+    const interestCoverage = safeDivision(incomeStatement.operatingIncome, interestExpense);
     
     // Valuation
-    const peRatio = quote.price / incomeStatement.epsDiluted;
-    const earningsYield = (incomeStatement.epsDiluted / quote.price) * 100;
-    const priceToFCF = quote.marketCap / cashFlow.freeCashFlow;
-    const priceToMM200 = ((quote.price - quote.priceAvg200) / quote.priceAvg200) * 100;
-    const dividendYield = (profile.lastDividend / quote.price) * 100;
-    const pbRatio = quote.price / (balanceSheet.totalStockholdersEquity / incomeStatement.weightedAverageShsOut);
-    const pegRatio = peRatio / 15;
+    const peRatio = safeDivision(quote.price, eps);
+    const earningsYield = safeDivision(eps, quote.price) * 100;
+    const priceToFCF = safeDivision(quote.marketCap, cashFlow.freeCashFlow);
+    const priceToMM200 = safeDivision(
+        quote.price - quote.priceAvg200, 
+        quote.priceAvg200
+    ) * 100;
     
-    // ROIC
-    const taxRate = incomeStatement.incomeTaxExpense / incomeStatement.incomeBeforeTax;
+    const dividendYield = safeDivision(profile.lastDividend, quote.price) * 100;
+    const bookValuePerShare = safeDivision(equity, shares);
+    const pbRatio = safeDivision(quote.price, bookValuePerShare);
+    
+    // ROIC amélioré
+    const taxRate = safeDivision(
+        incomeStatement.incomeTaxExpense, 
+        incomeStatement.incomeBeforeTax
+    );
     const nopat = incomeStatement.operatingIncome * (1 - taxRate);
-    const investedCapital = balanceSheet.totalDebt + balanceSheet.totalStockholdersEquity;
-    const roic = (nopat / investedCapital) * 100;
+    const investedCapital = (balanceSheet.totalDebt || 0) + equity;
+    const roic = safeDivision(nopat, investedCapital) * 100;
     
-    // Free Cash Flow
-    const freeCashFlow = cashFlow.freeCashFlow;
+    // EV/EBITDA sécurisé
+    const enterpriseValue = quote.marketCap + 
+                          (balanceSheet.totalDebt || 0) - 
+                          (balanceSheet.cashAndCashEquivalents || 0);
+    const evToEbitda = safeDivision(enterpriseValue, incomeStatement.ebitda);
     
-    // EV/EBITDA
-    const enterpriseValue = quote.marketCap + balanceSheet.totalDebt - balanceSheet.cashAndCashEquivalents;
-    const evToEbitda = enterpriseValue / incomeStatement.ebitda;
-    
+    // PEG ratio avec croissance estimée sécurisée
+    const estimatedGrowth = Math.max(5, Math.min(roic, 25)); // Entre 5% et 25%
+    const pegRatio = safeDivision(peRatio, estimatedGrowth);
+
     return {
         roe, netMargin, grossMargin, sgaMargin,
         debtToEquity, currentRatio, interestCoverage,
         peRatio, earningsYield, priceToFCF,
         priceToMM200, dividendYield, pbRatio, pegRatio,
-        roic, freeCashFlow, evToEbitda
+        roic, freeCashFlow: cashFlow.freeCashFlow, evToEbitda
     };
 }
 
 function displaySummaryAnalysis(metrics, recommendation) {
-    const scores = calculateScores(metrics);
-    const totalScore = scores.excellent * 3 + scores.good * 2 + scores.medium;
-    const maxScore = (scores.excellent + scores.good + scores.medium + scores.bad) * 3;
-    const percentage = (totalScore / maxScore) * 100;
-    const categoryAnalysis = analyzeByCategory(metrics, scores);
+    const advancedScores = calculateAdvancedScores(metrics);
+    const percentage = advancedScores.total; // Score déjà en pourcentage
     
     let rating, ratingClass, details;
     
-    if (percentage >= 75) {
+    if (percentage >= 80) {
         rating = 'EXCELLENT';
         ratingClass = 'summary-excellent';
         details = 'Entreprise de haute qualité avec valorisation attractive';
-    } else if (percentage >= 60) {
+    } else if (percentage >= 65) {
         rating = 'BON';
         ratingClass = 'summary-good';
         details = 'Solide fondamentaux mais valorisation à surveiller';
-    } else if (percentage >= 45) {
+    } else if (percentage >= 50) {
         rating = 'MOYEN';
         ratingClass = 'summary-medium';
         details = 'Points forts et faibles équilibrés';
@@ -610,8 +634,183 @@ function displaySummaryAnalysis(metrics, recommendation) {
         details = 'Problèmes significatifs détectés';
     }
     
+    const categoryAnalysis = analyzeByCategoryAdvanced(metrics, advancedScores);
+    
     const summaryHTML = createSummaryHTML(percentage, rating, ratingClass, details, recommendation, categoryAnalysis, metrics);
     document.getElementById('summaryAnalysis').innerHTML = summaryHTML;
+}
+    
+function analyzeByCategoryAdvanced(metrics, advancedScores) {
+    return {
+        profitability: {
+            score: advancedScores.categories.profitability,
+            rating: getCategoryRating(advancedScores.categories.profitability >= 80),
+            strengths: getProfitabilityStrengths(metrics),
+            concerns: getProfitabilityConcerns(metrics)
+        },
+        safety: {
+            score: advancedScores.categories.safety,
+            rating: getCategoryRating(advancedScores.categories.safety >= 80),
+            strengths: getSafetyStrengths(metrics),
+            concerns: getSafetyConcerns(metrics)
+        },
+        valuation: {
+            score: advancedScores.categories.valuation,
+            rating: getCategoryRating(advancedScores.categories.valuation >= 80),
+            strengths: getValuationStrengths(metrics),
+            concerns: getValuationConcerns(metrics)
+        }
+    };
+}
+
+function calculateSafetyScore(metrics) {
+    const factors = [
+        { value: metrics.debtToEquity, weight: 0.4, excellent: 0.3, good: 0.5, reverse: true },
+        { value: metrics.currentRatio, weight: 0.3, excellent: 2.0, good: 1.5 },
+        { value: metrics.interestCoverage, weight: 0.3, excellent: 10, good: 5 }
+    ];
+    
+    return calculateWeightedScore(factors);
+}
+
+function calculateValuationScore(metrics) {
+    const factors = [
+        { value: metrics.peRatio, weight: 0.25, excellent: 10, good: 15, reverse: true },
+        { value: metrics.earningsYield, weight: 0.25, excellent: 10, good: 6 },
+        { value: metrics.priceToFCF, weight: 0.20, excellent: 10, good: 15, reverse: true },
+        { value: metrics.pbRatio, weight: 0.15, excellent: 1.5, good: 3, reverse: true },
+        { value: metrics.evToEbitda, weight: 0.15, excellent: 8, good: 12, reverse: true }
+    ];
+    
+    return calculateWeightedScore(factors);
+}
+
+function calculateWeightedScore(factors) {
+    let totalScore = 0;
+    let totalWeight = 0;
+    
+    factors.forEach(factor => {
+        const rating = getRating(
+            factor.value, 
+            factor.excellent, 
+            factor.good, 
+            factor.medium || factor.good * 0.7, // Valeur moyenne par défaut
+            factor.reverse || false
+        );
+        
+        const scoreValue = getScoreValue(rating);
+        totalScore += scoreValue * factor.weight;
+        totalWeight += factor.weight;
+    });
+    
+    return Math.round((totalScore / totalWeight) * 100);
+}
+
+function getScoreValue(rating) {
+    const values = {
+        'excellent': 1.0,
+        'good': 0.75, 
+        'medium': 0.5,
+        'bad': 0.25
+    };
+    return values[rating] || 0;
+}
+
+function calculateAdvancedScores(metrics) {
+    const categoryWeights = {
+        profitability: 0.35,
+        safety: 0.35, 
+        valuation: 0.30
+    };
+    
+    const categoryScores = {
+        profitability: calculateProfitabilityScore(metrics),
+        safety: calculateSafetyScore(metrics),
+        valuation: calculateValuationScore(metrics)
+    };
+    
+    // Score global pondéré
+    const totalScore = Object.entries(categoryScores).reduce((total, [category, score]) => {
+        return total + (score * categoryWeights[category]);
+    }, 0);
+    
+    return {
+        total: Math.round(totalScore),
+        categories: categoryScores,
+        breakdown: getScoreBreakdown(metrics)
+    };
+}
+
+function calculateProfitabilityScore(metrics) {
+    const factors = [
+        { value: metrics.roe, weight: 0.3, excellent: 20, good: 15 },
+        { value: metrics.netMargin, weight: 0.25, excellent: 20, good: 15 },
+        { value: metrics.roic, weight: 0.25, excellent: 15, good: 10 },
+        { value: metrics.grossMargin, weight: 0.2, excellent: 50, good: 40 }
+    ];
+    
+    return calculateWeightedScore(factors);
+}
+
+function getScoreBreakdown(metrics) {
+    return {
+        roe: getRating(metrics.roe, 20, 15, 10),
+        netMargin: getRating(metrics.netMargin, 20, 15, 10),
+        debtToEquity: getRating(metrics.debtToEquity, 0.3, 0.5, 1.0, true),
+        currentRatio: getRating(metrics.currentRatio, 2.0, 1.5, 1.0),
+        peRatio: getRating(metrics.peRatio, 10, 15, 25, true)
+    };
+}
+
+function getProfitabilityStrengths(metrics) {
+    const strengths = [];
+    if (metrics.roe > 20) strengths.push('ROE exceptionnel (>20%)');
+    if (metrics.netMargin > 20) strengths.push('Forte marge nette (>20%)');
+    if (metrics.roic > 15) strengths.push('ROIC excellent (>15%)');
+    if (metrics.grossMargin > 50) strengths.push('Marge brute élevée (>50%)');
+    return strengths.length > 0 ? strengths : ['Rentabilité standard'];
+}
+
+function getProfitabilityConcerns(metrics) {
+    const concerns = [];
+    if (metrics.roe < 10) concerns.push('ROE faible (<10%)');
+    if (metrics.netMargin < 10) concerns.push('Marge nette faible (<10%)');
+    if (metrics.roic < 8) concerns.push('ROIC insuffisant (<8%)');
+    return concerns;
+}
+
+function getSafetyStrengths(metrics) {
+    const strengths = [];
+    if (metrics.debtToEquity < 0.3) strengths.push('Faible endettement (<0.3)');
+    if (metrics.currentRatio > 2.0) strengths.push('Excellente liquidité (>2.0)');
+    if (metrics.interestCoverage > 10) strengths.push('Couverture intérêts solide (>10x)');
+    return strengths.length > 0 ? strengths : ['Solidité financière standard'];
+}
+
+function getSafetyConcerns(metrics) {
+    const concerns = [];
+    if (metrics.debtToEquity > 1.0) concerns.push('Dette élevée (>1.0)');
+    if (metrics.currentRatio < 1.0) concerns.push('Problème de liquidité (<1.0)');
+    if (metrics.interestCoverage < 3) concerns.push('Couverture intérêts faible (<3x)');
+    return concerns;
+}
+
+function getValuationStrengths(metrics) {
+    const strengths = [];
+    if (metrics.peRatio < 15) strengths.push('PER attractif (<15)');
+    if (metrics.earningsYield > 8) strengths.push('Rendement bénéfices élevé (>8%)');
+    if (metrics.priceToFCF < 15) strengths.push('Cash flow bien valorisé (<15)');
+    if (metrics.priceToMM200 > 5) strengths.push('Tendance haussière vs MM200');
+    return strengths.length > 0 ? strengths : ['Valorisation raisonnable'];
+}
+
+function getValuationConcerns(metrics) {
+    const concerns = [];
+    if (metrics.peRatio > 25) concerns.push('PER élevé (>25)');
+    if (metrics.earningsYield < 4) concerns.push('Rendement bénéfices faible (<4%)');
+    if (metrics.priceToFCF > 20) concerns.push('Cash flow cher (>20)');
+    if (metrics.priceToMM200 < -5) concerns.push('Tendance baissière vs MM200');
+    return concerns;
 }
 
 function createSummaryHTML(percentage, rating, ratingClass, details, recommendation, categoryAnalysis, metrics) {
@@ -976,81 +1175,6 @@ function getWeaknesses(metrics) {
     return weaknesses;
 }
 
-function calculateScores(metrics) {
-    const scores = { excellent: 0, good: 0, medium: 0, bad: 0 };
-    
-    // Profitabilité
-    scores[getRating(metrics.roe, 20, 15, 10)]++;
-    scores[getRating(metrics.netMargin, 20, 15, 10)]++;
-    scores[getRating(metrics.grossMargin, 50, 40, 30)]++;
-    scores[getRating(metrics.sgaMargin, 10, 20, 30, true)]++;
-    scores[getRating(metrics.roic, 15, 10, 8)]++;
-    
-    // Sécurité
-    scores[getRating(metrics.debtToEquity, 0.3, 0.5, 1.0, true)]++;
-    scores[getRating(metrics.currentRatio, 2.0, 1.5, 1.0)]++;
-    scores[getRating(metrics.interestCoverage, 10, 5, 3)]++;
-    
-    // Valuation
-    scores[getRating(metrics.peRatio, 10, 15, 25, true)]++;
-    scores[getRating(metrics.earningsYield, 10, 6, 4)]++;
-    scores[getRating(metrics.priceToFCF, 10, 15, 20, true)]++;
-    scores[getRating(metrics.priceToMM200, 5, 0, -5)]++;
-    scores[getRating(metrics.dividendYield, 4, 2, 1)]++;
-    scores[getRating(metrics.pbRatio, 1.5, 3, 5, true)]++;
-    scores[getRating(metrics.pegRatio, 0.8, 1.0, 1.2, true)]++;
-    scores[getRating(metrics.evToEbitda, 8, 12, 15, true)]++;
-    
-    return scores;
-}
-
-function analyzeByCategory(metrics, scores) {
-    return {
-        profitability: {
-            score: Math.round(((metrics.roe > 20 ? 1 : 0) + (metrics.netMargin > 20 ? 1 : 0) + 
-                             (metrics.grossMargin > 40 ? 1 : 0) + (metrics.sgaMargin < 20 ? 1 : 0) + 
-                             (metrics.roic > 10 ? 1 : 0)) / 5 * 100),
-            rating: getCategoryRating(metrics.roe > 20 && metrics.netMargin > 20 && metrics.roic > 15),
-            strengths: [
-                metrics.roe > 20 ? "ROE exceptionnel" : "",
-                metrics.netMargin > 20 ? "Forte marge nette" : "",
-                metrics.roic > 15 ? "ROIC excellent" : "",
-                metrics.grossMargin > 40 ? "Bonne marge brute" : ""
-            ].filter(Boolean),
-            concerns: []
-        },
-        safety: {
-            score: Math.round(((metrics.debtToEquity < 0.5 ? 1 : 0) + (metrics.currentRatio > 1.5 ? 1 : 0) + 
-                             (metrics.interestCoverage > 5 ? 1 : 0) + (metrics.freeCashFlow > 0 ? 1 : 0)) / 4 * 100),
-            rating: getCategoryRating(metrics.debtToEquity < 0.5 && metrics.currentRatio > 1.5),
-            strengths: [
-                metrics.interestCoverage > 10 ? "Excellente couverture des intérêts" : "",
-                metrics.freeCashFlow > 0 ? "Génération de cash flow saine" : ""
-            ].filter(Boolean),
-            concerns: [
-                metrics.debtToEquity > 1.0 ? "Dette élevée" : "",
-                metrics.currentRatio < 1.0 ? "Problème de liquidité" : ""
-            ].filter(Boolean)
-        },
-        valuation: {
-            score: Math.round(((metrics.peRatio < 20 ? 1 : 0) + (metrics.earningsYield > 5 ? 1 : 0) + 
-                             (metrics.priceToFCF < 20 ? 1 : 0) + (metrics.pbRatio < 3 ? 1 : 0) + 
-                             (metrics.pegRatio < 1.5 ? 1 : 0) + (metrics.evToEbitda < 15 ? 1 : 0)) / 6 * 100),
-            rating: getCategoryRating(metrics.peRatio < 15 && metrics.pegRatio < 1),
-            strengths: [
-                metrics.priceToMM200 > 5 ? "Tendance haussière vs MM200" : "",
-                metrics.dividendYield > 2 ? "Dividende attractif" : ""
-            ].filter(Boolean),
-            concerns: [
-                metrics.peRatio > 25 ? "Valorisation élevée (P/E)" : "",
-                metrics.earningsYield < 4 ? "Rendement des bénéfices faible" : "",
-                metrics.priceToFCF > 20 ? "Cash flow cher" : "",
-                metrics.pbRatio > 3 ? "Prime importante vs actifs" : "",
-                metrics.evToEbitda > 12 ? "Valorisation d'entreprise élevée" : ""
-            ].filter(Boolean)
-        }
-    };
-}
 
 function getCategoryRating(isExcellent) {
     return isExcellent ? 'excellent' : 'good';
