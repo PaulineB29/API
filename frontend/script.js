@@ -388,6 +388,11 @@ function createBasicDataHTML(profile, quote, incomeStatement) {
 }
 
 function createBalanceSheetHTML(balanceSheet) {
+    // Calculer la trésorerie nette
+    const cash = balanceSheet.cashAndCashEquivalents || 0;
+    const totalDebt = balanceSheet.totalDebt || 0;
+    const netCash = cash - totalDebt;
+    
     return `
         <div class="data-item">
             <span class="data-label">Trésorerie:</span>
