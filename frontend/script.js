@@ -510,14 +510,16 @@ function displayHistoricalData() {
     document.getElementById('historicalData').innerHTML = html;
 }
 
+// 📝 MISE À JOUR DE performAnalysis()
 function performAnalysis() {
     const { profile } = currentData;
     document.getElementById('companyName').textContent = profile.companyName;
     
     const metrics = calculateMetrics();
+    const secteur = profile.sector || 'General';
     
-    // ⭐ UTILISER LE NOUVEAU SYSTÈME
-    const advancedScores = calculateAdvancedScores(metrics);
+    // ⭐ UTILISER LE NOUVEAU SYSTÈME AVEC SECTEUR
+    const advancedScores = calculateAdvancedScores(metrics, secteur);
     const percentage = advancedScores.total;
     
     let recommendation;
@@ -531,7 +533,7 @@ function performAnalysis() {
         recommendation = 'FAIBLE';
     }
     
-    displaySummaryAnalysis(metrics, recommendation);
+    displaySummaryAnalysis(metrics, recommendation, advancedScores);
     showAnalysisSection();
     
     console.log('💾 Tentative de sauvegarde...');
@@ -610,9 +612,10 @@ function calculateMetrics() {
     };
 }
 
-function displaySummaryAnalysis(metrics, recommendation) {
-    const advancedScores = calculateAdvancedScores(metrics);
-    const percentage = advancedScores.total; // Score déjà en pourcentage
+// 🆕 MISE À JOUR DE displaySummaryAnalysis()
+function displaySummaryAnalysis(metrics, recommendation, advancedScores) {
+    const percentage = advancedScores.total;
+    const secteur = advancedScores.sector || 'General';
     
     let rating, ratingClass, details;
     
@@ -634,12 +637,27 @@ function displaySummaryAnalysis(metrics, recommendation) {
         details = 'Problèmes significatifs détectés';
     }
     
+    // Ajouter la note sectorielle
+    if (advancedScores.adjustments) {
+        const sectorNote = getSectorNote(advancedScores.adjustments);
+        if (sectorNote) {
+            details += ` | ${sectorNote}`;
+        }
+    }
+    
     const categoryAnalysis = analyzeByCategoryAdvanced(metrics, advancedScores);
     
-    const summaryHTML = createSummaryHTML(percentage, rating, ratingClass, details, recommendation, categoryAnalysis, metrics);
+    const summaryHTML = createSummaryHTML(percentage, rating, ratingClass, details, recommendation, categoryAnalysis, metrics, secteur);
     document.getElementById('summaryAnalysis').innerHTML = summaryHTML;
 }
-    
+
+function getSectorNote(adjustments) {
+    const notes = [];
+    if (adjustments.valuation?.description) notes.push(adjustments.valuation.description);
+    if (adjustments.safety?.description) notes.push(adjustments.safety.description);
+    return notes.join(', ');
+}
+
 function analyzeByCategoryAdvanced(metrics, advancedScores) {
     return {
         profitability: {
@@ -663,27 +681,87 @@ function analyzeByCategoryAdvanced(metrics, advancedScores) {
     };
 }
 
-function calculateSafetyScore(metrics) {
+function calculateSafetyScore(metrics, secteur = 'General') {
+    const sectorAdjustments = getSectorAdjustments(secteur);
+    
     const factors = [
-        { value: metrics.debtToEquity, weight: 0.4, excellent: 0.3, good: 0.5, reverse: true },
-        { value: metrics.currentRatio, weight: 0.3, excellent: 2.0, good: 1.5 },
-        { value: metrics.interestCoverage, weight: 0.3, excellent: 10, good: 5 }
+        { 
+            value: metrics.debtToEquity, 
+            weight: 0.4, 
+            excellent: sectorAdjustments.debtToEquity?.excellent || 0.3, 
+            good: sectorAdjustments.debtToEquity?.good || 0.5, 
+            medium: sectorAdjustments.debtToEquity?.medium || 1.0, 
+            reverse: true 
+        },
+        { 
+            value: metrics.currentRatio, 
+            weight: 0.3, 
+            excellent: sectorAdjustments.currentRatio?.excellent || 2.0, 
+            good: sectorAdjustments.currentRatio?.good || 1.5, 
+            medium: sectorAdjustments.currentRatio?.medium || 1.0 
+        },
+        { 
+            value: metrics.interestCoverage, 
+            weight: 0.3, 
+            excellent: 10, 
+            good: 5, 
+            medium: 3 
+        }
     ];
     
     return calculateWeightedScore(factors);
 }
 
-function calculateValuationScore(metrics) {
+
+// 🎯 FONCTIONS DE SCORING AVEC SEUILS SECTORIELS
+function calculateValuationScore(metrics, secteur = 'General') {
+    const sectorAdjustments = getSectorAdjustments(secteur);
+    
     const factors = [
-        { value: metrics.peRatio, weight: 0.25, excellent: 10, good: 15, reverse: true },
-        { value: metrics.earningsYield, weight: 0.25, excellent: 10, good: 6 },
-        { value: metrics.priceToFCF, weight: 0.20, excellent: 10, good: 15, reverse: true },
-        { value: metrics.pbRatio, weight: 0.15, excellent: 1.5, good: 3, reverse: true },
-        { value: metrics.evToEbitda, weight: 0.15, excellent: 8, good: 12, reverse: true }
+        { 
+            value: metrics.peRatio, 
+            weight: 0.25, 
+            excellent: sectorAdjustments.peRatio?.excellent || 10, 
+            good: sectorAdjustments.peRatio?.good || 15, 
+            medium: sectorAdjustments.peRatio?.medium || 25, 
+            reverse: true 
+        },
+        { 
+            value: metrics.earningsYield, 
+            weight: 0.25, 
+            excellent: sectorAdjustments.earningsYield?.excellent || 10, 
+            good: sectorAdjustments.earningsYield?.good || 6, 
+            medium: sectorAdjustments.earningsYield?.medium || 4 
+        },
+        { 
+            value: metrics.priceToFCF, 
+            weight: 0.20, 
+            excellent: sectorAdjustments.priceToFCF?.excellent || 10, 
+            good: sectorAdjustments.priceToFCF?.good || 15, 
+            medium: sectorAdjustments.priceToFCF?.medium || 20, 
+            reverse: true 
+        },
+        { 
+            value: metrics.pbRatio, 
+            weight: 0.15, 
+            excellent: sectorAdjustments.pbRatio?.excellent || 1.5, 
+            good: sectorAdjustments.pbRatio?.good || 3, 
+            medium: sectorAdjustments.pbRatio?.medium || 5, 
+            reverse: true 
+        },
+        { 
+            value: metrics.evToEbitda, 
+            weight: 0.15, 
+            excellent: sectorAdjustments.evToEbitda?.excellent || 8, 
+            good: sectorAdjustments.evToEbitda?.good || 12, 
+            medium: sectorAdjustments.evToEbitda?.medium || 15, 
+            reverse: true 
+        }
     ];
     
     return calculateWeightedScore(factors);
 }
+
 
 function calculateWeightedScore(factors) {
     let totalScore = 0;
@@ -716,18 +794,22 @@ function getScoreValue(rating) {
     return values[rating] || 0;
 }
 
-function calculateAdvancedScores(metrics) {
+function calculateAdvancedScores(metrics, secteur) {
     const categoryWeights = {
         profitability: 0.35,
         safety: 0.35, 
         valuation: 0.30
     };
     
-    const categoryScores = {
+    let categoryScores = {
         profitability: calculateProfitabilityScore(metrics),
         safety: calculateSafetyScore(metrics),
         valuation: calculateValuationScore(metrics)
     };
+    
+    // APPLIQUER LES BONUS/MALUS SECTORIELS
+    const sectorAdjustments = getSectorAdjustments(secteur);
+    categoryScores = applySectorAdjustments(categoryScores, sectorAdjustments);
     
     // Score global pondéré
     const totalScore = Object.entries(categoryScores).reduce((total, [category, score]) => {
@@ -737,16 +819,147 @@ function calculateAdvancedScores(metrics) {
     return {
         total: Math.round(totalScore),
         categories: categoryScores,
-        breakdown: getScoreBreakdown(metrics)
+        breakdown: getScoreBreakdown(metrics),
+        sector: secteur,
+        adjustments: sectorAdjustments
     };
 }
 
-function calculateProfitabilityScore(metrics) {
+// 🎯 CONFIGURATION DES SECTEURS
+function getSectorAdjustments(secteur) {
+    const sectorConfig = {
+        'Technology': {
+            valuation: { bonus: 15, description: 'Valorisation tech premium acceptée' },
+            profitability: { bonus: 5, description: 'Croissance élevée récompensée' },
+            peRatio: { excellent: 25, good: 35, medium: 45 },
+            priceToFCF: { excellent: 25, good: 35, medium: 50 },
+            evToEbitda: { excellent: 15, good: 20, medium: 25 }
+        },
+        'Healthcare': {
+            valuation: { bonus: 10, description: 'Valorisation pharma/healthcare' },
+            safety: { bonus: 5, description: 'Secteur défensif' },
+            peRatio: { excellent: 20, good: 30, medium: 40 },
+            priceToFCF: { excellent: 20, good: 30, medium: 40 },
+            debtToEquity: { excellent: 0.4, good: 0.7, medium: 1.0 }
+        },
+        'Financial Services': {
+            valuation: { bonus: 0, description: 'Valorisation standard' },
+            safety: { malus: -10, description: 'Dette structurelle du secteur' },
+            profitability: { bonus: 0, description: 'ROE élevé attendu' },
+            peRatio: { excellent: 8, good: 12, medium: 18 },
+            pbRatio: { excellent: 0.8, good: 1.2, medium: 1.8 },
+            debtToEquity: { excellent: 2.0, good: 4.0, medium: 6.0 } // Plus tolérant
+        },
+        'Energy': {
+            valuation: { bonus: 5, description: 'Secteur cyclique' },
+            safety: { malus: -5, description: 'Volatilité des prix' },
+            peRatio: { excellent: 8, good: 12, medium: 18 },
+            evToEbitda: { excellent: 4, good: 6, medium: 8 },
+            currentRatio: { excellent: 1.2, good: 1.0, medium: 0.8 } // Plus flexible
+        },
+        'Utilities': {
+            valuation: { bonus: 8, description: 'Secteur défensif' },
+            safety: { bonus: 5, description: 'Cash flows stables' },
+            profitability: { malus: -5, description: 'ROE modéré normal' },
+            peRatio: { excellent: 15, good: 20, medium: 25 },
+            earningsYield: { excellent: 8, good: 5, medium: 4 },
+            debtToEquity: { excellent: 0.8, good: 1.2, medium: 1.8 } // Dette acceptée
+        },
+        'Consumer Defensive': {
+            valuation: { bonus: 5, description: 'Secteur défensif' },
+            safety: { bonus: 8, description: 'Revenus stables' },
+            peRatio: { excellent: 18, good: 25, medium: 30 },
+            netMargin: { excellent: 12, good: 8, medium: 5 } // Marges plus faibles acceptées
+        },
+        'Consumer Cyclical': {
+            valuation: { bonus: 0, description: 'Secteur cyclique' },
+            safety: { malus: -8, description: 'Sensibilité économique' },
+            peRatio: { excellent: 12, good: 18, medium: 25 },
+            currentRatio: { excellent: 1.5, good: 1.2, medium: 0.9 }
+        },
+        'Industrials': {
+            valuation: { bonus: 0, description: 'Secteur traditionnel' },
+            safety: { bonus: 0, description: 'Standard' },
+            peRatio: { excellent: 15, good: 20, medium: 28 },
+            debtToEquity: { excellent: 0.4, good: 0.7, medium: 1.2 }
+        },
+        'Real Estate': {
+            valuation: { bonus: 5, description: 'Valorisation immobilier' },
+            safety: { malus: -5, description: 'Secteur endetté' },
+            profitability: { malus: -10, description: 'ROE faible normal' },
+            peRatio: { excellent: 12, good: 18, medium: 25 },
+            debtToEquity: { excellent: 1.0, good: 1.5, medium: 2.5 }, // Dette élevée acceptée
+            currentRatio: { excellent: 1.0, good: 0.8, medium: 0.6 } // Liquidité réduite
+        },
+        'Basic Materials': {
+            valuation: { bonus: 0, description: 'Secteur cyclique' },
+            safety: { malus: -5, description: 'Volatilité matières premières' },
+            peRatio: { excellent: 10, good: 15, medium: 22 },
+            evToEbitda: { excellent: 6, good: 9, medium: 12 }
+        },
+        'Communication Services': {
+            valuation: { bonus: 10, description: 'Croissance digitale' },
+            profitability: { bonus: 5, description: 'Économies d échelle' },
+            peRatio: { excellent: 18, good: 25, medium: 35 },
+            priceToFCF: { excellent: 15, good: 25, medium: 35 }
+        }
+    };
+    
+    return sectorConfig[secteur] || {
+        valuation: { bonus: 0, description: 'Secteur non spécifique' },
+        safety: { bonus: 0, description: 'Standards généraux' },
+        profitability: { bonus: 0, description: 'Standards généraux' }
+    };
+}
+
+// 🔧 APPLICATION DES AJUSTEMENTS
+function applySectorAdjustments(categoryScores, adjustments) {
+    const adjustedScores = { ...categoryScores };
+    
+    // Appliquer les bonus/malus par catégorie
+    Object.keys(adjustedScores).forEach(category => {
+        if (adjustments[category]) {
+            const adjustment = adjustments[category].bonus || adjustments[category].malus || 0;
+            adjustedScores[category] = Math.max(0, Math.min(100, adjustedScores[category] + adjustment));
+        }
+    });
+    
+    return adjustedScores;
+}
+
+
+function calculateProfitabilityScore(metrics, secteur = 'General') {
+    const sectorAdjustments = getSectorAdjustments(secteur);
+    
     const factors = [
-        { value: metrics.roe, weight: 0.3, excellent: 20, good: 15 },
-        { value: metrics.netMargin, weight: 0.25, excellent: 20, good: 15 },
-        { value: metrics.roic, weight: 0.25, excellent: 15, good: 10 },
-        { value: metrics.grossMargin, weight: 0.2, excellent: 50, good: 40 }
+        { 
+            value: metrics.roe, 
+            weight: 0.3, 
+            excellent: 20, 
+            good: 15, 
+            medium: 10 
+        },
+        { 
+            value: metrics.netMargin, 
+            weight: 0.25, 
+            excellent: sectorAdjustments.netMargin?.excellent || 20, 
+            good: sectorAdjustments.netMargin?.good || 15, 
+            medium: sectorAdjustments.netMargin?.medium || 10 
+        },
+        { 
+            value: metrics.roic, 
+            weight: 0.25, 
+            excellent: 15, 
+            good: 10, 
+            medium: 8 
+        },
+        { 
+            value: metrics.grossMargin, 
+            weight: 0.2, 
+            excellent: 50, 
+            good: 40, 
+            medium: 30 
+        }
     ];
     
     return calculateWeightedScore(factors);
@@ -829,7 +1042,9 @@ function createSummaryHTML(percentage, rating, ratingClass, details, recommendat
                     <div class="details-text-modern">${details}</div>
                 </div>
             </div>
-
+            <div class="context-note">
+                ${percentage < 70 ? '💡 Conseil: ' + getInvestmentAdvice(metrics, categoryAnalysis) : ''}
+            </div>
             <!-- PROFITABILITE -->
             <div class="compact-section">
                 <div class="section-header" onclick="toggleSection('profitability')">
@@ -1010,6 +1225,16 @@ function createSummaryHTML(percentage, rating, ratingClass, details, recommendat
 
 // Cache toutes les données pour la recherche
 let allCompaniesData = [];
+
+function getInvestmentAdvice(metrics, categoryAnalysis) {
+    if (categoryAnalysis.profitability.score >= 80 && categoryAnalysis.valuation.score < 40) {
+        return "Entreprise excellente mais attendre un meilleur prix d'entrée";
+    }
+    if (categoryAnalysis.valuation.score >= 60 && categoryAnalysis.profitability.score < 60) {
+        return "Valorisation attractive mais profitabilité à surveiller";
+    }
+    return "Analyse équilibrée - convient pour un investissement progressif";
+}
 
 // Charger toutes les entreprises
 async function loadAllCompanies() {
