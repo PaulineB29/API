@@ -34,7 +34,7 @@ body {
 
 .container {
     max-width: 2000px;
-    margin: 40px auto;
+    margin: 0;
     background: #0f1419;
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-lg);
