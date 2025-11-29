@@ -35,7 +35,7 @@ body {
 .container {
     max-width: 1400px;
     margin: 40px auto;
-    background: var(--surface);
+    background: #0f1419;
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-lg);
     overflow: hidden;
