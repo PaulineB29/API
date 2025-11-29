@@ -65,7 +65,7 @@ header p {
 /* Search Section */
 .search-section {
     padding: 40px;
-    background: var(--surface);
+    background: linear-gradient(135deg, rgb(44 53 67 / 80%), rgb(23 40 67));
     border-bottom: 1px solid var(--border-light);
 }
 
