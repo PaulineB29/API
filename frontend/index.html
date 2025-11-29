@@ -3,13 +3,151 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>📊 Analyse par action - Buffett Metrics</title>
-    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <title>Analyse par action</title>
     <link rel="stylesheet" href="/API/frontend/styles.css">
 </head>
 <body>
-    <div id="root"></div>
-    <script type="module" src="/API/frontend/script.js"></script>
+    <div class="container">
+        <header>
+            <h1>📈 Analyse par action</h1>
+            <p>Analyse une action selon les methodes de Warren Buffett</p>
+        </header>
+
+    <div class="search-section">
+        <div class="input-group">
+            <input type="text" id="symbolInput" placeholder="Ex: AAPL, MSFT, GOOGL..." value="AAPL">
+            <button id="fetchDataBtn">Obtenir les données</button>
+        </div>
+        <div class="input-group" style="margin-top: 15px;">
+            <button id="showAllCompaniesBtn" style="margin-left: 10px;">📋 Rechercher entreprise</button>
+        </div>
+        <div id="searchResults" class="search-results"></div>
+    </div>
+
+        
+            
+        <div id="dataSection" class="hidden">
+            <div class="data-grid">
+                <!-- Basic Data -->
+                <div class="data-card">
+                    <h3>📊 Données de base</h3>
+                    <div id="basicData"></div>
+                </div>
+                
+                <!-- Balance Sheet -->
+                <div class="data-card">
+                    <h3>💰 Bilan</h3>
+                    <div id="balanceSheetData"></div>
+                </div>
+                
+                <!-- Income Statement -->
+                <div class="data-card">
+                    <h3>📈 Compte de résultat</h3>
+                    <div id="incomeStatementData"></div>
+                </div>
+                
+                <!-- Cash Flow -->
+                <div class="data-card">
+                    <h3>💸 Flux de trésorerie</h3>
+                    <div id="cashFlowData"></div>
+                </div>
+                
+                <!-- Revenue History -->
+                <div class="data-card">
+                    <h3>📊 Historique du chiffre d'affaire (10 annees)</h3>
+                    <div id="historicalData"></div>
+                </div>
+            </div>
+
+            <button id="analyzeBtn" class="analyze-btn">Analyser</button>
+        </div>
+
+        <div id="analysisSection" class="hidden">
+            <h2>🎯 Analyse - <span id="companyName"></span></h2>
+            
+            <div class="analysis-grid">
+                <!-- Summary -->
+                <div class="analysis-category full-width">
+                    <h3>📋 Résumé</h3>
+                    <div id="summaryAnalysis"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="loading" class="hidden">
+            <div class="spinner"></div>
+            <p>Loading data...</p>
+        </div>
+
+        <div id="error" class="error hidden"></div>
+    </div>
+
+    <!-- Templates pour le rendu dynamique -->
+    <template id="metricCardTemplate">
+        <div class="metric">
+            <div class="metric-header">
+                <span class="metric-name"></span>
+                <div class="metric-score">
+                    <span class="metric-value"></span>
+                    <span class="performance-indicator"></span>
+                </div>
+            </div>
+            <div class="metric-rating"></div>
+            <div class="score-bar">
+                <div class="score-fill"></div>
+            </div>
+            <div class="metric-details"></div>
+        </div>
+    </template>
+
+    <template id="helpIconTemplate">
+    <span class="help-icon">
+        ?
+        <div class="tooltip">
+            <div class="tooltip-section">
+                <div class="tooltip-label">Définition:</div>
+                <div class="tooltip-value definition"></div>
+            </div>
+            <div class="tooltip-section">
+                <div class="tooltip-label">Calcul:</div>
+                <div class="tooltip-value calculation"></div>
+            </div>
+        </div>
+    </span>
+    </template>
+
+   
+    <!-- Modal pour le tableau -->
+    <div id="companiesModal" class="modal hidden">
+        <div class="modal-content large-modal">
+            <div class="modal-header">
+                <h3>📋 Toutes les entreprises disponibles</h3>
+                <span class="close-modal">&times;</span>
+            </div>
+            <div class="modal-search">
+                <input type="text" id="modalSearchInput" placeholder="🔍 Rechercher par symbole ou nom...">
+            </div>
+            <div class="companies-table-container">
+                <table id="companiesTable" class="companies-table">
+                    <thead>
+                        <tr>
+                            <th>Symbole</th>
+                            <th>Nom de l'entreprise</th>
+                        </tr>
+                    </thead>
+                    <tbody id="companiesTableBody">
+                        <!-- Les données seront chargées ici -->
+                    </tbody>
+                </table>
+            </div>
+            <div class="modal-footer">
+                <div id="companiesCount"></div>
+            </div>
+        </div>
+    </div>
+
+    
+    <script src="/API/frontend/script.js"></script>
+    <script src="/API/frontend/auto-analyzer.js"></script>
 </body>
 </html>
