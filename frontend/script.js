@@ -26,6 +26,34 @@ const modalSearchInput = document.getElementById('modalSearchInput');
 const companiesTableBody = document.getElementById('companiesTableBody');
 const companiesCount = document.getElementById('companiesCount');
 
+const navTabs = document.querySelectorAll('.nav-tab');
+const pages = document.querySelectorAll('.page');
+
+// Navigation entre les pages
+function switchPage(pageId) {
+    // Mettre à jour les onglets
+    navTabs.forEach(tab => {
+        tab.classList.toggle('active', tab.dataset.page === pageId);
+    });
+    
+    // Mettre à jour les pages
+    pages.forEach(page => {
+        page.classList.toggle('active', page.id === `${pageId}Page`);
+    });
+}
+
+// Événements de navigation
+navTabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+        switchPage(tab.dataset.page);
+    });
+});
+
+// Initialisation
+document.addEventListener('DOMContentLoaded', function() {
+    // Page par défaut
+    switchPage('analysis');
+});
 
 // Données stockées
 let currentData = {};
