@@ -6,7 +6,7 @@
 
 :root {
     --primary: #3b82f6;
-    --primary-dark: #2563eb;
+    --primary-dark: #8b5cf6;
     --success: #10b981;
     --warning: #f59e0b;
     --error: #ef4444;
@@ -155,7 +155,7 @@ input[type="text"]::placeholder {
 
 button {
     padding: 14px 28px;
-    background: var(--primary);
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
     color: white;
     border: none;
     border-radius: var(--radius);
@@ -168,7 +168,7 @@ button {
 }
 
 button:hover {
-    background: var(--primary-dark);
+    background: linear-gradient(135deg, var(--primary-dark), var(--primary));
     transform: translateY(-2px);
     box-shadow: var(--shadow-lg);
 }
@@ -178,7 +178,7 @@ button:active {
 }
 
 .analyze-btn {
-    background: var(--primary);
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));;
     font-size: 16px;
     padding: 14px 32px;
     margin: 30px auto 0;
@@ -186,7 +186,7 @@ button:active {
 }
 
 .analyze-btn:hover {
-    background: var(--primary-dark);
+    background: linear-gradient(135deg, var(--primary-dark), var(--primary));
 }
 
 .hidden {
