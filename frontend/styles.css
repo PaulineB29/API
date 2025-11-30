@@ -34,7 +34,7 @@ body {
 }
 
 .container {
-    max-width: 2000px;
+    max-width: 1600px;
     margin: 0 auto;
     background: var(--surface);
     border-radius: var(--radius-lg);
@@ -46,10 +46,11 @@ body {
 header {
     text-align: center;
     padding: 40px 30px 30px;
-    background: linear-gradient(135deg, #1e40af 0%, var(--primary-dark) 100%);
-    color: white;
+    background: var(--background);
+    color: var(--text-primary);
     position: relative;
     overflow: hidden;
+    border-bottom: 1px solid var(--border);
 }
 
 header::before {
@@ -59,7 +60,7 @@ header::before {
     right: -50%;
     width: 200px;
     height: 200px;
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(59, 130, 246, 0.05);
     border-radius: 50%;
 }
 
@@ -70,7 +71,7 @@ header::after {
     left: -10%;
     width: 150px;
     height: 150px;
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(59, 130, 246, 0.03);
     border-radius: 50%;
 }
 
@@ -81,11 +82,15 @@ header h1 {
     letter-spacing: -0.025em;
     position: relative;
     z-index: 2;
+    background: linear-gradient(135deg, var(--text-primary), var(--text-secondary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
 header p {
     font-size: 1.125rem;
-    opacity: 0.9;
+    color: var(--text-secondary);
     font-weight: 400;
     position: relative;
     z-index: 2;
