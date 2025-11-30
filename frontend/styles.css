@@ -420,13 +420,18 @@ button:active {
 .score-bad { background: var(--error); }
 
 .metric-rating {
-    padding: 6px 12px;
-    border-radius: 20px;
-    font-size: 0.75rem;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.7rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     color: white;
+    white-space: nowrap;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    min-width: 70px;
 }
 
 .rating-excellent { 
