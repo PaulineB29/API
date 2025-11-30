@@ -426,27 +426,27 @@ button:active {
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    color: white;
 }
 
 .rating-excellent { 
-    color: var(--success);
-    background: rgba(16, 185, 129, 0.2);
-    border: 1px solid rgba(16, 185, 129, 0.3);
+    background: var(--success); /* Vert franc */
+    border: none; /* Supprimer la bordure */
 }
+
 .rating-good { 
-    color: var(--primary);
-    background: rgba(59, 130, 246, 0.2);
-    border: 1px solid rgba(59, 130, 246, 0.3);
+    background: var(--primary); /* Bleu franc */
+    border: none; /* Supprimer la bordure */
 }
+
 .rating-medium { 
-    color: var(--warning);
-    background: rgba(245, 158, 11, 0.2);
-    border: 1px solid rgba(245, 158, 11, 0.3);
+    background: var(--warning); /* Orange franc */
+    border: none; /* Supprimer la bordure */
 }
+
 .rating-bad { 
-    color: var(--error);
-    background: rgba(239, 68, 68, 0.2);
-    border: 1px solid rgba(239, 68, 68, 0.3);
+    background: var(--error); /* Rouge franc */
+    border: none; /* Supprimer la bordure */
 }
 
 .metric-details {
