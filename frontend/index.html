@@ -3,83 +3,115 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Analyse par action</title>
+    <title>Financial Analysis Dashboard</title>
     <link rel="stylesheet" href="/API/frontend/styles.css">
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>📈 Analyse par action</h1>
-            <p>Analyse une action selon les methodes de Warren Buffett</p>
-        </header>
-
-    <div class="search-section">
-        <div class="input-group">
-            <input type="text" id="symbolInput" placeholder="Ex: AAPL, MSFT, GOOGL..." value="AAPL">
-            <button id="fetchDataBtn">Obtenir les données</button>
+    <!-- 🎯 NAVIGATION STICKY -->
+    <div class="nav-container">
+        <div class="nav-tabs">
+            <div class="nav-tab active" data-page="screener">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 3v18h18"/>
+                    <path d="M18 17V9"/>
+                    <path d="M13 17V5"/>
+                    <path d="M8 17v-3"/>
+                </svg>
+                Screener d'Actions
+            </div>
+            <div class="nav-tab" data-page="analysis">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+                </svg>
+                Analyse par Action
+            </div>
         </div>
-        <div class="input-group" style="margin-top: 15px;">
-            <button id="showAllCompaniesBtn" style="margin-left: 10px;">📋 Rechercher entreprise</button>
-        </div>
-        <div id="searchResults" class="search-results"></div>
     </div>
 
-        
-            
-        <div id="dataSection" class="hidden">
-            <div class="data-grid">
-                <!-- Basic Data -->
-                <div class="data-card">
-                    <h3>📊 Données de base</h3>
-                    <div id="basicData"></div>
-                </div>
-                
-                <!-- Balance Sheet -->
-                <div class="data-card">
-                    <h3>💰 Bilan</h3>
-                    <div id="balanceSheetData"></div>
-                </div>
-                
-                <!-- Income Statement -->
-                <div class="data-card">
-                    <h3>📈 Compte de résultat</h3>
-                    <div id="incomeStatementData"></div>
-                </div>
-                
-                <!-- Cash Flow -->
-                <div class="data-card">
-                    <h3>💸 Flux de trésorerie</h3>
-                    <div id="cashFlowData"></div>
-                </div>
-                
-                <!-- Revenue History -->
-                <div class="data-card">
-                    <h3>📊 Historique du chiffre d'affaire (10 annees)</h3>
-                    <div id="historicalData"></div>
-                </div>
-            </div>
-
-            <button id="analyzeBtn" class="analyze-btn">Analyser</button>
-        </div>
-
-        <div id="analysisSection" class="hidden">
-            <h2>🎯 Analyse - <span id="companyName"></span></h2>
-            
-            <div class="analysis-grid">
-                <!-- Summary -->
-                <div class="analysis-category full-width">
-                    <h3>📋 Résumé</h3>
-                    <div id="summaryAnalysis"></div>
-                </div>
+    <!-- 📊 PAGE SCREENER -->
+    <div id="screenerPage" class="page">
+        <div class="container">
+            <div class="content-placeholder">
+                <h2>Screener d'Actions</h2>
+                <p>Fonctionnalité en cours de développement...</p>
             </div>
         </div>
-        
-        <div id="loading" class="hidden">
-            <div class="spinner"></div>
-            <p>Loading data...</p>
-        </div>
+    </div>
 
-        <div id="error" class="error hidden"></div>
+    <!-- 📈 PAGE ANALYSE -->
+    <div id="analysisPage" class="page active">
+        <div class="container">
+            <header>
+                <h1>📈 Analyse par action</h1>
+                <p>Analyse une action selon les methodes de Warren Buffett</p>
+            </header>
+
+            <div class="search-section">
+                <div class="input-group">
+                    <input type="text" id="symbolInput" placeholder="Ex: AAPL, MSFT, GOOGL..." value="AAPL">
+                    <button id="fetchDataBtn">Obtenir les données</button>
+                </div>
+                <div class="input-group" style="margin-top: 15px;">
+                    <button id="showAllCompaniesBtn" style="margin-left: 10px;">📋 Rechercher entreprise</button>
+                </div>
+                <div id="searchResults" class="search-results"></div>
+            </div>
+
+            <div id="dataSection" class="hidden">
+                <div class="data-grid">
+                    <!-- Basic Data -->
+                    <div class="data-card">
+                        <h3>📊 Données de base</h3>
+                        <div id="basicData"></div>
+                    </div>
+                    
+                    <!-- Balance Sheet -->
+                    <div class="data-card">
+                        <h3>💰 Bilan</h3>
+                        <div id="balanceSheetData"></div>
+                    </div>
+                    
+                    <!-- Income Statement -->
+                    <div class="data-card">
+                        <h3>📈 Compte de résultat</h3>
+                        <div id="incomeStatementData"></div>
+                    </div>
+                    
+                    <!-- Cash Flow -->
+                    <div class="data-card">
+                        <h3>💸 Flux de trésorerie</h3>
+                        <div id="cashFlowData"></div>
+                    </div>
+                    
+                    <!-- Revenue History -->
+                    <div class="data-card">
+                        <h3>📊 Historique du chiffre d'affaire (10 annees)</h3>
+                        <div id="historicalData"></div>
+                    </div>
+                </div>
+
+                <button id="analyzeBtn" class="analyze-btn">Analyser</button>
+            </div>
+
+            <div id="analysisSection" class="hidden">
+                <h2>🎯 Analyse - <span id="companyName"></span></h2>
+                
+                <div class="analysis-grid">
+                    <!-- Summary -->
+                    <div class="analysis-category full-width">
+                        <h3>📋 Résumé</h3>
+                        <div id="summaryAnalysis"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="loading" class="hidden">
+                <div class="spinner"></div>
+                <p>Loading data...</p>
+            </div>
+
+            <div id="error" class="error hidden"></div>
+        </div>
     </div>
 
     <!-- Templates pour le rendu dynamique -->
@@ -101,22 +133,21 @@
     </template>
 
     <template id="helpIconTemplate">
-    <span class="help-icon">
-        ?
-        <div class="tooltip">
-            <div class="tooltip-section">
-                <div class="tooltip-label">Définition:</div>
-                <div class="tooltip-value definition"></div>
+        <span class="help-icon">
+            ?
+            <div class="tooltip">
+                <div class="tooltip-section">
+                    <div class="tooltip-label">Définition:</div>
+                    <div class="tooltip-value definition"></div>
+                </div>
+                <div class="tooltip-section">
+                    <div class="tooltip-label">Calcul:</div>
+                    <div class="tooltip-value calculation"></div>
+                </div>
             </div>
-            <div class="tooltip-section">
-                <div class="tooltip-label">Calcul:</div>
-                <div class="tooltip-value calculation"></div>
-            </div>
-        </div>
-    </span>
+        </span>
     </template>
 
-   
     <!-- Modal pour le tableau -->
     <div id="companiesModal" class="modal hidden">
         <div class="modal-content large-modal">
@@ -146,7 +177,6 @@
         </div>
     </div>
 
-    
     <script src="/API/frontend/script.js"></script>
     <script src="/API/frontend/auto-analyzer.js"></script>
 </body>
