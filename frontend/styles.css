@@ -408,14 +408,6 @@ button:active {
     margin-top: 8px;
 }
 
-.score-bar {
-    flex: 1;
-    height: 6px;
-    background: var(--border);
-    border-radius: 3px;
-    overflow: hidden;
-}
-
 .score-fill {
     height: 100%;
     border-radius: 3px;
