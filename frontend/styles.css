@@ -333,8 +333,7 @@ button:active {
     padding: 24px;
     box-shadow: var(--shadow);
     margin-bottom: 24px;
-    border: 1px solid var(--border);
-}
+    }
 
 .analysis-category.full-width {
     grid-column: 1 / -1;
