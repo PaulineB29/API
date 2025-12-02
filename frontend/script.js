@@ -685,7 +685,7 @@ function displaySummaryAnalysis(metrics, recommendation, advancedScores) {
     
     const categoryAnalysis = analyzeByCategoryAdvanced(metrics, advancedScores);
     
-    const summaryHTML = createSummaryHTML(percentage, rating, ratingClass, details, recommendation, categoryAnalysis, metrics, secteur);
+   const summaryHTML = createSummaryHTML(percentage, rating, ratingClass, details, recommendation, categoryAnalysis, metrics, secteur, currentData.profile);
     document.getElementById('summaryAnalysis').innerHTML = summaryHTML;
 }
 
@@ -1064,8 +1064,8 @@ function getValuationConcerns(metrics) {
     return concerns;
 }
 
-function createSummaryHTML(percentage, rating, ratingClass, details, recommendation, categoryAnalysis, metrics) {
-return `
+function createSummaryHTML(percentage, rating, ratingClass, details, recommendation, categoryAnalysis, metrics, secteur, profile) {
+    return `
     <div class="analysis-container">
         <!-- SCORE GLOBAL -->
         <div class="global-score-modern">
