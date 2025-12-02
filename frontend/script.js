@@ -55,6 +55,11 @@ document.addEventListener('DOMContentLoaded', function() {
     switchPage('analysis');
 });
 
+//conversion de la recherche en majuscule
+document.getElementById('stockSearch').addEventListener('input', function(e) {
+    this.value = this.value.toUpperCase();
+});
+
 // Données stockées
 let currentData = {};
 let datePublication = new Date().toISOString().split('T')[0];
