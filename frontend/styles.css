@@ -196,16 +196,24 @@ header .description {
 
 /* Pour le bouton "Obtenir les données" qui est séparé */
 .analyze-btn {
-    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    background: #2563eb; 
     font-size: 16px;
-    padding: 14px 28px;
-    margin: 0;
+    padding: 14px 32px;
+    margin: 20px auto 0;
     display: block;
     white-space: nowrap;
+    color: white;
+    border: none;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: var(--shadow);
 }
 
 .analyze-btn:hover {
-    background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+    background: #2563eb;
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
 }
 
 .search-results {
