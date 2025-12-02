@@ -44,55 +44,65 @@ body {
 
 /* Header - Design sombre avec gradient */
 header {
-    text-align: center;
+    text-align: left; /* Changer de center à left */
     padding: 40px 30px 30px;
     background: var(--background);
     color: var(--text-primary);
-    position: relative;
-    overflow: hidden;
-    }
-
-header::before {
-    content: '';
-    position: absolute;
-    top: -50%;
-    right: -50%;
-    width: 200px;
-    height: 200px;
-    background: var(--background);
-    border-radius: 50%;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 3rem; /* mb-12 */
 }
 
-header::after {
-    content: '';
-    position: absolute;
-    bottom: -30%;
-    left: -10%;
-    width: 150px;
-    height: 150px;
-    background: var(--background);
-    border-radius: 50%;
+.header-content {
+    display: flex;
+    align-items: center;
+    gap: 1rem; /* gap-4 */
+    margin-bottom: 1.5rem; /* mb-6 */
+}
+
+.header-icon {
+    width: 3.5rem; /* w-14 */
+    height: 3.5rem; /* h-14 */
+    border-radius: 0.75rem; /* rounded-xl */
+    background: linear-gradient(135deg, #3b82f6, #8b5cf6, #ec4899); /* blue-500 → purple-500 → pink-500 */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0; /* Empêche la réduction de taille */
+}
+
+/* Icône TrendingUp - version simplifiée en CSS */
+.header-icon::before {
+    content: "↗";
+    color: white;
+    font-size: 1.75rem; /* w-7/h-7 approximatif */
+    font-weight: bold;
+    transform: rotate(45deg);
+    display: block;
 }
 
 header h1 {
-    font-size: 2.25rem;
+    font-size: 1.875rem; /* text-3xl */
     font-weight: 700;
-    margin-bottom: 8px;
-    letter-spacing: -0.025em;
-    position: relative;
-    z-index: 2;
-    background: linear-gradient(135deg, var(--text-primary), var(--text-secondary));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    margin-bottom: 0.25rem;
+    background: none;
+    -webkit-text-fill-color: var(--text-primary);
+    color: var(--text-primary);
+    letter-spacing: normal;
 }
 
-header p {
-    font-size: 1.125rem;
-    color: var(--text-secondary);
+header .subtitle {
+    color: #94a3b8; /* text-slate-400 */
+    font-size: 0.875rem; /* text-sm */
+    margin-top: 0.25rem; /* mt-1 */
     font-weight: 400;
-    position: relative;
-    z-index: 2;
+}
+
+header .description {
+    color: #cbd5e1; /* text-slate-300 */
+    line-height: 1.625; /* leading-relaxed */
+    font-size: 1rem;
+    max-width: 800px;
+    margin-top: 1rem;
 }
 
 /* Search Section - Glassmorphisme sombre */
