@@ -52,12 +52,27 @@
             </header>
 
             <div class="search-section">
-                <div class="input-group">
-                    <input type="text" id="symbolInput" placeholder="Ex: AAPL, MSFT, GOOGL..." value="AAPL">
-                    <button id="fetchDataBtn">Obtenir les données</button>
-                </div>
-                <div class="input-group" style="margin-top: 15px;">
-                    <button id="showAllCompaniesBtn" style="margin-left: 10px;">📋 Rechercher entreprise</button>
+                <label class="search-label">
+                        <!-- Icône Search (à remplacer par votre implémentation) -->
+                        <span class="search-label-icon">🔍</span>
+                        <span>Rechercher une action par symbole boursier</span>
+                    </label>
+                    
+                    <div class="search-input-container">
+                        <input 
+                            type="text" 
+                            class="search-input" 
+                            placeholder="Entrez le symbole (ex: AAPL, MSFT, GOOGL)..."
+                            id="stockSearch"
+                        />
+                        
+                        <div class="search-button-container">
+                            <button class="search-button">
+                                <span class="search-button-icon">🔍</span>
+                                <span>Analyser</span>
+                            </button>
+                        </div>
+                    </div>
                 </div>
                 <div id="searchResults" class="search-results"></div>
             </div>
