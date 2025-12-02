@@ -56,7 +56,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 //conversion de la recherche en majuscule
-document.getElementById('stockSearch').addEventListener('input', function(e) {
+document.getElementById('symbolInput').addEventListener('input', function(e) {
     this.value = this.value.toUpperCase();
 });
 
