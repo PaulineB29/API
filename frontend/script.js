@@ -1065,24 +1065,33 @@ function getValuationConcerns(metrics) {
 }
 
 function createSummaryHTML(percentage, rating, ratingClass, details, recommendation, categoryAnalysis, metrics) {
-    return `
-        <div class="analysis-container">
-            <!-- SCORE GLOBAL -->
-            <div class="global-score-modern">
+return `
+    <div class="analysis-container">
+        <!-- SCORE GLOBAL -->
+        <div class="global-score-modern">
+            <h2>Analyse - ${profile.companyName}</h2>
+            
+            <div class="score-grid">
+                <!-- Colonne 1 : Score Global -->
                 <div class="score-main-modern">
-                    <div class="score-value-modern">${percentage.toFixed(0)}%</div>
-                    <div class="score-label-modern">Score</div>
+                    <div class="score-label-modern">Score Global Buffett</div>
+                    <div class="score-value-modern ${ratingClass}">${percentage.toFixed(0)}%</div>
+                    <div class="rating-badge-modern ${ratingClass}">${rating}</div>
                 </div>
                 
-                <div class="rating-badge-modern ${ratingClass}">${rating}</div>
-                
+                <!-- Colonne 2-3 : Interprétation -->
                 <div class="score-details-modern">
-                    <div class="details-text-modern">${details}</div>
+                    <h4>Interprétation</h4>
+                    <div class="details-text-modern">
+                        ${details}
+                    </div>
+                    <div class="recommendation-modern">
+                        ${percentage < 70 ? 'Conseil: ' + getInvestmentAdvice(metrics, categoryAnalysis) : '✅ Score satisfaisant pour un investissement'}
+                    </div>
                 </div>
             </div>
-            <div class="context-note">
-                ${percentage < 70 ? '💡 Conseil: ' + getInvestmentAdvice(metrics, categoryAnalysis) : ''}
-            </div>
+        </div>
+        
             <!-- PROFITABILITE -->
             <div class="compact-section">
                 <div class="section-header" onclick="toggleSection('profitability')">
