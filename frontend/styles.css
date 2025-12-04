@@ -34,7 +34,7 @@ body {
 }
 
 .container {
-    max-width: 1600px;
+    max-width: 1000px;
     margin: 0 auto;
     background: var(--surface);
     border-radius: var(--radius-lg);
@@ -44,12 +44,11 @@ body {
 
 /* Header - Design sombre avec gradient */
 header {
-    text-align: left; /* Changer de center à left */
-    padding: 40px 30px 30px;
+    text-align: left; 
+    padding: 5px 10px 10px;
     background: var(--background);
     color: var(--text-primary);
-    border-bottom: 1px solid var(--border);
-    margin-bottom: 3rem; /* mb-12 */
+    margin-bottom: 0.5rem; 
 }
 
 .header-content {
@@ -105,15 +104,11 @@ header .description {
     margin-top: 1rem;
 }
 
-/* Search Section - Glassmorphisme sombre */
-
 /* Container principal - Section Recherche */
 .search-section {
-    background: rgba(30, 41, 59, 0.3); /* bg-slate-800/30 */
+    background: linear-gradient(135deg, rgb(44 53 67 / 80%), rgb(23 40 67));
     backdrop-filter: blur(8px); /* backdrop-blur-sm */
-    border: 1px solid rgba(100, 116, 139, 0.5); /* border-slate-700/50 */
-    border-radius: 1rem; /* rounded-2xl */
-    padding: 2rem; /* p-8 */
+    padding: 1.5rem; 
     margin-bottom: 1.5rem; /* mb-6 */
 }
 
