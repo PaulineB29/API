@@ -480,20 +480,35 @@ header .description {
     line-height: 1.4;
 }
 
-/* Global Score - Design sombre moderne */
+/* 🎯 PARTIE 1 : Header avec Score Global */
 .global-score-modern {
-    background: linear-gradient(135deg, rgba(30, 41, 59, 0.5), rgba(15, 23, 42, 0.5));
+    background: linear-gradient(135deg, rgba(71, 85, 105, 0.5), rgba(15, 23, 42, 0.5)); /* bg-gradient-to-br from-slate-800/50 to-slate-900/50 */
     border-radius: 1rem; /* rounded-2xl */
     padding: 2rem; /* p-8 */
-    border: 1px solid rgba(100, 116, 139, 0.5); /* border-slate-700/50 */
+    border: 1px solid rgba(100, 116, 139, 0.5); /* border border-slate-700/50 */
     backdrop-filter: blur(8px); /* backdrop-blur-sm */
     margin-bottom: 1.5rem; /* mb-6 */
     position: relative;
     overflow: hidden;
 }
 
+/* A. En-tête du titre */
+.global-score-modern .title-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.5rem; /* mb-6 */
+}
 
-/* Titre - Nom de l'entreprise */
+.global-score-modern .title-header::before {
+    content: '';
+    width: 2.5rem; /* w-10 */
+    height: 2.5rem; /* h-10 */
+    background: linear-gradient(135deg, #f87171, #ec4899); /* bg-gradient-to-br from-red-400 to-pink-500 */
+    border-radius: 0.5rem; /* rounded-lg */
+    flex-shrink: 0;
+}
+
 .global-score-modern h2 {
     color: white;
     font-size: 1.5rem; /* text-2xl */
@@ -504,28 +519,30 @@ header .description {
     background-clip: unset;
     letter-spacing: normal;
     padding-left: 20px;
+    flex: 1;
+    text-align: left;
 }
 
 /* Grille Score Global (3 colonnes) */
 .global-score-modern .score-grid {
     display: grid;
-    grid-template-columns: 1fr; /* Mobile: 1 colonne */
+    grid-template-columns: 1fr; /* grid-cols-1 */
     gap: 1.5rem; /* gap-6 */
 }
 
 
 @media (min-width: 768px) {
     .global-score-modern .score-grid {
-        grid-template-columns: 1fr 2fr; /* Desktop: 2 colonnes (1/3 + 2/3) */
+        grid-template-columns: 1fr 2fr; /* md:grid-cols-3 - Mais on veut 1/3 + 2/3 */
     }
 }
 
 /* Colonne 1 : Score Global (1/3 largeur) */
 .score-main-modern {
-   background: rgba(15, 23, 42, 0.5); /* bg-slate-900/50 */
+    background: rgba(15, 23, 42, 0.5); /* bg-slate-900/50 */
     border-radius: 0.75rem; /* rounded-xl */
     padding: 1.5rem; /* p-6 */
-    border: 1px solid rgba(100, 116, 139, 0.3); /* border-slate-700/30 */
+    border: 1px solid rgba(100, 116, 139, 0.3); /* border border-slate-700/30 */
     text-align: center;
     display: flex;
     flex-direction: column;
@@ -533,6 +550,12 @@ header .description {
     justify-content: center;
     position: relative;
     overflow: hidden;
+}
+
+@media (min-width: 768px) {
+    .score-main-modern {
+        grid-column: span 1; /* col-span-1 */
+    }
 }
 
 /* Label "Score Global Buffett" */
@@ -556,12 +579,22 @@ header .description {
     background-clip: unset;
 }
 
-
 /* Couleurs dynamiques pour le score */
-.score-value-modern.excellent { color: #34d399; } /* text-green-400 */
-.score-value-modern.good { color: #fbbf24; } /* text-yellow-400 */
-.score-value-modern.medium { color: #fbbf24; } /* text-yellow-400 */
-.score-value-modern.bad { color: #f87171; } /* text-red-400 */
+.score-value-modern.excellent { 
+    color: #34d399; /* text-green-400 si score ≥ 70 */
+}
+
+.score-value-modern.good { 
+    color: #fbbf24; /* text-yellow-400 si score ≥ 40 */
+}
+
+.score-value-modern.medium { 
+    color: #fbbf24; /* text-yellow-400 */
+}
+
+.score-value-modern.bad { 
+    color: #f87171; /* text-red-400 si score < 40 */
+}
 
 
 /* Badge de niveau */
@@ -580,33 +613,41 @@ header .description {
     min-width: 100px;
 }
 
+
 .rating-badge-modern.excellent { 
-    background: linear-gradient(135deg, #10b981, #059669);
+    background: linear-gradient(135deg, #34d399, #10b981); /* Vert pour FORT */
     border-color: #34d399;
 }
 
 .rating-badge-modern.good { 
-    background: linear-gradient(135deg, #f59e0b, #d97706);
+    background: linear-gradient(135deg, #fbbf24, #f59e0b); /* Jaune pour MOYEN */
     border-color: #fbbf24;
 }
 
 .rating-badge-modern.medium { 
-    background: linear-gradient(135deg, #f59e0b, #d97706);
+    background: linear-gradient(135deg, #fbbf24, #f59e0b); /* Jaune pour MOYEN */
     border-color: #fbbf24;
 }
 
 .rating-badge-modern.faible { 
-    background: linear-gradient(135deg, #ef4444, #dc2626);
+    background: linear-gradient(135deg, #f87171, #ef4444); /* Rouge pour FAIBLE */
     border-color: #f87171;
 }
 
+/* Colonne 2-3 : Interprétation (2/3 largeur) */
 .score-details-modern {
-background: rgba(15, 23, 42, 0.5); /* bg-slate-900/50 */
+    background: rgba(15, 23, 42, 0.5); /* bg-slate-900/50 */
     border-radius: 0.75rem; /* rounded-xl */
     padding: 1.5rem; /* p-6 */
     border: 1px solid rgba(100, 116, 139, 0.3); /* border-slate-700/30 */
     display: flex;
     flex-direction: column;
+}
+
+@media (min-width: 768px) {
+    .score-details-modern {
+        grid-column: span 2; /* col-span-2 */
+    }
 }
 
 /* Titre de l'interprétation */
@@ -651,8 +692,14 @@ background: rgba(15, 23, 42, 0.5); /* bg-slate-900/50 */
         padding: 1.5rem;
     }
     
+    .global-score-modern .title-header {
+        flex-direction: row;
+        align-items: center;
+    }
+    
     .global-score-modern h2 {
         font-size: 1.25rem;
+        padding-left: 15px;
     }
     
     .score-value-modern {
