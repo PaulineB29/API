@@ -159,9 +159,10 @@ header .description {
 /* Bouton "Analyser" dans l'input */
 .search-button-container {
     position: absolute;
-    right: 1rem; /* right-4 */
-    top: 50%;
-    transform: translateY(-50%); /* -translate-y-1/2 */
+    right: 1rem;
+    bottom: 60px; /* 60px en partant du bas */
+    top: auto; /* Annule la propriété top précédente */
+    transform: none; /* Supprime la transformation de centrage vertical */
 }
 
 .search-button {
