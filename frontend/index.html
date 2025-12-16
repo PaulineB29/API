@@ -116,19 +116,76 @@
 
                 <button id="analyzeBtn" class="analyze-btn">Analyser</button>
             </div>
-
-            <div id="analysisSection" class="hidden">
-                <h2>🎯 Analyse - <span id="companyName"></span></h2>
-                
-                <div class="analysis-grid">
-                    <!-- Summary -->
-                    <div class="analysis-category full-width">
-                        <h3>📋 Résumé</h3>
-                        <div id="summaryAnalysis"></div>
-                    </div>
-                </div>
+<!-- 🎯 PARTIE 1 : Header avec Score Global -->
+<div id="analysisSection" class="hidden">
+    <!-- Container principal -->
+    <div class="global-score-modern">
+        <!-- A. En-tête du titre -->
+        <div class="title-header">
+            <!-- Icône décorative (carré dégradé) -->
+            <div class="decorative-icon"></div>
+            <h2>Analyse Buffett - <span id="companyName"></span></h2>
+        </div>
+        
+        <!-- B. Grille Score Global (3 colonnes) -->
+        <div class="score-grid">
+            <!-- Colonne 1 : Score Global (1/3 largeur) -->
+            <div class="score-main-modern">
+                <div class="score-label-modern">Score Global Buffett</div>
+                <div class="score-value-modern" id="globalScoreValue">0</div>
+                <div class="rating-badge-modern" id="globalScoreBadge">NON ÉVALUÉ</div>
             </div>
             
+            <!-- Colonne 2-3 : Interprétation (2/3 largeur) -->
+            <div class="score-details-modern">
+                <h4>Interprétation</h4>
+                <div class="details-text-modern" id="positiveInterpretation">
+                    L'analyse n'a pas encore été effectuée. Veuillez rechercher une entreprise et cliquer sur "Analyser".
+                </div>
+                <div class="details-text-modern warning" id="warningInterpretation" style="display: none;">
+                    <!-- Le texte d'avertissement sera ajouté dynamiquement -->
+                </div>
+                <div class="recommendation-modern" id="recommendationText" style="display: none;">
+                    <!-- La recommandation sera ajoutée dynamiquement -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Analyse détaillée (vous pouvez conserver cette partie) -->
+    <div class="analysis-grid">
+        <!-- Profitabilité -->
+        <div class="analysis-category">
+            <h3>💰 Profitabilité</h3>
+            <div id="profitabilityAnalysis"></div>
+        </div>
+        
+        <!-- Valorisation -->
+        <div class="analysis-category">
+            <h3>⚖️ Valorisation</h3>
+            <div id="valuationAnalysis"></div>
+        </div>
+        
+        <!-- Solidité Financière -->
+        <div class="analysis-category">
+            <h3>🏛️ Solidité Financière</h3>
+            <div id="financialStrengthAnalysis"></div>
+        </div>
+        
+        <!-- Avantage Concurrentiel -->
+        <div class="analysis-category">
+            <h3>🛡️ Avantage Concurrentiel</h3>
+            <div id="competitiveAdvantageAnalysis"></div>
+        </div>
+        
+        <!-- Perspectives de Croissance -->
+        <div class="analysis-category">
+            <h3>📈 Perspectives de Croissance</h3>
+            <div id="growthProspectsAnalysis"></div>
+        </div>
+    </div>
+</div>
+        
             <div id="loading" class="hidden">
                 <div class="spinner"></div>
                 <p>Loading data...</p>
