@@ -551,12 +551,10 @@ function displayHistoricalData() {
 // 📝 MISE À JOUR DE performAnalysis()
 function performAnalysis() {
     const { profile } = currentData;
-    document.getElementById('companyName').textContent = profile.companyName;
     
     const metrics = calculateMetrics();
     const secteur = profile.sector || 'General';
     
-    // ⭐ UTILISER LE NOUVEAU SYSTÈME AVEC SECTEUR
     const advancedScores = calculateAdvancedScores(metrics, secteur);
     const percentage = advancedScores.total;
     
@@ -571,11 +569,8 @@ function performAnalysis() {
         recommendation = 'FAIBLE';
     }
     
+    // Appeler la nouvelle fonction avec les paramètres corrects
     displaySummaryAnalysis(metrics, recommendation, advancedScores);
-    showAnalysisSection();
-    
-    console.log('💾 Tentative de sauvegarde...');
-    sauvegarderAnalyse(metrics, recommendation);
 }
 
 function safeDivision(numerator, denominator, fallback = 0) {
@@ -655,38 +650,215 @@ function displaySummaryAnalysis(metrics, recommendation, advancedScores) {
     const percentage = advancedScores.total;
     const secteur = advancedScores.sector || 'General';
     
-    let rating, ratingClass, details;
+    // Mettre à jour le nom de l'entreprise dans le header
+    document.getElementById('companyName').textContent = currentData.profile.companyName;
+    
+    // Mettre à jour le score global
+    const scoreElement = document.getElementById('globalScoreValue');
+    scoreElement.textContent = percentage;
+    scoreElement.className = 'score-value-modern';
+    
+    // Déterminer la classe de couleur basée sur le score
+    if (percentage >= 70) {
+        scoreElement.classList.add('excellent');
+    } else if (percentage >= 40) {
+        scoreElement.classList.add('good');
+    } else {
+        scoreElement.classList.add('bad');
+    }
+    
+    // Mettre à jour le badge
+    const badgeElement = document.getElementById('globalScoreBadge');
+    badgeElement.textContent = recommendation;
+    badgeElement.className = 'rating-badge-modern';
+    
+    // Déterminer la classe du badge
+    if (recommendation === 'EXCELLENT' || recommendation === 'BON') {
+        badgeElement.classList.add('excellent');
+    } else if (recommendation === 'MOYEN') {
+        badgeElement.classList.add('medium');
+    } else {
+        badgeElement.classList.add('faible');
+    }
+    
+    // Mettre à jour l'interprétation positive
+    const positiveElement = document.getElementById('positiveInterpretation');
+    let positiveText = '';
     
     if (percentage >= 80) {
-        rating = 'EXCELLENT';
-        ratingClass = 'summary-excellent';
-        details = 'Entreprise de haute qualité avec valorisation attractive';
+        positiveText = `${currentData.profile.companyName} présente un profil exceptionnel selon les critères de Warren Buffett. La rentabilité exceptionnelle (ROE: ${metrics.roe?.toFixed(1)}%, ROIC: ${metrics.roic?.toFixed(1)}%) et les marges solides démontrent un avantage concurrentiel durable.`;
     } else if (percentage >= 65) {
-        rating = 'BON';
-        ratingClass = 'summary-good';
-        details = 'Solide fondamentaux mais valorisation à surveiller';
+        positiveText = `${currentData.profile.companyName} présente des fondamentaux solides selon les critères de Warren Buffett. La profitabilité (ROE: ${metrics.roe?.toFixed(1)}%) et la solidité financière sont au rendez-vous.`;
     } else if (percentage >= 50) {
-        rating = 'MOYEN';
-        ratingClass = 'summary-medium';
-        details = 'Points forts et faibles équilibrés';
+        positiveText = `${currentData.profile.companyName} présente un profil équilibré. Certains points sont positifs (marge nette: ${metrics.netMargin?.toFixed(1)}%) mais d'autres nécessitent surveillance.`;
     } else {
-        rating = 'FAIBLE';
-        ratingClass = 'summary-bad';
-        details = 'Problèmes significatifs détectés';
+        positiveText = `L'analyse révèle des points de vigilance importants pour ${currentData.profile.companyName}. Des améliorations sont nécessaires dans plusieurs domaines clés.`;
+    }
+    
+    positiveElement.textContent = positiveText;
+    
+    // Mettre à jour l'avertissement si nécessaire
+    const warningElement = document.getElementById('warningInterpretation');
+    
+    if (percentage < 70 || metrics.peRatio > 25 || metrics.debtToEquity > 1.0) {
+        warningElement.style.display = 'block';
+        let warningText = 'Attention: ';
+        const warnings = [];
+        
+        if (percentage < 50) {
+            warnings.push('score global faible');
+        }
+        if (metrics.peRatio > 25) {
+            warnings.push(`valorisation élevée (P/E: ${metrics.peRatio?.toFixed(1)})`);
+        }
+        if (metrics.debtToEquity > 1.0) {
+            warnings.push(`niveau d'endettement significatif (D/E: ${metrics.debtToEquity?.toFixed(2)})`);
+        }
+        if (metrics.currentRatio < 1.0) {
+            warnings.push('problème de liquidité');
+        }
+        
+        warningText += warnings.join(', ') + ' nécessitent une analyse approfondie avant investissement.';
+        warningElement.textContent = warningText;
+    } else {
+        warningElement.style.display = 'none';
+    }
+    
+    // Mettre à jour la recommandation
+    const recommendationElement = document.getElementById('recommendationText');
+    
+    if (percentage >= 80) {
+        recommendationElement.style.display = 'block';
+        recommendationElement.textContent = '✅ Forte recommandation - Entreprise de haute qualité avec valorisation attractive.';
+    } else if (percentage >= 65) {
+        recommendationElement.style.display = 'block';
+        recommendationElement.textContent = '👍 Recommandation positive - Solides fondamentaux mais valorisation à surveiller.';
+    } else if (percentage >= 50) {
+        recommendationElement.style.display = 'block';
+        recommendationElement.textContent = '⚠️ Prudence recommandée - Points forts et faibles équilibrés. Investissement progressif conseillé.';
+    } else {
+        recommendationElement.style.display = 'block';
+        recommendationElement.textContent = '❌ Recommandation limitée - Problèmes significatifs détectés. Attendre des améliorations.';
     }
     
     // Ajouter la note sectorielle
-    if (advancedScores.adjustments) {
-        const sectorNote = getSectorNote(advancedScores.adjustments);
-        if (sectorNote) {
-            details += ` | ${sectorNote}`;
-        }
+    if (advancedScores.adjustments?.valuation?.description) {
+        recommendationElement.textContent += ` Note sectorielle: ${advancedScores.adjustments.valuation.description}`;
     }
     
-    const categoryAnalysis = analyzeByCategoryAdvanced(metrics, advancedScores);
+    // Afficher les analyses détaillées
+    displayDetailedAnalyses(metrics, advancedScores);
     
-   const summaryHTML = createSummaryHTML(percentage, rating, ratingClass, details, recommendation, categoryAnalysis, metrics, secteur, currentData.profile);
-    document.getElementById('summaryAnalysis').innerHTML = summaryHTML;
+    // Sauvegarder l'analyse
+    sauvegarderAnalyse(metrics, recommendation);
+    
+    // Afficher la section
+    showAnalysisSection();
+}
+function displayDetailedAnalyses(metrics, advancedScores) {
+    // Afficher l'analyse de profitabilité
+    document.getElementById('profitabilityAnalysis').innerHTML = createCategoryAnalysisHTML('profitability', metrics, advancedScores);
+    
+    // Afficher l'analyse de valorisation
+    document.getElementById('valuationAnalysis').innerHTML = createCategoryAnalysisHTML('valuation', metrics, advancedScores);
+    
+    // Afficher l'analyse de solidité financière
+    document.getElementById('financialStrengthAnalysis').innerHTML = createCategoryAnalysisHTML('safety', metrics, advancedScores);
+    
+    // Afficher l'analyse d'avantage concurrentiel
+    document.getElementById('competitiveAdvantageAnalysis').innerHTML = createCompetitiveAdvantageHTML(metrics);
+    
+    // Afficher l'analyse de perspectives de croissance
+    document.getElementById('growthProspectsAnalysis').innerHTML = createGrowthProspectsHTML(metrics);
+}
+
+function createCategoryAnalysisHTML(category, metrics, advancedScores) {
+    let html = '';
+    let score = advancedScores.categories[category] || 0;
+    
+    // Déterminer la couleur du score
+    let scoreClass = '';
+    if (score >= 80) scoreClass = 'excellent';
+    else if (score >= 60) scoreClass = 'good';
+    else if (score >= 40) scoreClass = 'medium';
+    else scoreClass = 'bad';
+    
+    html += `<div class="category-score ${scoreClass}">Score: ${score}%</div>`;
+    
+    // Ajouter les métriques spécifiques à la catégorie
+    if (category === 'profitability') {
+        html += createMetricItem('ROE', `${metrics.roe?.toFixed(1)}%`, metrics.roe, 20, 15, 10);
+        html += createMetricItem('Marge Nette', `${metrics.netMargin?.toFixed(1)}%`, metrics.netMargin, 20, 15, 10);
+        html += createMetricItem('ROIC', `${metrics.roic?.toFixed(1)}%`, metrics.roic, 15, 10, 8);
+        html += createMetricItem('Marge Brute', `${metrics.grossMargin?.toFixed(1)}%`, metrics.grossMargin, 50, 40, 30);
+    } else if (category === 'valuation') {
+        html += createMetricItem('P/E Ratio', metrics.peRatio?.toFixed(1), metrics.peRatio, 10, 15, 25, true);
+        html += createMetricItem('Earnings Yield', `${metrics.earningsYield?.toFixed(1)}%`, metrics.earningsYield, 10, 6, 4);
+        html += createMetricItem('Price/FCF', metrics.priceToFCF?.toFixed(1), metrics.priceToFCF, 10, 15, 20, true);
+        html += createMetricItem('Prix vs MM200', `${metrics.priceToMM200?.toFixed(1)}%`, metrics.priceToMM200, 5, 0, -5);
+    } else if (category === 'safety') {
+        html += createMetricItem('Dette/Equity', metrics.debtToEquity?.toFixed(2), metrics.debtToEquity, 0.3, 0.5, 1.0, true);
+        html += createMetricItem('Current Ratio', metrics.currentRatio?.toFixed(2), metrics.currentRatio, 2.0, 1.5, 1.0);
+        html += createMetricItem('Couverture Intérêts', `${metrics.interestCoverage?.toFixed(1)}x`, metrics.interestCoverage, 10, 5, 3);
+    }
+    
+    return html;
+}
+
+function createMetricItem(name, value, actual, excellent, good, medium, reverse = false) {
+    const rating = getRating(actual, excellent, good, medium, reverse);
+    const ratingClass = `rating-${rating}`;
+    
+    return `
+        <div class="metric-item">
+            <div class="metric-item-header">
+                <span class="metric-item-name">${name}</span>
+                <span class="metric-item-value">${value}</span>
+            </div>
+            <div class="metric-item-rating ${ratingClass}">${getRatingText(rating)}</div>
+        </div>
+    `;
+}
+
+function createCompetitiveAdvantageHTML(metrics) {
+    let html = '<div class="advantages-list">';
+    
+    if (metrics.roic > 15) {
+        html += '<div class="advantage positive">✅ ROIC élevé (>15%) - Avantage concurrentiel durable</div>';
+    }
+    if (metrics.grossMargin > 50) {
+        html += '<div class="advantage positive">✅ Forte marge brute (>50%) - Pouvoir de fixation des prix</div>';
+    }
+    if (metrics.netMargin > 20) {
+        html += '<div class="advantage positive">✅ Excellente marge nette (>20%) - Efficacité opérationnelle</div>';
+    }
+    if (metrics.debtToEquity < 0.3) {
+        html += '<div class="advantage positive">✅ Faible endettement - Flexibilité financière</div>';
+    }
+    
+    if (html === '<div class="advantages-list">') {
+        html += '<div class="advantage neutral">ℹ️ Avantage concurrentiel standard</div>';
+    }
+    
+    html += '</div>';
+    return html;
+}
+
+function createGrowthProspectsHTML(metrics) {
+    const growthRate = Math.min(20, Math.max(5, metrics.roic)); // Estimation simplifiée
+    let prospects = '';
+    
+    if (growthRate > 15) {
+        prospects = '<div class="prospect excellent">📈 Forte croissance estimée (>15% par an)</div>';
+    } else if (growthRate > 10) {
+        prospects = '<div class="prospect good">📈 Croissance modérée (10-15% par an)</div>';
+    } else if (growthRate > 5) {
+        prospects = '<div class="prospect medium">📈 Croissance modeste (5-10% par an)</div>';
+    } else {
+        prospects = '<div class="prospect bad">📉 Croissance limitée (<5% par an)</div>';
+    }
+    
+    return prospects;
 }
 
 function getSectorNote(adjustments) {
@@ -1532,6 +1704,7 @@ function showDataSection() {
 }
 
 function showAnalysisSection() {
+    const analysisSection = document.getElementById('analysisSection');
     analysisSection.classList.remove('hidden');
     analysisSection.scrollIntoView({ behavior: 'smooth' });
 }
