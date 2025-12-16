@@ -503,6 +503,7 @@ header .description {
     -webkit-text-fill-color: unset;
     background-clip: unset;
     letter-spacing: normal;
+    padding-left: 20px;
 }
 
 /* Grille Score Global (3 colonnes) */
